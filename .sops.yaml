@@ -1,0 +1,13 @@
+# .sops.yaml
+keys:
+  - &yubikey_user 614DB6CDA8EAD9CC822754057600B0BE0222D52B
+  - &host_machine age1l27mpa49j3y7ajwmqsu4pxsqzrx0ddku4j4nk5w4xdgakagh73tsycucse
+
+creation_rules:
+  - path_regex: secrets/.*\.yaml$
+    pgp: "EF41DBC95FA2D5AC1BECBA01BFBB1FAD6D53652A"
+    key_groups:
+      - pgp:
+          - *yubikey_user
+        age:
+          - *host_machine

@@ -12,12 +12,14 @@ let
     | .`  | |  >  <  (='.'=) | (_) \__ \
     |_|\_|___|/_/\_\ (")_(")  \___/|___/
   '';
-  mainUser = "christoffer";
+  allKeyData = import ./keys.nix;
+  mainUser = "mainuser";
 in
 {
   imports = [
     ./hardware-configuration.nix
     inputs.home-manager.nixosModules.home-manager
+    inputs.sops-nix.nixosModules.sops
   ];
 
   environment = {
@@ -30,6 +32,8 @@ in
       inherit (pkgs)
         glibc
         gcc
+        sops
+        yubikey-manager
         ;
     };
   };
@@ -57,6 +61,30 @@ in
     keyMap = "sv-latin1";
   };
 
+  sops = {
+    defaultSopsFile = ./secrets/secrets.yaml;
+    # created by services.openssh.generateHostKeys
+    age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
+    gnupg.sshKeyPaths = [ ];
+    secrets = {
+      user-password = {
+        neededForUsers = true;
+      };
+      "streamserver-client-id".key = "streamserver/client-id";
+      "streamserver-client-secret".key = "streamserver/client-secret";
+    };
+    templates = {
+      "streamserver-env" = {
+        content = ''
+          CLIENT_ID=${config.sops.placeholder."streamserver-client-id"}
+          CLIENT_SECRET=${config.sops.placeholder."streamserver-client-secret"}
+          USER_NAME=hoppenr
+        '';
+        restartUnits = [ "podman-streamserver.service" ];
+      };
+    };
+  };
+
   users = {
     mutableUsers = false;
     users = {
@@ -70,6 +98,7 @@ in
         hashedPasswordFile = config.sops.secrets.user-password.path;
         isNormalUser = true;
         shell = pkgs.zsh;
+        openssh.authorizedKeys.keys = lib.flatten (builtins.attrValues allKeyData);
       };
       "root" = {
         hashedPassword = null;
@@ -78,15 +107,15 @@ in
   };
 
   programs = {
-    hyprland.enable = true;
-    ssh.extraConfig = ''
-      Host *
-        AddKeysToAgent yes
-        IdentityFile ~/.local/state/ssh/id_ed25519
-        UserKnownHostsFile ~/.local/state/ssh/known_hosts.d/%k
-    '';
+    ssh = {
+      extraConfig = ''
+        Host *
+          AddKeysToAgent yes
+          IdentityFile ~/.local/state/ssh/id_ed25519
+          UserKnownHostsFile ~/.local/state/ssh/known_hosts.d/%k
+      '';
+    };
     zsh.enable = true;
-    steam.enable = true;
   };
 
   home-manager = {
@@ -98,16 +127,6 @@ in
       "${mainUser}" = import ./home.nix;
     };
   };
-
-  hardware.graphics.enable = true;
-
-  nixpkgs.config.allowUnfreePredicate =
-    pkg:
-    builtins.elem (lib.getName pkg) [
-      "discord"
-      "steam"
-      "steam-unwrapped"
-    ];
 
   fonts.packages = builtins.attrValues {
     inherit (pkgs.nerd-fonts)
@@ -125,12 +144,13 @@ in
   };
 
   services = {
+    pcscd.enable = true;
     greetd = {
       enable = true;
       settings = {
         default_session = {
           command = ''
-            ${pkgs.tuigreet}/bin/tuigreet \
+            ${lib.getExe pkgs.tuigreet} \
               --greeting ${asciibnnuy} \
               --user-menu \
               --time \
@@ -143,11 +163,17 @@ in
         };
       };
     };
-    pipewire = {
-      enable = true;
-      pulse.enable = true;
-    };
     resolved.enable = true;
+    openssh = {
+      enable = true;
+      generateHostKeys = true;
+      settings = {
+        PasswordAuthentication = false;
+        PermitRootLogin = "no";
+        AllowAgentForwarding = false;
+      };
+    };
+    pipewire.enable = false;
     udev = {
       packages = builtins.attrValues {
         inherit (pkgs)
@@ -165,10 +191,35 @@ in
     };
   };
 
-  networking.firewall.allowedTCPPorts = [
-    80
-    443
-  ];
+  virtualisation = {
+    podman.autoPrune = {
+      enable = true;
+      dates = "weekly";
+    };
+    oci-containers = {
+      backend = "podman";
+      containers = {
+        vaultwarden = {
+          autoStart = true;
+          image = "vaultwarden/server:latest";
+          volumes = [ "/var/podman/vaultwarden-data:/data" ];
+          ports = [ "8080:80" ];
+          environment = {
+            DOMAIN = "https://vaultwarden.hoppenr.xyz";
+            SIGNUPS_ALLOWED = "false";
+          };
+        };
+        streamserver = {
+          autoStart = true;
+          image = "ghcr.io/hoppenr/streamserver:latest";
+          ports = [ "8181:8181" ];
+          environmentFiles = [ config.sops.templates."streamserver-env".path ];
+        };
+      };
+    };
+  };
+
+  networking.firewall.allowedTCPPorts = [ ];
   networking.firewall.allowedUDPPorts = [ ];
   networking.firewall.enable = true;
 
