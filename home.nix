@@ -42,12 +42,18 @@
           name = "Christoffer Lundell";
           email = "christofferlundell@protonmail.com";
         };
+        safe.directory = "/persist/nixos";
         init.defaultBranch = "main";
       };
     };
     gpg = {
       enable = true;
       homedir = "${config.xdg.stateHome}/gnupg";
+      scdaemonSettings = {
+        disable-ccid = true;
+        pcsc-shared = true;
+        deny-admin = true;
+      };
       publicKeys = [
         {
           source = ./keys/pgp_pub.asc;
@@ -57,6 +63,11 @@
     };
     neovim = {
       enable = true;
+      extraPackages = builtins.attrValues {
+        inherit (pkgs)
+          cargo
+          ;
+      };
       extraLuaConfig = /* lua */ ''
         vim.cmd.filetype({ args = { 'plugin', 'indent', 'on' } })
         vim.cmd.syntax('on')
@@ -158,7 +169,7 @@
       enableCompletion = true;
       defaultKeymap = "viins";
       dirHashes = {
-        nix = "${config.home.homeDirectory}/projects/nixos";
+        nix = "/persist/nixos";
         personal = "${config.home.homeDirectory}/projects/personal";
       };
       dotDir = "${config.xdg.configHome}/zsh";
@@ -609,14 +620,14 @@
           settings = {
             nixd = {
               nixpkgs = {
-                expr = '(builtins.getFlake "${config.home.homeDirectory}/projects/nixos").inputs.nixpkgs',
+                expr = '(builtins.getFlake "/persist/nixos").inputs.nixpkgs',
               },
               formatting = {
                 command = { '${lib.getExe pkgs.nixfmt-rfc-style}' },
               },
               options = {
                 nixos = {
-                  expr = '(builtins.getFlake "${config.home.homeDirectory}/projects/nixos").nixosConfigurations.nixvm.options',
+                  expr = '(builtins.getFlake "/persist/nixos").nixosConfigurations.nixvm.options',
                 },
               },
             },
@@ -650,17 +661,11 @@
 
   home.file = {
     "${config.xdg.configHome}/nvim/rocks.toml" = {
-      source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/projects/nixos/res/rocks.toml";
+      source = config.lib.file.mkOutOfStoreSymlink "/persist/nixos/res/rocks.toml";
     };
     ".pki" = {
       source = config.lib.file.mkOutOfStoreSymlink "${config.xdg.stateHome}/pki";
     };
-
-    "${config.programs.gpg.homedir}/scdaemon.conf".text = ''
-      disable-ccid
-      pcsc-shared
-      deny-admin
-    '';
   };
 
   home.sessionVariables = {
@@ -673,6 +678,6 @@
     LESSHISTFILE = "${config.xdg.stateHome}/less/history";
   };
 
-  home.stateVersion = "25.05";
+  home.stateVersion = "25.11";
   programs.home-manager.enable = true;
 }

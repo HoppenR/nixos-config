@@ -63,8 +63,8 @@ in
 
   sops = {
     defaultSopsFile = ./secrets/secrets.yaml;
-    # created by services.openssh.generateHostKeys
-    age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
+    # created by services.openssh.hostKeys
+    age.sshKeyPaths = [ "/persist/etc/ssh/ssh_host_ed25519_key" ];
     gnupg.sshKeyPaths = [ ];
     secrets = {
       user-password = {
@@ -166,7 +166,12 @@ in
     resolved.enable = true;
     openssh = {
       enable = true;
-      generateHostKeys = true;
+      hostKeys = [
+        {
+          path = "/persist/etc/ssh/ssh_host_ed25519_key";
+          type = "ed25519";
+        }
+      ];
       settings = {
         PasswordAuthentication = false;
         PermitRootLogin = "no";
@@ -183,11 +188,13 @@ in
     };
   };
 
-  security.pam.u2f = {
-    enable = true;
-    settings = {
-      authfile = "/etc/u2f_keys";
-      userpresence = 1;
+  security = {
+    pam.u2f = {
+      enable = true;
+      settings = {
+        authfile = "/etc/u2f_keys";
+        userpresence = 1;
+      };
     };
   };
 
@@ -202,7 +209,7 @@ in
         vaultwarden = {
           autoStart = true;
           image = "vaultwarden/server:latest";
-          volumes = [ "/var/podman/vaultwarden-data:/data" ];
+          volumes = [ "/persistent/var/podman/vaultwarden-data:/data" ];
           ports = [ "8080:80" ];
           environment = {
             DOMAIN = "https://vaultwarden.hoppenr.xyz";
@@ -223,5 +230,5 @@ in
   networking.firewall.allowedUDPPorts = [ ];
   networking.firewall.enable = true;
 
-  system.stateVersion = "25.05"; # Did you read the comment?
+  system.stateVersion = "25.11"; # Did you read the comment?
 }
