@@ -1,13 +1,13 @@
 # .sops.yaml
 keys:
-  - &yubikey 614DB6CDA8EAD9CC822754057600B0BE0222D52B
-  - &nixsrv age1qvuqz8xyte5sq7cjgw68jlwsawfxuf0ny2rfl89c9ee5knnqmezsqz7u9r
+  - &yubikey_authentication 614DB6CDA8EAD9CC822754057600B0BE0222D52B
+  - &nixsrv_host age1qvuqz8xyte5sq7cjgw68jlwsawfxuf0ny2rfl89c9ee5knnqmezsqz7u9r
 
 creation_rules:
   - path_regex: secrets/.*\.yaml$
-    pgp: "EF41DBC95FA2D5AC1BECBA01BFBB1FAD6D53652A!"
+    pgp: "EF41DBC95FA2D5AC1BECBA01BFBB1FAD6D53652A"
     key_groups:
       - pgp:
-          - *yubikey
+          - *yubikey_authentication
         age:
-          - *nixsrv
+          - *nixsrv_host
