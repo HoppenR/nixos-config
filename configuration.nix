@@ -12,8 +12,15 @@ let
     | .`  | |  >  <  (='.'=) | (_) \__ \
     |_|\_|___|/_/\_\ (")_(")  \___/|___/
   '';
-  allKeyData = import ./keys.nix;
   mainUser = "mainuser";
+  cloudflareTunnelId = "07345750-570c-427b-910b-31c6cbba2ce2";
+  domainName = "hoppenr.xyz";
+  streamsPort = 8181;
+  databases = [
+    "booklore"
+    "vaultwarden"
+  ];
+  hosts = import ./hosts.nix;
 in
 {
   imports = [
@@ -30,9 +37,10 @@ in
     };
     systemPackages = builtins.attrValues {
       inherit (pkgs)
-        glibc
         gcc
+        glibc
         sops
+        xfsprogs
         yubikey-manager
         ;
     };
@@ -67,11 +75,12 @@ in
     age.sshKeyPaths = [ "/persist/etc/ssh/ssh_host_ed25519_key" ];
     gnupg.sshKeyPaths = [ ];
     secrets = {
-      user-password = {
-        neededForUsers = true;
-      };
+      user-password.neededForUsers = true;
       "streamserver-client-id".key = "streamserver/client-id";
       "streamserver-client-secret".key = "streamserver/client-secret";
+      "cloudflare-account-tag".key = "cloudflare/account-tag";
+      "cloudflare-tunnel-secret".key = "cloudflare/tunnel-secret";
+      "cloudflare-api-token".key = "cloudflare/api-token";
     };
     templates = {
       "streamserver-env" = {
@@ -81,6 +90,24 @@ in
           USER_NAME=hoppenr
         '';
         restartUnits = [ "podman-streamserver.service" ];
+      };
+      "cloudflare-tunnel-config" = {
+        content = ''
+          {
+            "AccountTag": "${config.sops.placeholder."cloudflare-account-tag"}",
+            "TunnelSecret": "${config.sops.placeholder."cloudflare-tunnel-secret"}",
+            "TunnelID": "${cloudflareTunnelId}"
+          }
+        '';
+      };
+      "caddy-dns-config" = {
+        owner = config.users.users.caddy.name;
+        group = config.users.users.caddy.group;
+        content = ''
+          tls {
+            dns cloudflare ${config.sops.placeholder.cloudflare-api-token}
+          }
+        '';
       };
     };
   };
@@ -98,7 +125,7 @@ in
         hashedPasswordFile = config.sops.secrets.user-password.path;
         isNormalUser = true;
         shell = pkgs.zsh;
-        openssh.authorizedKeys.keys = lib.flatten (builtins.attrValues allKeyData);
+        openssh.authorizedKeys.keys = lib.flatten (builtins.attrValues (import ./keys.nix));
       };
       "root" = {
         hashedPassword = null;
@@ -143,50 +170,126 @@ in
     allowed-users = [ "@wheel" ];
   };
 
-  services = {
-    pcscd.enable = true;
-    greetd = {
-      enable = true;
-      settings = {
-        default_session = {
-          command = ''
-            ${lib.getExe pkgs.tuigreet} \
-              --greeting ${asciibnnuy} \
-              --user-menu \
-              --time \
-              --time-format %R
+  services =
+    let
+      getFqdn = name: if name == "@" then domainName else "${name}.${domainName}";
+      caddyEndpoints = lib.mapAttrs' (n: v: lib.nameValuePair (getFqdn n) v) {
+        "@" = ''
+          root * /mnt/web
+          file_server browse
+        '';
+        "streams" = "reverse_proxy localhost:${toString streamsPort}";
+        "vaultwarden" = ''
+          reverse_proxy localhost:${toString config.services.vaultwarden.config.ROCKET_PORT}
+        '';
+        "www" = "redir https://${domainName}{uri}";
+      };
+      makeVirtualHost =
+        hostname: extraConfig:
+        lib.nameValuePair hostname {
+          extraConfig = ''
+            import ${config.sops.templates."caddy-dns-config".path}
+            ${extraConfig}
           '';
-          user = "${mainUser}";
         };
-        terminal = {
-          vt = 1;
+      makeCaddyIngress =
+        hostname: _:
+        lib.nameValuePair hostname {
+          service = "https://localhost:443";
+          originRequest.originServerName = hostname;
+        };
+    in
+    {
+      caddy = {
+        enable = true;
+        package = pkgs.caddy.withPlugins {
+          plugins = [ "github.com/caddy-dns/cloudflare@v0.2.2" ];
+          hash = "sha256-ea8PC/+SlPRdEVVF/I3c1CBprlVp1nrumKM5cMwJJ3U=";
+        };
+        virtualHosts = lib.mapAttrs' makeVirtualHost caddyEndpoints;
+      };
+      cloudflared = {
+        enable = true;
+        tunnels = {
+          "${cloudflareTunnelId}" = {
+            credentialsFile = config.sops.templates."cloudflare-tunnel-config".path;
+            ingress = (lib.mapAttrs' makeCaddyIngress caddyEndpoints) // {
+              "${getFqdn "ssh"}" = "ssh://localhost:22";
+            };
+            default = "http_status:503";
+          };
+        };
+      };
+      greetd = {
+        enable = true;
+        settings = {
+          default_session = {
+            command = ''
+              ${lib.getExe pkgs.tuigreet} \
+                --cmd "zsh --login" \
+                --greeting ${asciibnnuy} \
+                --user-menu \
+                --time \
+                --time-format %R
+            '';
+            user = "${mainUser}";
+          };
+          terminal = {
+            vt = 1;
+          };
+        };
+      };
+      resolved.enable = true;
+      openssh = {
+        enable = true;
+        hostKeys = [
+          {
+            path = "/persist/etc/ssh/ssh_host_ed25519_key";
+            type = "ed25519";
+          }
+        ];
+        settings = {
+          AllowAgentForwarding = false;
+          AuthenticationMethods = "publickey";
+          KbdInteractiveAuthentication = false;
+          PasswordAuthentication = false;
+          PermitRootLogin = "no";
+        };
+      };
+      pcscd.enable = true;
+      pipewire.enable = false;
+      postgresql = {
+        enable = true;
+        ensureDatabases = databases;
+        ensureUsers = map (db: {
+          name = db;
+          ensureDBOwnership = true;
+        }) databases;
+        dataDir = "/mnt/db/postgres";
+        initdbArgs = [ "--data-checksums" ];
+        settings = {
+          listen_addresses = lib.mkForce "";
+        };
+      };
+      udev = {
+        packages = builtins.attrValues {
+          inherit (pkgs)
+            yubikey-personalization
+            ;
+        };
+      };
+      vaultwarden = {
+        enable = true;
+        dbBackend = "postgresql";
+        config = {
+          DATABASE_URL = "postgresql://vaultwarden@%2Frun%2Fpostgresql/vaultwarden";
+          DOMAIN = "https://vaultwarden.${domainName}";
+          SIGNUPS_ALLOWED = false;
+          ROCKET_ADDRESS = "::1";
+          ROCKET_PORT = 8222;
         };
       };
     };
-    resolved.enable = true;
-    openssh = {
-      enable = true;
-      hostKeys = [
-        {
-          path = "/persist/etc/ssh/ssh_host_ed25519_key";
-          type = "ed25519";
-        }
-      ];
-      settings = {
-        PasswordAuthentication = false;
-        PermitRootLogin = "no";
-        AllowAgentForwarding = false;
-      };
-    };
-    pipewire.enable = false;
-    udev = {
-      packages = builtins.attrValues {
-        inherit (pkgs)
-          yubikey-personalization
-          ;
-      };
-    };
-  };
 
   security = {
     pam.u2f = {
@@ -198,6 +301,16 @@ in
     };
   };
 
+  systemd.services = {
+    caddy = {
+      unitConfig.RequiresMountsFor = "/mnt/web";
+    };
+    vaultwarden = {
+      after = [ "postgresql.service" ];
+      requires = [ "postgresql.service" ];
+    };
+  };
+
   virtualisation = {
     podman.autoPrune = {
       enable = true;
@@ -206,26 +319,43 @@ in
     oci-containers = {
       backend = "podman";
       containers = {
-        vaultwarden = {
-          autoStart = true;
-          image = "vaultwarden/server:latest";
-          volumes = [ "/persistent/var/podman/vaultwarden-data:/data" ];
-          ports = [ "8080:80" ];
-          environment = {
-            DOMAIN = "https://vaultwarden.hoppenr.xyz";
-            SIGNUPS_ALLOWED = "false";
-          };
-        };
         streamserver = {
           autoStart = true;
           image = "ghcr.io/hoppenr/streamserver:latest";
-          ports = [ "8181:8181" ];
+          ports = [ "${toString streamsPort}:8181" ];
           environmentFiles = [ config.sops.templates."streamserver-env".path ];
         };
       };
     };
   };
 
+  fileSystems =
+    let
+      nfsOptions = [
+        "_netdev"
+        "hard"
+        "nfsvers=4"
+        "noatime"
+        "retrans=2"
+        "timeo=600"
+        "x-systemd.automount"
+      ];
+      makeNfsMount =
+        name:
+        lib.nameValuePair "/mnt/${name}" {
+          device = "${hosts."truenas".ipv4}:/mnt/tank/${name}";
+          fsType = "nfs";
+          options = nfsOptions;
+        };
+      nfsMounts = [
+        "apps/booklore"
+        "db/postgres"
+        "web"
+      ];
+    in
+    builtins.listToAttrs (map makeNfsMount nfsMounts);
+
+  networking.hosts = lib.mapAttrs (_: value: [ value.ipv4 ]) hosts;
   networking.firewall.allowedTCPPorts = [ ];
   networking.firewall.allowedUDPPorts = [ ];
   networking.firewall.enable = true;
