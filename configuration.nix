@@ -271,6 +271,12 @@ in
           listen_addresses = lib.mkForce "";
         };
       };
+      # syncthing = {
+      #   enable = true;
+      #   user = "mainuser";
+      #   configDir = "/var/lib/syncthing";
+      #   dataDir = "/mnt/apps/syncthing";
+      # };
       udev = {
         packages = builtins.attrValues {
           inherit (pkgs)
@@ -299,6 +305,7 @@ in
         userpresence = 1;
       };
     };
+    polkit.enable = true;
   };
 
   systemd.services = {
