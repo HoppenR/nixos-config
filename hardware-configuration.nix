@@ -109,7 +109,6 @@
       ];
       useDHCP = false;
     };
-    resolvconf.enable = false;
     useDHCP = false;
   };
 
