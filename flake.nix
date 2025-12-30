@@ -1,7 +1,8 @@
 {
-  description = "NixOS on my home server";
+  description = "NixOS for my homelab and workstation";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -24,10 +25,12 @@
       nixosConfigurations = {
         logic = nixpkgs.lib.nixosSystem {
           specialArgs = { inherit inputs system; };
+          modules = [ ./roles/logic/configuration.nix ];
+        };
 
-          modules = [
-            ./roles/logic/configuration.nix
-          ];
+        nixvm = nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit inputs system; };
+          modules = [ ./roles/workstation/configuration.nix ];
         };
       };
     };
