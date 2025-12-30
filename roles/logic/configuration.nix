@@ -258,6 +258,7 @@ in
           };
         };
       };
+      pipewire.enable = false;
       resolved.enable = true;
       openssh = {
         enable = true;
@@ -276,7 +277,6 @@ in
         };
       };
       pcscd.enable = true;
-      pipewire.enable = false;
       postgresql = {
         enable = true;
         ensureDatabases = databases;

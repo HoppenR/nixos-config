@@ -57,7 +57,6 @@
 
   networking = {
     defaultGateway = "192.168.122.1";
-    hostName = "nixvm";
     interfaces.enp1s0 = {
       ipv4.addresses = [
         {
