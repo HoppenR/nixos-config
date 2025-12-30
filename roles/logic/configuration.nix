@@ -12,7 +12,6 @@ let
     | .`  | |  >  <  (='.'=) | (_) \__ \
     |_|\_|___|/_/\_\ (")_(")  \___/|___/
   '';
-  mainUser = "mainuser";
   cloudflareTunnelId = "07345750-570c-427b-910b-31c6cbba2ce2";
   domainName = "hoppenr.xyz";
   streamsPort = 8181;
@@ -20,11 +19,15 @@ let
     "booklore"
     "vaultwarden"
   ];
-  hosts = import ./hosts.nix;
+  roles = import ../../roles { inherit lib; };
+
+  mainuserHome = config.home-manager.users.mainuser;
 in
 {
+  _module.args.roles = roles;
   imports = [
     ./hardware-configuration.nix
+    ./options.nix
     inputs.home-manager.nixosModules.home-manager
     inputs.sops-nix.nixosModules.sops
   ];
@@ -70,7 +73,7 @@ in
   };
 
   sops = {
-    defaultSopsFile = ./secrets/secrets.yaml;
+    defaultSopsFile = ../../secrets/secrets.yaml;
     # created by services.openssh.hostKeys
     age.sshKeyPaths = [ "/persist/etc/ssh/ssh_host_ed25519_key" ];
     gnupg.sshKeyPaths = [ ];
@@ -115,7 +118,7 @@ in
   users = {
     mutableUsers = false;
     users = {
-      "${mainUser}" = {
+      mainuser = {
         extraGroups = [
           "video"
           "input"
@@ -125,7 +128,7 @@ in
         hashedPasswordFile = config.sops.secrets.user-password.path;
         isNormalUser = true;
         shell = pkgs.zsh;
-        openssh.authorizedKeys.keys = lib.flatten (builtins.attrValues (import ./keys.nix));
+        openssh.authorizedKeys.keys = roles."${config.networking.role}".authorizedKeys;
       };
       "root" = {
         hashedPassword = null;
@@ -135,12 +138,28 @@ in
 
   programs = {
     ssh = {
-      extraConfig = ''
-        Host *
-          AddKeysToAgent yes
-          IdentityFile ~/.local/state/ssh/id_ed25519
-          UserKnownHostsFile ~/.local/state/ssh/known_hosts.d/%k
-      '';
+      knownHosts = {
+        "${roles.storage.hostName}" = {
+          extraHostNames = [ "${roles.storage.ipv4}" ];
+          publicKey = roles.storage.publicKey;
+        };
+      };
+      extraConfig =
+        let
+          mainUserStatePath =
+            if mainuserHome.xdg.enable then
+              config.home-manager.users.mainuser.xdg.stateHome
+            else
+              "${mainuserHome.home.homeDirectory}/.local/state";
+        in
+        ''
+          Match localuser ${mainuserHome.home.username}
+            AddKeysToAgent yes
+            IdentityFile ${mainUserStatePath}/ssh/id_ed25519
+            UserKnownHostsFile ${mainUserStatePath}/ssh/known_hosts.d/%k
+          Match localuser root
+            IdentityFile /persist/etc/ssh/ssh_host_ed25519_key
+        '';
     };
     zsh.enable = true;
   };
@@ -151,7 +170,7 @@ in
     backupFileExtension = "backup";
     extraSpecialArgs = { inherit inputs; };
     users = {
-      "${mainUser}" = import ./home.nix;
+      mainuser = import ./home.nix;
     };
   };
 
@@ -175,7 +194,7 @@ in
       getFqdn = name: if name == "@" then domainName else "${name}.${domainName}";
       caddyEndpoints = lib.mapAttrs' (n: v: lib.nameValuePair (getFqdn n) v) {
         "@" = ''
-          root * /mnt/web
+          root * /replicated/web
           file_server browse
         '';
         "streams" = "reverse_proxy localhost:${toString streamsPort}";
@@ -232,7 +251,6 @@ in
                 --time \
                 --time-format %R
             '';
-            user = "${mainUser}";
           };
           terminal = {
             vt = 1;
@@ -265,7 +283,7 @@ in
           name = db;
           ensureDBOwnership = true;
         }) databases;
-        dataDir = "/mnt/db/postgres";
+        dataDir = "/replicated/db/postgres";
         initdbArgs = [ "--data-checksums" ];
         settings = {
           listen_addresses = lib.mkForce "";
@@ -275,7 +293,7 @@ in
       #   enable = true;
       #   user = "mainuser";
       #   configDir = "/var/lib/syncthing";
-      #   dataDir = "/mnt/apps/syncthing";
+      #   dataDir = "/replicated/apps/syncthing";
       # };
       udev = {
         packages = builtins.attrValues {
@@ -295,6 +313,64 @@ in
           ROCKET_PORT = 8222;
         };
       };
+      zrepl = {
+        enable = true;
+        settings = {
+          jobs = [
+            {
+              name = "push_db_${roles.storage.hostName}";
+              type = "push";
+              connect = {
+                host = "${roles.storage.ipv4}";
+                identity_file = "/persist/etc/ssh/ssh_host_ed25519_key";
+                port = 22;
+                type = "ssh+stdinserver";
+                user = "root";
+              };
+              filesystems = {
+                "tank/replicated/db<" = true;
+              };
+              replication = {
+                # https://zrepl.github.io/configuration/sendrecvoptions.html#job-note-property-replication
+                # Receiver might want this:
+                # recv.properties.override = {
+                #   mountpoint = "none"
+                #   canmount = "off";
+                # };
+                # send = {
+                #   properties = true;
+                # };
+                protection = {
+                  initial = "guarantee_resumability";
+                  incremental = "guarantee_incremental";
+                };
+              };
+              pruning = {
+                keep_sender = [
+                  { type = "not_replicated"; }
+                  {
+                    type = "last_n";
+                    count = 4;
+                  }
+                ];
+                keep_receiver = [
+                  {
+                    type = "grid";
+                    grid = "1x24h(keep=all) | 6x1d | 3x1w | 3x30d";
+                    regex = "^zrepl_";
+                  }
+                ];
+              };
+              snapshotting = {
+                interval = "1d";
+                prefix = "zrepl_";
+                timestamp_format = "iso_8601";
+                type = "periodic";
+              };
+            }
+          ];
+        };
+      };
     };
 
   security = {
@@ -310,7 +386,7 @@ in
 
   systemd.services = {
     caddy = {
-      unitConfig.RequiresMountsFor = "/mnt/web";
+      unitConfig.RequiresMountsFor = "/replicated/web";
     };
     vaultwarden = {
       after = [ "postgresql.service" ];
@@ -336,33 +412,12 @@ in
     };
   };
 
-  fileSystems =
-    let
-      nfsOptions = [
-        "_netdev"
-        "hard"
-        "nfsvers=4"
-        "noatime"
-        "retrans=2"
-        "timeo=600"
-        "x-systemd.automount"
-      ];
-      makeNfsMount =
-        name:
-        lib.nameValuePair "/mnt/${name}" {
-          device = "${hosts."truenas".ipv4}:/mnt/tank/${name}";
-          fsType = "nfs";
-          options = nfsOptions;
-        };
-      nfsMounts = [
-        "apps/booklore"
-        "db/postgres"
-        "web"
-      ];
-    in
-    builtins.listToAttrs (map makeNfsMount nfsMounts);
-
-  networking.hosts = lib.mapAttrs (_: value: [ value.ipv4 ]) hosts;
+  networking.hostId = "8425e349";
+  networking.hostName = roles."${config.networking.role}".hostName;
+  networking.hosts = lib.mapAttrs' (_: host: lib.nameValuePair host.ipv4 [ host.hostName ]) (
+    lib.filterAttrs (role: host: (host ? ipv4) && (role != config.networking.role)) roles
+  );
+  networking.role = "logic";
   networking.firewall.allowedTCPPorts = [ ];
   networking.firewall.allowedUDPPorts = [ ];
   networking.firewall.enable = true;

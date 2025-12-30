@@ -2,10 +2,15 @@
   config,
   pkgs,
   lib,
+  inputs,
   ...
 }:
 {
-  home.username = "mainuser";
+  imports = [
+    inputs.nix-index-database.homeModules.nix-index
+  ];
+
+  home.username = lib.mkForce "mainuser";
   home.homeDirectory = "/home/${config.home.username}";
   xdg = {
     enable = true;
@@ -23,7 +28,6 @@
   };
 
   programs = {
-    command-not-found.enable = true;
     btop = {
       enable = true;
       settings = {
@@ -56,7 +60,7 @@
       };
       publicKeys = [
         {
-          source = ./keys/pgp_pub.asc;
+          source = ../../keys/pgp_pub.asc;
           trust = 5;
         }
       ];
@@ -164,6 +168,7 @@
       viAlias = true;
       vimAlias = true;
     };
+    nix-index-database.comma.enable = true;
     zsh = {
       enable = true;
       enableCompletion = true;

@@ -2,9 +2,7 @@
 # and may be overwritten by future invocations.  Please make changes
 # to /etc/nixos/configuration.nix instead.
 {
-  config,
   lib,
-  pkgs,
   modulesPath,
   ...
 }:
@@ -18,8 +16,10 @@
     "uhci_hcd"
     "ehci_pci"
     "ahci"
+    "xhci_pci"
     "virtio_pci"
     "virtio_scsi"
+    "usbhid"
     "sd_mod"
     "sr_mod"
   ];
@@ -28,58 +28,48 @@
   boot.extraModulePackages = [ ];
 
   fileSystems."/" = {
-    device = "/dev/disk/by-uuid/64ac382b-08e1-4eb7-8593-51612a05b8e5";
-    fsType = "btrfs";
-    options = [
-      "subvol=@root"
-      "compress=zstd"
-      "noatime"
-    ];
+    device = "tank/local/root";
+    fsType = "zfs";
   };
 
   fileSystems."/nix" = {
-    device = "/dev/disk/by-uuid/64ac382b-08e1-4eb7-8593-51612a05b8e5";
-    fsType = "btrfs";
-    options = [
-      "subvol=@nix"
-      "compress=zstd"
-      "noatime"
-    ];
+    device = "tank/local/nix";
+    fsType = "zfs";
   };
 
   fileSystems."/home" = {
-    device = "/dev/disk/by-uuid/64ac382b-08e1-4eb7-8593-51612a05b8e5";
-    fsType = "btrfs";
-    options = [
-      "subvol=@home"
-      "compress=zstd"
-      "noatime"
-    ];
+    device = "tank/safe/home";
+    fsType = "zfs";
   };
 
   fileSystems."/persist" = {
-    device = "/dev/disk/by-uuid/64ac382b-08e1-4eb7-8593-51612a05b8e5";
-    fsType = "btrfs";
-    options = [
-      "subvol=@persist"
-      "compress=zstd"
-      "noatime"
-    ];
+    device = "tank/safe/persist";
+    fsType = "zfs";
     neededForBoot = true;
   };
 
   fileSystems."/var/log" = {
-    device = "/dev/disk/by-uuid/64ac382b-08e1-4eb7-8593-51612a05b8e5";
-    fsType = "btrfs";
-    options = [
-      "subvol=@log"
-      "compress=zstd"
-      "noatime"
-    ];
+    device = "tank/local/var-log";
+    fsType = "zfs";
+  };
+
+  fileSystems."/replicated/db" = {
+    device = "tank/replicated/db";
+    fsType = "zfs";
+  };
+
+  fileSystems."/replicated/apps" = {
+    device = "tank/replicated/apps";
+    fsType = "zfs";
+  };
+
+  fileSystems."/replicated/web" = {
+    device = "tank/replicated/web";
+    fsType = "zfs";
   };
 
   fileSystems."/boot" = {
-    device = "/dev/disk/by-uuid/9A78-D186";
+    device = "/dev/disk/by-uuid/0AA7-88C1";
     fsType = "vfat";
     options = [
       "fmask=0077"
@@ -88,12 +78,11 @@
   };
 
   swapDevices = [
-    { device = "/dev/disk/by-uuid/91546053-b2ae-4a69-b575-b98facfb58a9"; }
+    { device = "/dev/disk/by-uuid/2091630e-60ef-4f13-80d1-7be6e1254d1a"; }
   ];
 
   networking = {
     defaultGateway = "192.168.0.1";
-    hostName = "nixsrv";
     interfaces.ens18 = {
       ipv4.addresses = [
         {

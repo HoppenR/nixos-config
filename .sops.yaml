@@ -1,7 +1,7 @@
 # .sops.yaml
 keys:
   - &yubikey_authentication 614DB6CDA8EAD9CC822754057600B0BE0222D52B
-  - &nixsrv_host age1qvuqz8xyte5sq7cjgw68jlwsawfxuf0ny2rfl89c9ee5knnqmezsqz7u9r
+  - &logic_host age1yfyla0uzflzeg6s4sh6k5lsvqqh2vl4zpegfdum4400mjtvwrexqy7eweu
 
 creation_rules:
   - path_regex: secrets/.*\.yaml$
@@ -10,4 +10,4 @@ creation_rules:
       - pgp:
           - *yubikey_authentication
         age:
-          - *nixsrv_host
+          - *logic_host
