@@ -10,6 +10,10 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
   outputs =
     { nixpkgs, ... }@inputs:
@@ -18,11 +22,11 @@
     in
     {
       nixosConfigurations = {
-        nixsrv = nixpkgs.lib.nixosSystem {
+        logic = nixpkgs.lib.nixosSystem {
           specialArgs = { inherit inputs system; };
 
           modules = [
-            ./configuration.nix
+            ./roles/logic/configuration.nix
           ];
         };
       };
