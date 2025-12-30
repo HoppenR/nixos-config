@@ -9,7 +9,7 @@ let
       ipv4 = "192.168.0.41";
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA5h7nWVcRhCpsi8RfiqyCr5tUyWQj53/VfoP7dp2mgd";
       authorizedRoles = [
-        "laptop"
+        "workstation"
         "yubikey-authentication"
       ];
     };
@@ -38,7 +38,7 @@ let
         "yubikey-authentication"
       ];
     };
-    laptop = {
+    workstation = {
       publicKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCYC83LScH9QkexkZFQQB834gCuEkFI7KIHUdJ7WJPceILeibOlB8d1CW9bFg4O8ijCxtm5LtSphGUA26XVMY+rv3T38JUfD1iIlOtHpUFLMBVT+Ox7wgJ4AuElY2wsvNcjI3FbhrjcqMOdQPrY2T6pw47aD7niegMPsR1L48H+hPqyA8/hyVOj5Cluc2MhQnLMXMWKxLiGidFV+SYrFGvEWmV2T9IzsCVqOdxyRgKJ9v1Lsx1s20ZfIwiGOEhp7EcAcbmS6tLWh862qZHgH3Yl2nwFtbmM2G/++IeSnALmSE0SjGMSIMrKHTn61HpqlZxtnkiQ8Ne2qeC+jwcHGejdBIAh59Oz8VDMWbZR/n6hdge27YgT2/s7VN4e2JorN6xi50ntRMw5BdN1P81bqBWGGV/USXiQv2+cks4R5cBtMti+pXOzhM5gIgZD/jYn+KliGj3y/e1IirYQ785CKg0/D7QDtxvzfloRXcUlp2wrrZMWcURz/waegv4eqqbeqzc=";
       hostName = "rime";
       ipv4 = "192.168.0.142";

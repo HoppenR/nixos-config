@@ -1,8 +1,8 @@
 {
   config,
   inputs,
-  pkgs,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -26,8 +26,8 @@ in
 {
   _module.args.roles = roles;
   imports = [
+    ../common/options.nix
     ./hardware-configuration.nix
-    ./options.nix
     inputs.home-manager.nixosModules.home-manager
     inputs.sops-nix.nixosModules.sops
   ];
@@ -139,6 +139,7 @@ in
   programs = {
     ssh = {
       knownHosts = {
+        # For running zrepl job -> storage
         "${roles.storage.hostName}" = {
           extraHostNames = [ "${roles.storage.ipv4}" ];
           publicKey = roles.storage.publicKey;
