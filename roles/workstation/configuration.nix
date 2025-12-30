@@ -14,7 +14,7 @@ let
   '';
   roles = import ../../roles { inherit lib; };
 
-  mainuserHome = config.home-manager.users.mainuser;
+  mainuserHome = config.home-manager.users.christoffer;
 in
 {
   _module.args.roles = roles;
@@ -33,8 +33,10 @@ in
     };
     systemPackages = builtins.attrValues {
       inherit (pkgs)
-        glibc
         gcc
+        glibc
+        sops
+        yubikey-manager
         ;
     };
   };
@@ -62,10 +64,18 @@ in
     keyMap = "sv-latin1";
   };
 
+  sops = {
+    defaultSopsFile = ../../secrets/secrets.yaml;
+    # created by services.openssh.hostKeys
+    age.sshKeyPaths = [ "/persist/etc/ssh/ssh_host_ed25519_key" ];
+    gnupg.sshKeyPaths = [ ];
+    secrets.user-password.neededForUsers = true;
+  };
+
   users = {
     mutableUsers = false;
     users = {
-      mainuser = {
+      christoffer = {
         extraGroups = [
           "video"
           "input"
@@ -89,7 +99,7 @@ in
       let
         mainUserStatePath =
           if mainuserHome.xdg.enable then
-            config.home-manager.users.mainuser.xdg.stateHome
+            config.home-manager.users.christoffer.xdg.stateHome
           else
             "${mainuserHome.home.homeDirectory}/.local/state";
       in
@@ -111,7 +121,7 @@ in
     backupFileExtension = "backup";
     extraSpecialArgs = { inherit inputs; };
     users = {
-      mainuser = import ./home.nix;
+      christoffer = import ./home.nix;
     };
   };
 
@@ -163,6 +173,7 @@ in
       pulse.enable = true;
     };
     resolved.enable = true;
+    pcscd.enable = true;
     udev = {
       packages = builtins.attrValues {
         inherit (pkgs)
@@ -181,7 +192,7 @@ in
   };
 
   networking = {
-    networking.hostId = "????????";
+    hostId = "007f0200";
     hostName = roles."${config.networking.role}".hostName;
     hosts = lib.mapAttrs' (_: host: lib.nameValuePair host.ipv4 [ host.hostName ]) (
       lib.filterAttrs (role: host: (host ? ipv4) && (role != config.networking.role)) roles

@@ -28,7 +28,7 @@
           modules = [ ./roles/logic/configuration.nix ];
         };
 
-        nixvm = nixpkgs.lib.nixosSystem {
+        workstation = nixpkgs.lib.nixosSystem {
           specialArgs = { inherit inputs system; };
           modules = [ ./roles/workstation/configuration.nix ];
         };

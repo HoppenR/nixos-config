@@ -6,9 +6,6 @@
   ...
 }:
 {
-  home.username = lib.mkForce "christoffer";
-  home.homeDirectory = "/home/${config.home.username}";
-
   imports = [
     inputs.nix-index-database.homeModules.nix-index
   ];
@@ -455,8 +452,8 @@
       enableCompletion = true;
       defaultKeymap = "viins";
       dirHashes = {
-        nix = "$HOME/projects/nixos";
-        personal = "$HOME/projects/personal";
+        nix = "/persist/nixos";
+        personal = "${config.home.homeDirectory}/projects/personal";
       };
       dotDir = "${config.xdg.configHome}/zsh";
       history = {
