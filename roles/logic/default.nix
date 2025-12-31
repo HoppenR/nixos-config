@@ -53,6 +53,7 @@ in
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  boot.zfs.forceImportRoot = false;
 
   time.timeZone = "Europe/Stockholm";
 
