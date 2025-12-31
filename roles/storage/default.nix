@@ -47,6 +47,7 @@ in
     loader = {
       systemd-boot.enable = true;
       efi.canTouchEfiVariables = true;
+      boot.zfs.forceImportRoot = false;
     };
     zfs.extraPools = [ "holt" ];
     # kernelParams = [
