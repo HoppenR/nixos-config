@@ -576,18 +576,11 @@
             cd "$thedir"
           }
 
-          function _assert_zle_context() {
-            if [[ -z "$WIDGET" ]]; then
-              print -u2 "TODO expected to run in a zle context"
-              return 1
-            fi
-          }
           function _vi-yank-arg() {
             NUMERIC=1 zle .vi-add-next
             zle .insert-last-word
           }
           function _closest-history-match-accept() {
-              _assert_zle_context || return
               zle history-beginning-search-backward
               zle end-of-line
           }

@@ -24,9 +24,12 @@ let
   mainuserHome = config.home-manager.users.mainuser;
 in
 {
-  _module.args.roles = roles;
+  _module.args = {
+    inherit roles;
+  };
   imports = [
     ../common/options.nix
+    ../common/zrepl.nix
     ./hardware-configuration.nix
     inputs.home-manager.nixosModules.home-manager
     inputs.sops-nix.nixosModules.sops
@@ -43,7 +46,6 @@ in
         gcc
         glibc
         sops
-        xfsprogs
         yubikey-manager
         ;
     };
@@ -115,6 +117,13 @@ in
     };
   };
 
+  lab = {
+    zrepl = {
+      enable = true;
+      type = "push";
+    };
+  };
+
   users = {
     mutableUsers = false;
     users = {
@@ -138,13 +147,6 @@ in
 
   programs = {
     ssh = {
-      knownHosts = {
-        # For running zrepl job -> storage
-        "${roles.storage.hostName}" = {
-          extraHostNames = [ "${roles.storage.ipv4}" ];
-          publicKey = roles.storage.publicKey;
-        };
-      };
       extraConfig =
         let
           mainUserStatePath =
@@ -314,64 +316,6 @@ in
           ROCKET_PORT = 8222;
         };
       };
-      zrepl = {
-        enable = true;
-        settings = {
-          jobs = [
-            {
-              name = "push_db_${roles.storage.hostName}";
-              type = "push";
-              connect = {
-                host = "${roles.storage.ipv4}";
-                identity_file = "/persist/etc/ssh/ssh_host_ed25519_key";
-                port = 22;
-                type = "ssh+stdinserver";
-                user = "root";
-              };
-              filesystems = {
-                "tank/replicated/db<" = true;
-              };
-              replication = {
-                # https://zrepl.github.io/configuration/sendrecvoptions.html#job-note-property-replication
-                # Receiver might want this:
-                # recv.properties.override = {
-                #   mountpoint = "none"
-                #   canmount = "off";
-                # };
-                # send = {
-                #   properties = true;
-                # };
-                protection = {
-                  initial = "guarantee_resumability";
-                  incremental = "guarantee_incremental";
-                };
-              };
-              pruning = {
-                keep_sender = [
-                  { type = "not_replicated"; }
-                  {
-                    type = "last_n";
-                    count = 4;
-                  }
-                ];
-                keep_receiver = [
-                  {
-                    type = "grid";
-                    grid = "1x24h(keep=all) | 6x1d | 3x1w | 3x30d";
-                    regex = "^zrepl_";
-                  }
-                ];
-              };
-              snapshotting = {
-                interval = "1d";
-                prefix = "zrepl_";
-                timestamp_format = "iso_8601";
-                type = "periodic";
-              };
-            }
-          ];
-        };
-      };
     };
 
   security = {
@@ -413,15 +357,35 @@ in
     };
   };
 
-  networking.hostId = "8425e349";
-  networking.hostName = roles."${config.networking.role}".hostName;
-  networking.hosts = lib.mapAttrs' (_: host: lib.nameValuePair host.ipv4 [ host.hostName ]) (
-    lib.filterAttrs (role: host: (host ? ipv4) && (role != config.networking.role)) roles
-  );
-  networking.role = "logic";
-  networking.firewall.allowedTCPPorts = [ ];
-  networking.firewall.allowedUDPPorts = [ ];
-  networking.firewall.enable = true;
+  networking = {
+    hostId = "8425e349";
+    hostName = roles."${config.networking.role}".hostName;
+    hosts = lib.mapAttrs' (_: host: lib.nameValuePair host.ipv4 [ host.hostName ]) (
+      lib.filterAttrs (role: host: (host ? ipv4) && (role != config.networking.role)) roles
+    );
+    role = "logic";
+    firewall.allowedTCPPorts = [ ];
+    firewall.allowedUDPPorts = [ ];
+    firewall.enable = true;
+
+    defaultGateway = "192.168.0.1";
+    interfaces.ens18 = {
+      ipv4.addresses = [
+        {
+          address = roles."${config.networking.role}".ipv4;
+          prefixLength = 24;
+        }
+      ];
+      ipv6.addresses = [
+        {
+          address = roles."${config.networking.role}".ipv6;
+          prefixLength = 64;
+        }
+      ];
+      useDHCP = false;
+    };
+    useDHCP = false;
+  };
 
   system.stateVersion = "25.11"; # Did you read the comment?
 }

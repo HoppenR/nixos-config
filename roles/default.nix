@@ -7,6 +7,7 @@ let
     logic = {
       hostName = "skadi";
       ipv4 = "192.168.0.41";
+      ipv6 = "fd42:36f4:199c::41";
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA5h7nWVcRhCpsi8RfiqyCr5tUyWQj53/VfoP7dp2mgd";
       authorizedRoles = [
         "workstation"
@@ -16,6 +17,7 @@ let
     storage = {
       hostName = "hoddmimir";
       ipv4 = "192.168.0.42";
+      ipv6 = "fd42:36f4:199c::42";
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAHSGeQW1b4j5uOKhWWwuj1ciGZ9MO47Ucl+8jlXVWIL";
       authorizedRoles = [
         "logic"
@@ -25,6 +27,7 @@ let
     gamehost = {
       hostName = "gladsheim";
       ipv4 = "192.168.0.43";
+      ipv6 = "fd42:36f4:199c::43";
       authorizedRoles = [
         "logic"
         "yubikey-authentication"
@@ -33,6 +36,7 @@ let
     hypervisor = {
       hostName = "yggdrasil";
       ipv4 = "192.168.0.44";
+      ipv6 = "fd42:36f4:199c::44";
       authorizedRoles = [
         "logic"
         "yubikey-authentication"
@@ -42,6 +46,7 @@ let
       publicKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCYC83LScH9QkexkZFQQB834gCuEkFI7KIHUdJ7WJPceILeibOlB8d1CW9bFg4O8ijCxtm5LtSphGUA26XVMY+rv3T38JUfD1iIlOtHpUFLMBVT+Ox7wgJ4AuElY2wsvNcjI3FbhrjcqMOdQPrY2T6pw47aD7niegMPsR1L48H+hPqyA8/hyVOj5Cluc2MhQnLMXMWKxLiGidFV+SYrFGvEWmV2T9IzsCVqOdxyRgKJ9v1Lsx1s20ZfIwiGOEhp7EcAcbmS6tLWh862qZHgH3Yl2nwFtbmM2G/++IeSnALmSE0SjGMSIMrKHTn61HpqlZxtnkiQ8Ne2qeC+jwcHGejdBIAh59Oz8VDMWbZR/n6hdge27YgT2/s7VN4e2JorN6xi50ntRMw5BdN1P81bqBWGGV/USXiQv2+cks4R5cBtMti+pXOzhM5gIgZD/jYn+KliGj3y/e1IirYQ785CKg0/D7QDtxvzfloRXcUlp2wrrZMWcURz/waegv4eqqbeqzc=";
       hostName = "rime";
       ipv4 = "192.168.0.142";
+      ipv6 = "fd42:36f4:199c::142";
     };
   };
 

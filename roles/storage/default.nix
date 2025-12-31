@@ -1,8 +1,8 @@
 {
   config,
   inputs,
-  pkgs,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -14,10 +14,12 @@ let
   '';
   roles = import ../../roles { inherit lib; };
 
-  mainuserHome = config.home-manager.users.christoffer;
+  mainuserHome = config.home-manager.users.mainuser;
 in
 {
-  _module.args.roles = roles;
+  _module.args = {
+    inherit roles;
+  };
   imports = [
     ../common/options.nix
     ./hardware-configuration.nix
@@ -27,7 +29,6 @@ in
 
   environment = {
     shellAliases = {
-      l = null;
       ll = "ls --almost-all -lh";
       ls = "ls --color=auto";
     };
@@ -41,8 +42,18 @@ in
     };
   };
 
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  boot = {
+    loader = {
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
+    };
+    kernelParams = [
+      # 4GiB = 4 * 1024 * 1024 * 1024 = 4294967296 byte
+      "zfs.zfs_arc_max=4294967296"
+      # 2GiB = 2 * 1024 * 1024 * 1024 = 2147483600 byte
+      "zfs.zfs_arc_min=2147483648"
+    ];
+  };
 
   time.timeZone = "Europe/Stockholm";
 
@@ -72,10 +83,17 @@ in
     secrets.user-password.neededForUsers = true;
   };
 
+  config.lab = {
+    zrepl = {
+      enable = true;
+      type = "sink";
+    };
+  };
+
   users = {
     mutableUsers = false;
     users = {
-      christoffer = {
+      mainuser = {
         extraGroups = [
           "video"
           "input"
@@ -94,25 +112,25 @@ in
   };
 
   programs = {
-    hyprland.enable = true;
-    ssh.extraConfig =
-      let
-        mainUserStatePath =
-          if mainuserHome.xdg.enable then
-            config.home-manager.users.christoffer.xdg.stateHome
-          else
-            "${mainuserHome.home.homeDirectory}/.local/state";
-      in
-      ''
-        Match localuser ${mainuserHome.home.username}
-          AddKeysToAgent yes
-          IdentityFile ${mainUserStatePath}/ssh/id_ed25519
-          UserKnownHostsFile ${mainUserStatePath}/ssh/known_hosts.d/%k
-        Match localuser root
-          IdentityFile /persist/etc/ssh/ssh_host_ed25519_key
-      '';
+    ssh = {
+      extraConfig =
+        let
+          mainUserStatePath =
+            if mainuserHome.xdg.enable then
+              config.home-manager.users.mainuser.xdg.stateHome
+            else
+              "${mainuserHome.home.homeDirectory}/.local/state";
+        in
+        ''
+          Match localuser ${mainuserHome.home.username}
+            AddKeysToAgent yes
+            IdentityFile ${mainUserStatePath}/ssh/id_ed25519
+            UserKnownHostsFile ${mainUserStatePath}/ssh/known_hosts.d/%k
+          Match localuser root
+            IdentityFile /persist/etc/ssh/ssh_host_ed25519_key
+        '';
+    };
     zsh.enable = true;
-    steam.enable = true;
   };
 
   home-manager = {
@@ -121,19 +139,9 @@ in
     backupFileExtension = "backup";
     extraSpecialArgs = { inherit inputs; };
     users = {
-      christoffer = import ./home.nix;
+      mainuser = import ./home.nix;
     };
   };
-
-  hardware.graphics.enable = true;
-
-  nixpkgs.config.allowUnfreePredicate =
-    pkg:
-    builtins.elem (lib.getName pkg) [
-      "discord"
-      "steam"
-      "steam-unwrapped"
-    ];
 
   fonts.packages = builtins.attrValues {
     inherit (pkgs.nerd-fonts)
@@ -156,7 +164,8 @@ in
       settings = {
         default_session = {
           command = ''
-            ${pkgs.tuigreet}/bin/tuigreet \
+            ${lib.getExe pkgs.tuigreet} \
+              --cmd "zsh --login" \
               --greeting ${asciibnnuy} \
               --user-menu \
               --time \
@@ -168,11 +177,24 @@ in
         };
       };
     };
-    pipewire = {
-      enable = true;
-      pulse.enable = true;
-    };
+    pipewire.enable = false;
     resolved.enable = true;
+    openssh = {
+      enable = true;
+      hostKeys = [
+        {
+          path = "/persist/etc/ssh/ssh_host_ed25519_key";
+          type = "ed25519";
+        }
+      ];
+      settings = {
+        AllowAgentForwarding = false;
+        AuthenticationMethods = "publickey";
+        KbdInteractiveAuthentication = false;
+        PasswordAuthentication = false;
+        PermitRootLogin = "no";
+      };
+    };
     pcscd.enable = true;
     udev = {
       packages = builtins.attrValues {
@@ -183,24 +205,45 @@ in
     };
   };
 
-  security.pam.u2f = {
-    enable = true;
-    settings = {
-      authfile = "/etc/u2f_keys";
-      userpresence = 1;
+  security = {
+    pam.u2f = {
+      enable = true;
+      settings = {
+        authfile = "/etc/u2f_keys";
+        userpresence = 1;
+      };
     };
+    polkit.enable = true;
   };
 
   networking = {
-    hostId = "007f0200";
+    networking.hostId = "????????";
     hostName = roles."${config.networking.role}".hostName;
     hosts = lib.mapAttrs' (_: host: lib.nameValuePair host.ipv4 [ host.hostName ]) (
       lib.filterAttrs (role: host: (host ? ipv4) && (role != config.networking.role)) roles
     );
-    role = "workstation";
+    role = "storage";
     firewall.allowedTCPPorts = [ ];
     firewall.allowedUDPPorts = [ ];
     firewall.enable = true;
+
+    defaultGateway = "192.168.0.1";
+    interfaces.ens18 = {
+      ipv4.addresses = [
+        {
+          address = roles."${config.networking.role}".ipv4;
+          prefixLength = 24;
+        }
+      ];
+      ipv6.addresses = [
+        {
+          address = roles."${config.networking.role}".ipv6;
+          prefixLength = 64;
+        }
+      ];
+      useDHCP = false;
+    };
+    useDHCP = false;
   };
 
   system.stateVersion = "25.11"; # Did you read the comment?

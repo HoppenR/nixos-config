@@ -25,12 +25,17 @@
       nixosConfigurations = {
         logic = nixpkgs.lib.nixosSystem {
           specialArgs = { inherit inputs system; };
-          modules = [ ./roles/logic/configuration.nix ];
+          modules = [ ./roles/logic ];
+        };
+
+        storage = nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit inputs system; };
+          modules = [ ./roles/storage ];
         };
 
         workstation = nixpkgs.lib.nixosSystem {
           specialArgs = { inherit inputs system; };
-          modules = [ ./roles/workstation/configuration.nix ];
+          modules = [ ./roles/workstation ];
         };
       };
     };
