@@ -21,6 +21,7 @@ let
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAHSGeQW1b4j5uOKhWWwuj1ciGZ9MO47Ucl+8jlXVWIL";
       authorizedRoles = [
         "logic"
+        "workstation"
         "yubikey-authentication"
       ];
     };
