@@ -43,7 +43,7 @@ in
               ca = "${../../certs/ca.crt}";
               cert = "${../../certs/logic.crt}";
               key = config.sops.secrets."zrepl-logic-key".path;
-              server_cn = roles.storage.hostName;
+              server_cn = "storage01";
             };
             filesystems = {
               "tank/replicated/db<" = true;
@@ -99,7 +99,7 @@ in
               ca = "${../../certs/ca.crt}";
               cert = "${../../certs/storage.crt}";
               key = config.sops.secrets."zrepl-storage-key".path;
-              client_cns = [ roles.logic.hostName ];
+              client_cns = [ "logic01" ];
             };
           })
         ];
