@@ -22,6 +22,7 @@ in
   };
   imports = [
     ../common/options.nix
+    ../common/zrepl.nix
     ./hardware-configuration.nix
     inputs.home-manager.nixosModules.home-manager
     inputs.sops-nix.nixosModules.sops
@@ -47,12 +48,13 @@ in
       systemd-boot.enable = true;
       efi.canTouchEfiVariables = true;
     };
-    kernelParams = [
-      # 4GiB = 4 * 1024 * 1024 * 1024 = 4294967296 byte
-      "zfs.zfs_arc_max=4294967296"
-      # 2GiB = 2 * 1024 * 1024 * 1024 = 2147483600 byte
-      "zfs.zfs_arc_min=2147483648"
-    ];
+    zfs.extraPools = [ "holt" ];
+    # kernelParams = [
+    #   # 4GiB = 4 * 1024 * 1024 * 1024 = 4294967296 byte
+    #   "zfs.zfs_arc_max=4294967296"
+    #   # 2GiB = 2 * 1024 * 1024 * 1024 = 2147483600 byte
+    #   "zfs.zfs_arc_min=2147483648"
+    # ];
   };
 
   time.timeZone = "Europe/Stockholm";
@@ -83,7 +85,7 @@ in
     secrets.user-password.neededForUsers = true;
   };
 
-  config.lab = {
+  lab = {
     zrepl = {
       enable = true;
       type = "sink";
@@ -217,7 +219,7 @@ in
   };
 
   networking = {
-    networking.hostId = "????????";
+    hostId = "299a21e5";
     hostName = roles."${config.networking.role}".hostName;
     hosts = lib.mapAttrs' (_: host: lib.nameValuePair host.ipv4 [ host.hostName ]) (
       lib.filterAttrs (role: host: (host ? ipv4) && (role != config.networking.role)) roles

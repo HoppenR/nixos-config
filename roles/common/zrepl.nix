@@ -27,6 +27,8 @@ in
       "zrepl-storage-key".key = "zrepl/storage-key";
       "zrepl-logic-key".key = "zrepl/logic-key";
     };
+
+    networking.firewall.allowedTCPPorts = lib.mkIf (config.lab.zrepl.type == "sink") [ zreplPort ];
     services.zrepl = {
       enable = true;
       settings = {
@@ -93,7 +95,7 @@ in
             };
             serve = {
               type = "tls";
-              listen = ":${zreplPort}";
+              listen = ":${toString zreplPort}";
               ca = "${../../certs/ca.crt}";
               cert = "${../../certs/storage.crt}";
               key = config.sops.secrets."zrepl-storage-key".path;
