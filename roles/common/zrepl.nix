@@ -41,7 +41,7 @@ in
               type = "tls";
               address = "${roles.storage.ipv4}:${toString zreplPort}";
               ca = "${../../certs/ca.crt}";
-              cert = "${../../certs/logic.crt}";
+              cert = "${../../certs/logic01.crt}";
               key = config.sops.secrets."zrepl-logic-key".path;
               server_cn = "storage01";
             };
@@ -86,6 +86,7 @@ in
             name = "sink_db_${roles.logic.hostName}";
             root_fs = "holt";
             recv = {
+              placeholder.encryption = "inherit";
               properties.override = {
                 canmount = "off";
                 copies = "2";
@@ -97,7 +98,7 @@ in
               type = "tls";
               listen = ":${toString zreplPort}";
               ca = "${../../certs/ca.crt}";
-              cert = "${../../certs/storage.crt}";
+              cert = "${../../certs/storage01.crt}";
               key = config.sops.secrets."zrepl-storage-key".path;
               client_cns = [ "logic01" ];
             };

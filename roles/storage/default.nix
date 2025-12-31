@@ -47,8 +47,8 @@ in
     loader = {
       systemd-boot.enable = true;
       efi.canTouchEfiVariables = true;
-      boot.zfs.forceImportRoot = false;
     };
+    zfs.forceImportRoot = false;
     zfs.extraPools = [ "holt" ];
     # kernelParams = [
     #   # 4GiB = 4 * 1024 * 1024 * 1024 = 4294967296 byte
