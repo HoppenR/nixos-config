@@ -6,12 +6,6 @@
   ...
 }:
 let
-  asciibnnuy = lib.strings.escapeShellArg ''
-    _  _ ___ __  __           ___  ___
-    | \| |_ _|\ \/ /  (\_/)   / _ \/ __|
-    | .`  | |  >  <  (='.'=) | (_) \__ \
-    |_|\_|___|/_/\_\ (")_(")  \___/|___/
-  '';
   cloudflareTunnelId = "07345750-570c-427b-910b-31c6cbba2ce2";
   domainName = "hoppenr.xyz";
   streamsPort = 8181;
@@ -28,6 +22,7 @@ in
     inherit roles;
   };
   imports = [
+    ../common/greetd.nix
     ../common/options.nix
     ../common/zrepl.nix
     ./hardware-configuration.nix
@@ -51,8 +46,10 @@ in
     };
   };
 
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  boot.loader = {
+    systemd-boot.enable = true;
+    efi.canTouchEfiVariables = true;
+  };
   boot.zfs.forceImportRoot = false;
 
   time.timeZone = "Europe/Stockholm";
@@ -243,24 +240,6 @@ in
           };
         };
       };
-      greetd = {
-        enable = true;
-        settings = {
-          default_session = {
-            command = ''
-              ${lib.getExe pkgs.tuigreet} \
-                --cmd "zsh --login" \
-                --greeting ${asciibnnuy} \
-                --user-menu \
-                --time \
-                --time-format %R
-            '';
-          };
-          terminal = {
-            vt = 1;
-          };
-        };
-      };
       pipewire.enable = false;
       resolved.enable = true;
       openssh = {
@@ -315,6 +294,12 @@ in
           SIGNUPS_ALLOWED = false;
           ROCKET_ADDRESS = "::1";
           ROCKET_PORT = 8222;
+        };
+      };
+      zfs = {
+        autoScrub = {
+          enable = true;
+          interval = "monthly";
         };
       };
     };

@@ -6,12 +6,6 @@
   ...
 }:
 let
-  asciibnnuy = lib.strings.escapeShellArg ''
-    _  _ ___ __  __           ___  ___
-    | \| |_ _|\ \/ /  (\_/)   / _ \/ __|
-    | .`  | |  >  <  (='.'=) | (_) \__ \
-    |_|\_|___|/_/\_\ (")_(")  \___/|___/
-  '';
   roles = import ../../roles { inherit lib; };
 
   mainuserHome = config.home-manager.users.mainuser;
@@ -21,6 +15,7 @@ in
     inherit roles;
   };
   imports = [
+    ../common/greetd.nix
     ../common/options.nix
     ../common/zrepl.nix
     ./hardware-configuration.nix
@@ -49,7 +44,6 @@ in
       efi.canTouchEfiVariables = true;
     };
     zfs.forceImportRoot = false;
-    zfs.extraPools = [ "holt" ];
     # kernelParams = [
     #   # 4GiB = 4 * 1024 * 1024 * 1024 = 4294967296 byte
     #   "zfs.zfs_arc_max=4294967296"
@@ -162,24 +156,6 @@ in
   };
 
   services = {
-    greetd = {
-      enable = true;
-      settings = {
-        default_session = {
-          command = ''
-            ${lib.getExe pkgs.tuigreet} \
-              --cmd "zsh --login" \
-              --greeting ${asciibnnuy} \
-              --user-menu \
-              --time \
-              --time-format %R
-          '';
-        };
-        terminal = {
-          vt = 1;
-        };
-      };
-    };
     pipewire.enable = false;
     resolved.enable = true;
     openssh = {
@@ -204,6 +180,16 @@ in
         inherit (pkgs)
           yubikey-personalization
           ;
+      };
+    };
+    zfs = {
+      autoScrub = {
+        enable = true;
+        interval = "quarterly";
+      };
+      trim = {
+        enable = true;
+        interval = "monthly";
       };
     };
   };

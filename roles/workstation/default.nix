@@ -6,12 +6,6 @@
   ...
 }:
 let
-  asciibnnuy = lib.strings.escapeShellArg ''
-    _  _ ___ __  __           ___  ___
-    | \| |_ _|\ \/ /  (\_/)   / _ \/ __|
-    | .`  | |  >  <  (='.'=) | (_) \__ \
-    |_|\_|___|/_/\_\ (")_(")  \___/|___/
-  '';
   roles = import ../../roles { inherit lib; };
 
   mainuserHome = config.home-manager.users.christoffer;
@@ -21,6 +15,7 @@ in
     inherit roles;
   };
   imports = [
+    ../common/greetd.nix
     ../common/options.nix
     ./hardware-configuration.nix
     inputs.home-manager.nixosModules.home-manager
@@ -153,23 +148,6 @@ in
   };
 
   services = {
-    greetd = {
-      enable = true;
-      settings = {
-        default_session = {
-          command = ''
-            ${pkgs.tuigreet}/bin/tuigreet \
-              --greeting ${asciibnnuy} \
-              --user-menu \
-              --time \
-              --time-format %R
-          '';
-        };
-        terminal = {
-          vt = 1;
-        };
-      };
-    };
     pipewire = {
       enable = true;
       pulse.enable = true;
