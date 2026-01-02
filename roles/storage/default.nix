@@ -71,24 +71,24 @@ in
     };
     font = "Lat2-Terminus16";
     keyMap = "sv-latin1";
-    colors = [
-      "1a1c19" # 0: Dark Moss (Background)
-      "8b2635" # 1: Deep Red (Madder)
-      "52691e" # 2: Olive Green
-      "8a4a02" # 3: Burnt Orange/Brown
-      "053318" # 4: Rust Orange
-      "5d3a3a" # 5: Deep Earth Brown
-      "2d5a27" # 6: Forest Green
-      "d2b48c" # 7: Tan/Light Brown
-      "4a4a4a" # 8: Granite (Bright Black)
-      "c0392b" # 9: Bright Deep Red
-      "7eb356" # 10: Bright Leaf Green
-      "e67e22" # 11: Bright Orange
-      "f39c12" # 12: Vivid Amber
-      "a0522d" # 13: Sienna Brown
-      "2ecc71" # 14: Emerald Green
-      "fdf5e6" # 15: Old Lace (Brightest White)
-    ];
+    colors = lib.attrValues {
+      c01_black = "1a1c19";
+      c02_red = "8b2635";
+      c03_green = "52691e";
+      c04_yellow = "8a4a02";
+      c05_blue = "053318";
+      c06_magenta = "5d3a3a";
+      c07_cyan = "2d5a27";
+      c08_white = "d2b48c";
+      c09_blackFg = "4a4a4a";
+      c10_redFg = "c0392b";
+      c11_greenFg = "7eb356";
+      c12_yellowFg = "e67e22";
+      c13_blueFg = "f39c12";
+      c14_magentaFg = "a0522d";
+      c15_cyanFg = "2ecc71";
+      c16_whiteFg = "fdf5e6";
+    };
   };
 
   sops = {
@@ -111,7 +111,7 @@ in
     greetd = {
       # TODO:
       # enable = true;
-      theme = "container=blue;action=white;button=white;window=black;action=blue";
+      theme = "container=blue;action=yellow;button=yellow;window=black";
     };
   };
 

@@ -76,7 +76,7 @@ in
           groups.sftpuser = { };
           users.sftpuser = {
             isSystemUser = true;
-            home = "/";
+            home = "/"; # Note that this is relative to the ChrootDirectory
             group = "sftpuser";
             openssh.authorizedKeys.keys = [ roles.logic.publicKey ];
           };
