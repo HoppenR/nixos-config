@@ -58,11 +58,6 @@
     fsType = "zfs";
   };
 
-  fileSystems."/replicated/apps" = {
-    device = "tank/replicated/apps";
-    fsType = "zfs";
-  };
-
   fileSystems."/replicated/web" = {
     device = "tank/replicated/web";
     fsType = "zfs";

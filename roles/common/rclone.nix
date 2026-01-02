@@ -24,20 +24,20 @@ in
   config = lib.mkIf config.lab.rclone.enable (
     lib.mkMerge [
       (lib.mkIf (config.lab.rclone.type == "rcloneMount") {
-        systemd.services.rclone-mount-apps = {
-          description = "Remote VFS Cache Mount (/mnt/rclone/apps)";
+        systemd.services."rclone-replicated-apps" = {
+          description = "Remote App VFS Cache Mount";
           after = [ "network-online.target" ];
           wants = [ "network-online.target" ];
           wantedBy = [ "multi-user.target" ];
           stopIfChanged = false;
           serviceConfig = {
             Type = "notify";
-            ExecStartPre = "/run/current-system/sw/bin/mkdir -p /mnt/rclone/apps";
-            # TODO: mount to /replicated/apps/ instead after done testing
+            ExecStartPre = "/run/current-system/sw/bin/mkdir -p /replicated/apps";
+            # TODO: is --cache-dir needed? This is probably the default
             ExecStart = ''
               ${lib.getExe pkgs.rclone} mount \
                 ":sftp,host=${roles.storage.ipv4},user=sftpuser,key_file=/persist/etc/ssh/ssh_host_ed25519_key:/apps" \
-                /mnt/rclone/apps \
+                /replicated/apps \
                 --config /dev/null \
                 --allow-other \
                 --vfs-cache-mode full \
@@ -53,12 +53,13 @@ in
               ${lib.getExe pkgs.rclone} rc vfs/refresh recursive=true --url localhost:5572
             '';
             # TODO: --lazy?
-            ExecStop = "/run/current-system/sw/bin/umount /mnt/rclone/apps";
+            ExecStop = "/run/current-system/sw/bin/umount /replicated/apps";
             Restart = "on-failure";
             RestartSec = "10s";
             User = "root";
           };
         };
+        # TODO: needed?
         systemd.tmpfiles.rules = [
           "d /var/cache/rclone 0750 root root -"
         ];
