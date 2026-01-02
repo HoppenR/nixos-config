@@ -71,12 +71,23 @@ in
         };
       })
       (lib.mkIf (config.lab.rclone.type == "sftpHost") {
-        users.users.sftpuser = {
-          isNormalUser = true;
-          createHome = true;
-          home = "/mnt/sftp";
-          openssh.authorizedKeys.keys = [ roles.logic.publicKey ];
+        users = {
+          groups.sftpuser = { };
+          users.sftpuser = {
+            isSystemUser = true;
+            home = "/";
+            group = "sftpuser";
+            openssh.authorizedKeys.keys = [ roles.logic.publicKey ];
+          };
         };
+        services.openssh.extraConfig = ''
+          Match User sftpuser
+            ChrootDirectory /mnt/sftp
+            ForceCommand internal-sftp
+            PasswordAuthentication no
+            AllowTcpForwarding no
+            X11Forwarding no
+        '';
       })
     ]
   );
