@@ -68,24 +68,24 @@ in
     };
     font = "Lat2-Terminus16";
     keyMap = "sv-latin1";
-    colors = [
-      "2e3440" # 0: Nord0 (Dark Grey/Blue Background)
-      "bf616a" # 1: Nord11 (Red)
-      "a3be8c" # 2: Nord14 (Green)
-      "ebcb8b" # 3: Nord13 (Yellow)
-      "81a1c1" # 4: Nord9 (Icy Blue) <-- THE BLUE
-      "01145e" # 5: Nord15 (Purple)
-      "88c0d0" # 6: Nord8 (Frost Cyan)
-      "e5e9f0" # 7: Nord5 (Snow White)
-      "4c566a" # 8: Nord3 (Bright Black)
-      "bf616a" # 9: Bright Red
-      "a3be8c" # 10: Bright Green
-      "ebcb8b" # 11: Bright Yellow
-      "88c0d0" # 12: Nord8 (Bright Frost Blue)
-      "b48ead" # 13: Bright Purple
-      "8fbcbb" # 14: Nord7 (Ocean Green/Cyan)
-      "eceff4" # 15: Nord6 (Brightest Snow)
-    ];
+    colors = lib.attrValues {
+      c01_black = "2e3440";
+      c02_red = "bf616a";
+      c03_green = "a3be8c";
+      c04_yellow = "ebcb8b";
+      c05_blue = "81a1c1";
+      c06_magenta = "01145e";
+      c07_cyan = "88c0d0";
+      c08_white = "e5e9f0";
+      c09_blackFg = "4c566a";
+      c10_redFg = "bf616a";
+      c11_greenFg = "a3be8c";
+      c12_yellowFg = "ebcb8b";
+      c13_blueFg = "88c0d0";
+      c14_magentaFg = "b48ead";
+      c15_cyanFg = "8fbcbb";
+      c16_whiteFg = "eceff4";
+    };
   };
 
   sops = {
@@ -152,7 +152,7 @@ in
     greetd = {
       # TODO:
       # enable = true;
-      # theme = "container=blue;window=black;border=magenta;greet=magenta;prompt=magenta;input=magenta;action=blue";
+      theme = "container=blue;window=black;border=magenta;greet=magenta;prompt=magenta;input=magenta;action=blue";
     };
   };
 
