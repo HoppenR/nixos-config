@@ -68,6 +68,24 @@ in
     };
     font = "Lat2-Terminus16";
     keyMap = "sv-latin1";
+    colors = [
+      "2e3440" # 0: Nord0 (Dark Grey/Blue Background)
+      "bf616a" # 1: Nord11 (Red)
+      "a3be8c" # 2: Nord14 (Green)
+      "ebcb8b" # 3: Nord13 (Yellow)
+      "81a1c1" # 4: Nord9 (Icy Blue) <-- THE BLUE
+      "01145e" # 5: Nord15 (Purple)
+      "88c0d0" # 6: Nord8 (Frost Cyan)
+      "e5e9f0" # 7: Nord5 (Snow White)
+      "4c566a" # 8: Nord3 (Bright Black)
+      "bf616a" # 9: Bright Red
+      "a3be8c" # 10: Bright Green
+      "ebcb8b" # 11: Bright Yellow
+      "88c0d0" # 12: Nord8 (Bright Frost Blue)
+      "b48ead" # 13: Bright Purple
+      "8fbcbb" # 14: Nord7 (Ocean Green/Cyan)
+      "eceff4" # 15: Nord6 (Brightest Snow)
+    ];
   };
 
   sops = {

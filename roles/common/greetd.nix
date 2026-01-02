@@ -50,6 +50,7 @@ in
             --greeting ${greeting} \
             --user-menu \
             --time \
+            --theme "container=blue;window=black;border=magenta;greet=magenta;prompt=magenta;input=magenta;action=blue" \
             --time-format %R
         '';
       };

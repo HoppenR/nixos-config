@@ -36,7 +36,7 @@ in
             # TODO: mount to /replicated/apps/ instead after done testing
             ExecStart = ''
               ${lib.getExe pkgs.rclone} mount \
-                ":sftp,host=${roles.storage.ipv4},user=sftpuser,key_file=/persist/etc/ssh/ssh_host_ed25519_key:apps" \
+                ":sftp,host=${roles.storage.ipv4},user=sftpuser,key_file=/persist/etc/ssh/ssh_host_ed25519_key:/apps" \
                 /mnt/rclone/apps \
                 --config /dev/null \
                 --allow-other \
