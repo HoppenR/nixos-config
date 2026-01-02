@@ -69,6 +69,13 @@ in
     secrets.user-password.neededForUsers = true;
   };
 
+  lab = {
+    greetd = {
+      # TODO:
+      # enable = true;
+    };
+  };
+
   users = {
     mutableUsers = false;
     users = {

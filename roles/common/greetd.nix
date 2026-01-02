@@ -40,6 +40,14 @@ let
   greeting = greeingCommon + roleArt.${config.networking.role} + greetingEnding;
 in
 {
+  options.lab.greetd = {
+    theme = lib.mkOption {
+      type = lib.types.str;
+      default = "container=black;text=white";
+      description = "The greetd theme string";
+    };
+  };
+
   config.services.greetd = {
     enable = true;
     settings = {
@@ -50,7 +58,7 @@ in
             --greeting ${greeting} \
             --user-menu \
             --time \
-            --theme "container=blue;window=black;border=magenta;greet=magenta;prompt=magenta;input=magenta;action=blue" \
+            --theme "${config.lab.greetd.theme}" \
             --time-format %R
         '';
       };

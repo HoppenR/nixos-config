@@ -47,6 +47,11 @@
     fsType = "zfs";
   };
 
+  fileSystems."/mnt/sftp/apps" = {
+    device = "holt/replicated/apps";
+    fsType = "zfs";
+  };
+
   fileSystems."/persist" = {
     device = "holt/safe/persist";
     fsType = "zfs";
