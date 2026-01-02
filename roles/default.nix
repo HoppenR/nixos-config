@@ -8,7 +8,7 @@ let
       hostName = "skadi";
       ipv4 = "192.168.0.41";
       ipv6 = "fd42:36f4:199c::41";
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA5h7nWVcRhCpsi8RfiqyCr5tUyWQj53/VfoP7dp2mgd";
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA5h7nWVcRhCpsi8RfiqyCr5tUyWQj53/VfoP7dp2mgd skadi_host_key";
       authorizedRoles = [
         "workstation"
         "yubikey-authentication"
@@ -18,7 +18,7 @@ let
       hostName = "hoddmimir";
       ipv4 = "192.168.0.42";
       ipv6 = "fd42:36f4:199c::42";
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAHSGeQW1b4j5uOKhWWwuj1ciGZ9MO47Ucl+8jlXVWIL";
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP4IiOlJ3msxiPyqfa8jRT0kKuNeIXC9GOx+wgo4UGSC hoddmimir_host_key";
       authorizedRoles = [
         "logic"
         "workstation"

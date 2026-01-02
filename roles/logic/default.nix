@@ -6,13 +6,8 @@
   ...
 }:
 let
-  cloudflareTunnelId = "07345750-570c-427b-910b-31c6cbba2ce2";
   domainName = "hoppenr.xyz";
   streamsPort = 8181;
-  databases = [
-    "booklore"
-    "vaultwarden"
-  ];
   roles = import ../../roles { inherit lib; };
 
   mainuserHome = config.home-manager.users.mainuser;
@@ -24,6 +19,8 @@ in
   imports = [
     ../common/greetd.nix
     ../common/options.nix
+    ../common/rclone.nix
+    ../common/syncthing.nix
     ../common/zrepl.nix
     ./hardware-configuration.nix
     inputs.home-manager.nixosModules.home-manager
@@ -40,6 +37,7 @@ in
       inherit (pkgs)
         gcc
         glibc
+        mailutils
         sops
         yubikey-manager
         ;
@@ -82,10 +80,19 @@ in
       "streamserver-client-id".key = "streamserver/client-id";
       "streamserver-client-secret".key = "streamserver/client-secret";
       "cloudflare-account-tag".key = "cloudflare/account-tag";
-      "cloudflare-tunnel-secret".key = "cloudflare/tunnel-secret";
       "cloudflare-api-token".key = "cloudflare/api-token";
+      "cloudflare-tunnel-id".key = "cloudflare/tunnel-id";
+      "cloudflare-tunnel-secret".key = "cloudflare/tunnel-secret";
+      "postfix-token".key = "postfix/token";
     };
     templates = {
+      "postfix-password-map" = {
+        owner = config.services.postfix.user;
+        inherit (config.services.postfix) group;
+        content = ''
+          [smtp.protonmail.ch]:587 contact@${domainName}:${config.sops.placeholder."postfix-token"}
+        '';
+      };
       "streamserver-env" = {
         content = ''
           CLIENT_ID=${config.sops.placeholder."streamserver-client-id"}
@@ -99,13 +106,13 @@ in
           {
             "AccountTag": "${config.sops.placeholder."cloudflare-account-tag"}",
             "TunnelSecret": "${config.sops.placeholder."cloudflare-tunnel-secret"}",
-            "TunnelID": "${cloudflareTunnelId}"
+            "TunnelID": "${config.sops.placeholder."cloudflare-tunnel-id"}"
           }
         '';
       };
       "caddy-dns-config" = {
         owner = config.users.users.caddy.name;
-        group = config.users.users.caddy.group;
+        inherit (config.users.users.caddy) group;
         content = ''
           tls {
             dns cloudflare ${config.sops.placeholder.cloudflare-api-token}
@@ -119,6 +126,10 @@ in
     zrepl = {
       enable = true;
       type = "push";
+    };
+    rclone = {
+      enable = true;
+      type = "rcloneMount";
     };
   };
 
@@ -231,7 +242,7 @@ in
       cloudflared = {
         enable = true;
         tunnels = {
-          "${cloudflareTunnelId}" = {
+          "${domainName}" = {
             credentialsFile = config.sops.templates."cloudflare-tunnel-config".path;
             ingress = (lib.mapAttrs' makeCaddyIngress caddyEndpoints) // {
               "${getFqdn "ssh"}" = "ssh://localhost:22";
@@ -259,25 +270,29 @@ in
         };
       };
       pcscd.enable = true;
+      postfix = {
+        enable = true;
+        settings.main = {
+          inet_interfaces = "loopback-only";
+          relayhost = [ "[smtp.protonmail.ch]:587" ];
+          smtp_generic_maps = "inline:{ { root@${config.networking.hostName} = contact@hoppenr.xyz } }";
+          smtp_sasl_auth_enable = "yes";
+          smtp_sasl_password_maps = "texthash:${config.sops.templates.postfix-password-map.path}";
+          smtp_sasl_security_options = "noanonymous";
+          smtp_tls_loglevel = "1";
+          smtp_tls_note_starttls_offer = "yes";
+          smtp_tls_security_level = "encrypt";
+          smtp_tls_wrappermode = "no";
+        };
+      };
       postgresql = {
         enable = true;
-        ensureDatabases = databases;
-        ensureUsers = map (db: {
-          name = db;
-          ensureDBOwnership = true;
-        }) databases;
         dataDir = "/replicated/db/postgres";
         initdbArgs = [ "--data-checksums" ];
         settings = {
           listen_addresses = lib.mkForce "";
         };
       };
-      # syncthing = {
-      #   enable = true;
-      #   user = "mainuser";
-      #   configDir = "/var/lib/syncthing";
-      #   dataDir = "/replicated/apps/syncthing";
-      # };
       udev = {
         packages = builtins.attrValues {
           inherit (pkgs)
@@ -288,12 +303,17 @@ in
       vaultwarden = {
         enable = true;
         dbBackend = "postgresql";
+        configurePostgres = true;
+        domain = "vaultwarden.${domainName}";
         config = {
-          DATABASE_URL = "postgresql://vaultwarden@%2Frun%2Fpostgresql/vaultwarden";
-          DOMAIN = "https://vaultwarden.${domainName}";
-          SIGNUPS_ALLOWED = false;
           ROCKET_ADDRESS = "::1";
           ROCKET_PORT = 8222;
+          SIGNUPS_ALLOWED = false;
+          SMTP_FROM = "contact@hoppenr.xyz";
+          SMTP_FROM_NAME = "Vaultwarden Service";
+          SMTP_HOST = "127.0.0.1";
+          SMTP_PORT = 25;
+          SMTP_SSL = false;
         };
       };
       zfs = {
