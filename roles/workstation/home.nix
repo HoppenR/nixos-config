@@ -23,6 +23,7 @@
   home.packages = builtins.attrValues {
     inherit (pkgs)
       discord
+      gcr
       fd
       jq
       libnotify
@@ -42,14 +43,14 @@
       "$mod_move" = "SUPER";
       "$mod_hypr" = "MOD5";
       "$menu_opts" = "--insensitive --match=multi-contains";
-      "$run_menu" = "wofi --show=run $menu_opts";
-      "$drun_menu" = "wofi --show=drun $menu_opts";
+      "$run_menu" = "${lib.getExe pkgs.wofi} --show=run $menu_opts";
+      "$drun_menu" = "${lib.getExe pkgs.wofi} --show=drun $menu_opts";
       bind = [
-        "$mod_apps, RETURN, exec, kitty"
+        "$mod_apps, RETURN, exec, ${lib.getExe pkgs.kitty}"
         "$mod_apps, w, exec, firefox"
         "$mod_apps, q, exec, $run_menu"
         "$mod_apps, d, exec, $drun_menu"
-        "$mod_apps, f, exec, ${pkgs.hyprshot}/bin/hyprshot --mode region"
+        "$mod_apps, f, exec, ${lib.getExe pkgs.hyprshot} --mode region"
         "$mod_move, h, movefocus, l"
         "$mod_move, j, movefocus, d"
         "$mod_move, k, movefocus, u"
@@ -63,6 +64,27 @@
         "$mod_move, u, workspace, 7"
         "$mod_move, i, workspace, 8"
         "$mod_move, o, workspace, 9"
+
+        "$mod_move+SHIFT, q, movetoworkspace, 1"
+        "$mod_move+SHIFT, w, movetoworkspace, 2"
+        "$mod_move+SHIFT, e, movetoworkspace, 3"
+        "$mod_move+SHIFT, r, movetoworkspace, 4"
+        "$mod_move+SHIFT, t, movetoworkspace, 5"
+        "$mod_move+SHIFT, y, movetoworkspace, 6"
+        "$mod_move+SHIFT, u, movetoworkspace, 7"
+        "$mod_move+SHIFT, i, movetoworkspace, 8"
+        "$mod_move+SHIFT, o, movetoworkspace, 9"
+      ];
+      workspace = [
+        "1,monitor:DP-9"
+        "2,monitor:DP-9"
+        "3,monitor:DP-9"
+        "4,monitor:DP-9"
+        "5,monitor:DP-9"
+        "6,monitor:eDP-1"
+        "7,monitor:eDP-1"
+        "8,monitor:eDP-1"
+        "9,monitor:eDP-1"
       ];
       device = {
         name = "at-translated-set-2-keyboard";
@@ -88,7 +110,8 @@
         ''}";
       };
       monitor = [
-        "Virtual-1, 1920x1080@60.00400, 0x0, 1"
+        "eDP-1, 1920x1080@60, 0x0, 1"
+        "DP-9, 1920x1080@144, -1920x0, 1"
       ];
     };
     xwayland.enable = true;
@@ -208,6 +231,11 @@
     };
     neovim = {
       enable = true;
+      extraPackages = builtins.attrValues {
+        inherit (pkgs)
+          cargo
+          ;
+      };
       extraLuaConfig = /* lua */ ''
         vim.cmd.filetype({ args = { 'plugin', 'indent', 'on' } })
         vim.cmd.syntax('on')
@@ -623,7 +651,7 @@
     gpg-agent = {
       enable = true;
       enableSshSupport = true;
-      pinentry.package = pkgs.pinentry-curses; # FIXME
+      pinentry.package = pkgs.pkgs.wayprompt;
     };
     hypridle = {
       enable = true;

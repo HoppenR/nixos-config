@@ -3,7 +3,7 @@ keys:
   - &yubikey_authentication 614DB6CDA8EAD9CC822754057600B0BE0222D52B
   - &logic_host age1yfyla0uzflzeg6s4sh6k5lsvqqh2vl4zpegfdum4400mjtvwrexqy7eweu
   - &storage_host age1pl9h2qllwrel36lrxnst4852vf0pqayg94tpp8ye570p6w80d9esqvpngt
-  - &workstation_host age16ym4qgat67fjsmg2jh2lew56sdkg2czqnw83xk0navu7yzg56f8smm6nzv
+  - &workstation_host age1ud34xwfjpzqkpmsq4smr34g570g6f5e9tk4ep08770tt548yvggq23nc9g
 
 creation_rules:
   - path_regex: secrets/.*\.yaml$

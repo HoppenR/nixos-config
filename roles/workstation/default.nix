@@ -129,7 +129,17 @@ in
     };
   };
 
-  hardware.graphics.enable = true;
+  hardware = {
+    bluetooth = {
+      enable = true;
+      settings = {
+        Policy = {
+          AutoEnable = "true";
+        };
+      };
+    };
+    graphics.enable = true;
+  };
 
   nixpkgs.config.allowUnfreePredicate =
     pkg:
@@ -158,6 +168,8 @@ in
     pipewire = {
       enable = true;
       pulse.enable = true;
+      alsa.enable = true;
+      jack.enable = true;
     };
     resolved.enable = true;
     pcscd.enable = true;
@@ -189,8 +201,8 @@ in
     firewall.allowedUDPPorts = [ ];
     firewall.enable = true;
 
-    defaultGateway = "192.168.122.1";
-    interfaces.enp1s0 = {
+    defaultGateway = "192.168.0.1";
+    interfaces.enp5s0f4u1u1 = {
       ipv4.addresses = [
         {
           address = roles."${config.networking.role}".ipv4;
