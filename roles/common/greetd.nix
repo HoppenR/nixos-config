@@ -38,9 +38,21 @@ let
     NixOS ${config.system.nixos.version}
   '';
   greeting = greeingCommon + roleArt.${config.networking.role} + greetingEnding;
+
+  cmdAndArgsArray = [
+    "${lib.getExe pkgs.tuigreet}"
+    "--greeting ${greeting}"
+    "--user-menu"
+    "--time"
+    "--theme '${config.lab.greetd.theme}'"
+    "--time-format %R"
+  ]
+  ++ lib.optional config.lab.greetd.useZshLogin "--cmd 'zsh --login'";
 in
 {
   options.lab.greetd = {
+    enable = lib.mkEnableOption "enable greetd lab configuration";
+    useZshLogin = lib.mkEnableOption "use a fallback login for when no sessions exist";
     theme = lib.mkOption {
       type = lib.types.str;
       default = "container=black;text=white";
@@ -48,22 +60,16 @@ in
     };
   };
 
-  config.services.greetd = {
-    enable = true;
-    settings = {
-      default_session = {
-        command = ''
-          ${lib.getExe pkgs.tuigreet} \
-            --cmd "zsh --login" \
-            --greeting ${greeting} \
-            --user-menu \
-            --time \
-            --theme "${config.lab.greetd.theme}" \
-            --time-format %R
-        '';
-      };
-      terminal = {
-        vt = 1;
+  config = lib.mkIf config.lab.greetd.enable {
+    services.greetd = {
+      enable = true;
+      settings = {
+        default_session = {
+          command = lib.concatStringsSep " " cmdAndArgsArray;
+        };
+        terminal = {
+          vt = 1;
+        };
       };
     };
   };

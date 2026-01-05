@@ -11,6 +11,10 @@
   ];
   xdg = {
     enable = true;
+    userDirs = {
+      enable = true;
+      createDirectories = true;
+    };
     mimeApps = {
       enable = true;
       defaultApplications = {
@@ -42,15 +46,20 @@
       "$mod_apps" = "MOD3";
       "$mod_move" = "SUPER";
       "$mod_hypr" = "MOD5";
+      "$mon_dock" = "desc:Acer Technologies Acer XF270H 0x542079DA";
+      "$mon_bltn" = "desc:California Institute of Technology 0x1404";
       "$menu_opts" = "--insensitive --match=multi-contains";
       "$run_menu" = "${lib.getExe pkgs.wofi} --show=run $menu_opts";
       "$drun_menu" = "${lib.getExe pkgs.wofi} --show=drun $menu_opts";
+      "$terminal" = "${lib.getExe pkgs.kitty} --single-instance";
       bind = [
-        "$mod_apps, RETURN, exec, ${lib.getExe pkgs.kitty}"
-        "$mod_apps, w, exec, firefox"
+        "$mod_apps, RETURN, exec, $terminal"
+        "$mod_apps, w, exec, ${lib.getExe pkgs.firefox}"
+        "$mod_apps, e, exec, $terminal -e ${lib.getExe config.programs.neovim.finalPackage}"
         "$mod_apps, q, exec, $run_menu"
         "$mod_apps, d, exec, $drun_menu"
         "$mod_apps, f, exec, ${lib.getExe pkgs.hyprshot} --mode region"
+        "$mod_hypr+SHIFT, q, killactive"
         "$mod_move, h, movefocus, l"
         "$mod_move, j, movefocus, d"
         "$mod_move, k, movefocus, u"
@@ -64,27 +73,35 @@
         "$mod_move, u, workspace, 7"
         "$mod_move, i, workspace, 8"
         "$mod_move, o, workspace, 9"
-
-        "$mod_move+SHIFT, q, movetoworkspace, 1"
-        "$mod_move+SHIFT, w, movetoworkspace, 2"
-        "$mod_move+SHIFT, e, movetoworkspace, 3"
-        "$mod_move+SHIFT, r, movetoworkspace, 4"
-        "$mod_move+SHIFT, t, movetoworkspace, 5"
-        "$mod_move+SHIFT, y, movetoworkspace, 6"
-        "$mod_move+SHIFT, u, movetoworkspace, 7"
-        "$mod_move+SHIFT, i, movetoworkspace, 8"
-        "$mod_move+SHIFT, o, movetoworkspace, 9"
+        "$mod_move+SHIFT, q, movetoworkspacesilent, 1"
+        "$mod_move+SHIFT, w, movetoworkspacesilent, 2"
+        "$mod_move+SHIFT, e, movetoworkspacesilent, 3"
+        "$mod_move+SHIFT, r, movetoworkspacesilent, 4"
+        "$mod_move+SHIFT, t, movetoworkspacesilent, 5"
+        "$mod_move+SHIFT, y, movetoworkspacesilent, 6"
+        "$mod_move+SHIFT, u, movetoworkspacesilent, 7"
+        "$mod_move+SHIFT, i, movetoworkspacesilent, 8"
+        "$mod_move+SHIFT, o, movetoworkspacesilent, 9"
+        "$mod_move+SHIFT, h, movewindow, l"
+        "$mod_move+SHIFT, j, movewindow, d"
+        "$mod_move+SHIFT, k, movewindow, u"
+        "$mod_move+SHIFT, l, movewindow, r"
+      ];
+      binde = [
+        ", XF86AudioRaiseVolume, exec, wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"
+        ", XF86AudioLowerVolume, exec, wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%-"
+        ", XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
       ];
       workspace = [
-        "1,monitor:DP-9"
-        "2,monitor:DP-9"
-        "3,monitor:DP-9"
-        "4,monitor:DP-9"
-        "5,monitor:DP-9"
-        "6,monitor:eDP-1"
-        "7,monitor:eDP-1"
-        "8,monitor:eDP-1"
-        "9,monitor:eDP-1"
+        "1,monitor:$mon_dock,default:true"
+        "2,monitor:$mon_dock"
+        "3,monitor:$mon_dock"
+        "4,monitor:$mon_dock"
+        "5,monitor:$mon_dock"
+        "6,monitor:$mon_bltn,default:true"
+        "7,monitor:$mon_bltn"
+        "8,monitor:$mon_bltn"
+        "9,monitor:$mon_bltn"
       ];
       device = {
         name = "at-translated-set-2-keyboard";
@@ -93,6 +110,8 @@
       };
       input = {
         kb_layout = "se";
+        repeat_delay = 200;
+        repeat_rate = 25;
         kb_file = "${pkgs.writeText "hyprland.xkb" /* xkb */ ''
           xkb_keymap {
             xkb_keycodes { include "evdev+aliases(qwerty)" };
@@ -110,8 +129,8 @@
         ''}";
       };
       monitor = [
-        "eDP-1, 1920x1080@60, 0x0, 1"
-        "DP-9, 1920x1080@144, -1920x0, 1"
+        "$mon_bltn, 1920x1080@60, 0x0, 1"
+        "$mon_dock, 1920x1080@144, -1920x0, 1"
       ];
     };
     xwayland.enable = true;
@@ -172,7 +191,7 @@
 
         background = [
           {
-            path = "~/Pictures/backgrounds/storm-blossom.png";
+            path = "${config.home.homeDirectory}/Pictures/backgrounds/Palma_screensaver_Bunny_leaping_from_moon.png";
             blur_passes = 3;
             blur_size = 8;
           }
@@ -214,7 +233,8 @@
         tab_bar_align = "left";
         tab_bar_min_tabs = 1;
         tab_title_template = "{index}: {tab.active_exe}";
-        background_opacity = 0.85;
+        background = "#1D1F21";
+        background_opacity = 0.95;
         "map ctrl+alt+1" = "first_window";
         "map ctrl+alt+2" = "second_window";
         "map ctrl+alt+3" = "third_window";
@@ -240,7 +260,8 @@
         vim.cmd.filetype({ args = { 'plugin', 'indent', 'on' } })
         vim.cmd.syntax('on')
         vim.o.termguicolors = true
-        vim.cmd.colorscheme('habamax')
+        vim.api.nvim_set_hl(0, "WinBar", { link = "Normal" })
+        vim.api.nvim_set_hl(0, "WinBarNC", { fg = "#707070", bg = "none" })
         vim.g.loaded_netrw = 1
         vim.g.loaded_netrwPlugin = 1
         vim.g.mapleader = ' '
@@ -345,6 +366,7 @@
           position = "top";
           modules-left = [
             "hyprland/workspaces"
+            "tray"
             "hyprland/submap"
             "cpu"
           ];
@@ -356,7 +378,65 @@
             "backlight"
             "battery"
           ];
-          "cpu" = {
+          backlight = {
+            format = "󰖨 {percent:>3}%";
+          };
+          battery = {
+            format = "{icon} {capacity:>3}%";
+            format-icons = {
+              charging = [
+                "󰢜"
+                "󰂆"
+                "󰂇"
+                "󰂈"
+                "󰢝"
+                "󰂉"
+                "󰢞"
+                "󰂊"
+                "󰂋"
+                "󰂅"
+              ];
+              default = [
+                "󰁺"
+                "󰁻"
+                "󰁼"
+                "󰁽"
+                "󰁾"
+                "󰁿"
+                "󰂀"
+                "󰂁"
+                "󰂂"
+                "󰁹"
+              ];
+            };
+            full-at = 70;
+          };
+          bluetooth = {
+            format = "";
+            format-disabled = "󰂲";
+            format-connected = "󰂱 {num_connections}";
+            tooltip-format = " {device_alias}";
+            tooltip-format-connected = "{device_enumerate}";
+            tooltip-format-enumerate-connected = " {device_alias}";
+            on-click = "${lib.getExe pkgs.kitty} -e bluetoothctl";
+            on-click-right = pkgs.writeShellScript "wofi-bluetooth-connect.sh" ''
+              declare -a trusted_devices
+              # TODO: fetch these automatically, with names
+              trusted_devices=(
+                12:34:50:83:34:65
+                78:5E:A2:D0:76:18
+              )
+              connect=$(printf "%s\n" "''${trusted_devices[@]}" | ${lib.getExe pkgs.wofi} --show dmenu)
+              if [[ -n "$connect" ]]; then
+                bluetoothctl connect "$connect"
+              fi
+            '';
+          };
+          clock = {
+            locale = "sv_SE.UTF-8";
+            tooltip-format = "{:L%A %F}";
+          };
+          cpu = {
             format = "  {icon0} {icon1} {icon2} {icon3} {usage:>2}%";
             format-icons = [
               "▁"
@@ -368,17 +448,25 @@
               "▇"
               "█"
             ];
+            on-click = "${lib.getExe pkgs.kitty} - ${lib.getExe pkgs.btop}";
           };
-          "pulseaudio" = {
-            format = "{icon} {volume}%";
-            format-muted = "";
+          network = {
+            format-ethernet = "󰌘 {ifname}";
+            format-wifi = "󰘊 {essid}";
+            format-disconnected = "󱘖 no network";
+            on-click = "${lib.getExe pkgs.kitty} -e iwctl";
+          };
+          pulseaudio = {
+            format = "{icon} {volume:>3}%";
+            format-muted = " {volume:>3}%";
             format-icons = {
               default = [
                 ""
                 ""
-                " "
+                ""
               ];
             };
+            on-click = "${lib.getExe pkgs.pavucontrol}";
           };
         };
       };
@@ -386,6 +474,8 @@
         * {
           background: transparent;
           font-size: 14px;
+          font-family: "monospace";
+          color: #c6d0f5;
         }
         #workspaces,
         #cpu,
@@ -407,7 +497,7 @@
         #workspaces > button {
           color: #babbf1;
           border-radius: 5px;
-          padding: 0.3rem 0.6rem;
+          padding: 0.3rem 0.7rem;
           background: transparent;
           transition: all 0.2s ease-in-out;
           border: none;
@@ -421,13 +511,32 @@
         #workspaces button.active {
           background-color: rgba(153, 209, 219, 0.1);
         }
+        #tray {
+          margin-right: 5px;
+        }
+        #tray window {
+          color: #656c73;
+        }
+        #tray window:hover {
+          color: white;
+        }
+        #tray window decoration {
+          background-color: #1a1b26;
+        }
+        tooltip {
+          background-color: #1D1F21;
+          border: 1px solid #000000;
+        }
+        tooltip label {
+          color: white;
+        }
         #bluetooth,
         #pulseaudio,
         #backlight,
         #network,
         #battery {
           background-color: #1a1b26;
-          padding: 0.3rem 0.7rem;
+          padding: 0.3rem 0.6rem;
           margin: 5px 0px;
           border-radius: 0;
           box-shadow: none;
@@ -445,13 +554,7 @@
           border-bottom-right-radius: 6px;
           margin-right: 7px;
         }
-        #cpu,
-        #pulseaudio,
-        #backlight,
-        #network {
-          color: #c6d0f5;
-        }
-        #battery,
+        #battery:not(.discharging),
         #battery.charging,
         #bluetooth.connected,
         #clock {
@@ -462,13 +565,6 @@
         }
         #network.disconnected {
           color: #e78284;
-        }
-        #bluetooth {
-          color: #888888;
-          font-size: 16px;
-        }
-        #bluetooth.on {
-          color: #2196f3;
         }
         #battery.warning:not(.charging) {
           color: #e78284;
@@ -530,8 +626,9 @@
           zstyle ':vcs_info:git:**' get-messages true
           zstyle ':vcs_info:git:**' formats '(%b%m%u%c)'
           zstyle ':vcs_info:git:**' actionformats '(%b|%a%m%u%c)'
-          zstyle ':vcs_info:git:**' stagedstr '+'
-          zstyle ':vcs_info:git:**' unstagedstr '*'
+          zstyle ':vcs_info:git:**' stagedstr '%F{2}+%f'
+          zstyle ':vcs_info:git:**' unstagedstr '%F{1}*%f'
+          zstyle ':vcs_info:git*+set-message:*' hooks git-aheadbehind
 
           zmodload zsh/complist
           bindkey -M command    '^[' send-break
@@ -547,17 +644,17 @@
           bindkey -M menuselect '^p'   vi-up-line-or-history
           bindkey -M menuselect '^y'   accept-line
           bindkey -M vicmd      '.'    vi-yank-arg
-          bindkey -M vicmd      '^[[F' end-of-line
-          bindkey -M vicmd      '^[[H' beginning-of-line
+          bindkey -M vicmd      '^[OF' end-of-line
+          bindkey -M vicmd      '^[OH' beginning-of-line
           bindkey -M vicmd      'z='   spell-word
           bindkey -M viins      '^?'   backward-delete-char
           bindkey -M viins      '^B'   beginning-of-line
           bindkey -M viins      '^E'   end-of-line
           bindkey -M viins      '^W'   backward-kill-word
-          bindkey -M viins      '^[[A' history-beginning-search-backward
-          bindkey -M viins      '^[[B' history-beginning-search-forward
-          bindkey -M viins      '^[[F' end-of-line
-          bindkey -M viins      '^[[H' beginning-of-line
+          bindkey -M viins      '^[OA' history-beginning-search-backward
+          bindkey -M viins      '^[OB' history-beginning-search-forward
+          bindkey -M viins      '^[OF' end-of-line
+          bindkey -M viins      '^[OH' beginning-of-line
           bindkey -M viins      '^a'   cd-show
           bindkey -M viins      '^g'   cdstack-menu
           bindkey -M viins      '§'    closest-history-match-accept
@@ -617,6 +714,16 @@
             if (( ''${+IN_NIX_SHELL} )); then
               echo "(nixshell:$IN_NIX_SHELL)"
             fi
+          }
+          function +vi-git-aheadbehind() {
+            if ! git rev-parse --abbrev-ref @{u} >/dev/null 2>&1; then
+              hook_com[misc]="[no-u]"
+              return 0
+            fi
+            local -i ahead=$(git rev-list --count @{u}..HEAD 2>/dev/null)
+            local -i behind=$(git rev-list --count HEAD..@{u} 2>/dev/null)
+            (( ahead > 0 )) && hook_com[misc]+="⇡$ahead"
+            (( behind > 0 )) && hook_com[misc]+="⇣$behind"
           }
 
           zle -N edit-command-line
@@ -681,12 +788,15 @@
         splash = true;
         splash_offset = 2.0;
         preload = [
-          "${config.home.homeDirectory}/Pictures/backgrounds/storm-blossom.png"
+          "${config.home.homeDirectory}/Pictures/backgrounds/saturn-rings.jpg"
         ];
         wallpaper = [
-          ",${config.home.homeDirectory}/Pictures/backgrounds/storm-blossom.png"
+          ",${config.home.homeDirectory}/Pictures/backgrounds/saturn-rings.jpg"
         ];
       };
+    };
+    syncthing = {
+      enable = true;
     };
   };
 

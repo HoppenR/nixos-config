@@ -150,8 +150,7 @@ in
       type = "rcloneMount";
     };
     greetd = {
-      # TODO:
-      # enable = true;
+      enable = true;
       theme = "container=blue;window=black;border=magenta;greet=magenta;prompt=magenta;input=magenta;action=blue";
     };
   };

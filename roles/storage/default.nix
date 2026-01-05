@@ -109,8 +109,7 @@ in
       type = "sftpHost";
     };
     greetd = {
-      # TODO:
-      # enable = true;
+      enable = true;
       theme = "container=blue;action=yellow;button=yellow;window=black";
     };
   };
