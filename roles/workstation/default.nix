@@ -59,6 +59,24 @@ in
     };
     font = "Lat2-Terminus16";
     keyMap = "sv-latin1";
+    colors = [
+      "1d1f21"
+      "dc322f"
+      "859900"
+      "b58900"
+      "268bd2"
+      "d33682"
+      "2aa198"
+      "eee8d5"
+      "002b36"
+      "cb4b16"
+      "586e75"
+      "657b83"
+      "839496"
+      "6c71c4"
+      "93a1a1"
+      "fdf6e3"
+    ];
   };
 
   sops = {
@@ -71,8 +89,7 @@ in
 
   lab = {
     greetd = {
-      # TODO:
-      # enable = true;
+      enable = true;
     };
   };
 
@@ -173,6 +190,19 @@ in
     };
     resolved.enable = true;
     pcscd.enable = true;
+    fwupd = {
+      enable = true;
+    };
+    tlp = {
+      enable = true;
+      settings = {
+        SATA_LINKPWR_ON_BAT = "med_power_with_dipm";
+        START_CHARGE_THRESH_BAT0 = 40;
+        STOP_CHARGE_THRESH_BAT0 = 70;
+        CPU_SCALING_GOVERNOR_ON_AC = "performance";
+        CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
+      };
+    };
     udev = {
       packages = builtins.attrValues {
         inherit (pkgs)
@@ -191,35 +221,92 @@ in
   };
 
   networking = {
+    useNetworkd = true;
     hostId = "007f0200";
     hostName = roles."${config.networking.role}".hostName;
     hosts = lib.mapAttrs' (_: host: lib.nameValuePair host.ipv4 [ host.hostName ]) (
       lib.filterAttrs (role: host: (host ? ipv4) && (role != config.networking.role)) roles
     );
     role = "workstation";
-    firewall.allowedTCPPorts = [ ];
-    firewall.allowedUDPPorts = [ ];
+
+    firewall = {
+      # Syncthing needs TCP/UDP 2200 and UDP 21027
+      allowedTCPPorts = [
+        22000
+      ];
+      allowedUDPPorts = [
+        22000
+        21027
+      ];
+    };
     firewall.enable = true;
 
-    defaultGateway = "192.168.0.1";
-    interfaces.enp5s0f4u1u1 = {
-      ipv4.addresses = [
-        {
-          address = roles."${config.networking.role}".ipv4;
-          prefixLength = 24;
-        }
-      ];
-      ipv6.addresses = [
-        {
-          address = roles."${config.networking.role}".ipv6;
-          prefixLength = 64;
-        }
-      ];
-      useDHCP = false;
+    defaultGateway = {
+      address = "192.168.0.1";
+      interface = "lan0";
+    };
+    bonds = {
+      lan0 = {
+        interfaces = [
+          "dock-lan"
+          "laptop-lan"
+        ];
+        driverOptions = {
+          miimon = "100";
+          mode = "active-backup";
+          primary = "dock-lan";
+        };
+      };
+    };
+
+    interfaces = {
+      lan0 = {
+        ipv4.addresses = [
+          {
+            address = roles."${config.networking.role}".ipv4;
+            prefixLength = 24;
+          }
+        ];
+        ipv6.addresses = [
+          {
+            address = roles."${config.networking.role}".ipv6;
+            prefixLength = 64;
+          }
+        ];
+        useDHCP = false;
+      };
     };
     resolvconf.enable = false;
     useDHCP = false;
-    # wireless.enable = true;
+
+    wireless.iwd = {
+      enable = true;
+      settings = {
+        General = {
+          EnableNetworkConfiguration = true;
+        };
+        Network = {
+          NameResolvingService = "systemd";
+        };
+      };
+    };
+  };
+
+  systemd.network = {
+    links = {
+      "20-dock-lan" = {
+        matchConfig.MACAddress = "84:ba:59:74:c0:bc";
+        linkConfig.Name = "dock-lan";
+      };
+      "20-laptop-lan" = {
+        matchConfig.MACAddress = "74:5d:22:39:03:cf";
+        linkConfig.Name = "laptop-lan";
+      };
+      "20-laptop-wifi" = {
+        matchConfig.MACAddress = "04:7b:cb:c1:96:22";
+        linkConfig.Name = "laptop-wifi";
+      };
+    };
   };
 
   system.stateVersion = "25.11"; # Did you read the comment?

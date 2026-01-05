@@ -11,6 +11,7 @@
       configDir = "/var/lib/syncthing";
       dataDir = "/replicated/apps/syncthing";
       guiAddress = "${roles.logic.ipv4}:8384";
+      openDefaultPorts = true;
     };
     systemd.services = {
       syncthing = {
@@ -20,15 +21,6 @@
       };
     };
     users.users.syncthing.createHome = lib.mkForce false;
-    networking.firewall = {
-      allowedTCPPorts = [
-        8384
-        22000
-      ];
-      allowedUDPPorts = [
-        22000
-        21027
-      ];
-    };
+    networking.firewall.allowedTCPPorts = [ 8384 ];
   };
 }
