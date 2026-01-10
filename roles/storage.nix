@@ -53,6 +53,7 @@ in
     greetd = {
       enable = true;
       theme = "container=blue;action=yellow;button=yellow;window=black";
+      useZshLogin = true;
     };
   };
 

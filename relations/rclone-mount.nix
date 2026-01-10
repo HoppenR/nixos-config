@@ -23,11 +23,7 @@ in
         stopIfChanged = false;
         serviceConfig = {
           Type = "notify";
-          # TODO: make the mount at /replicated/apps/syncthing/
-          #       with syncthing.homeDir the same ?
-          #       with users.users.syncthing.createHome ?
-          #     no because it will create the directory before everyt▸
-          # TODO: is --cache-dir needed? This is probably the default
+          CacheDirectory = "rclone";
           ExecStart = ''
             ${lib.getExe pkgs.rclone} mount \
               ":sftp,host=${sftpHostNode.ipv4},user=sftpuser,key_file=/persist/etc/ssh/ssh_host_ed25519_key:/apps" \
@@ -47,17 +43,12 @@ in
           ExecStartPost = ''
             ${lib.getExe pkgs.rclone} rc vfs/refresh recursive=true --url localhost:5572
           '';
-          # TODO: --lazy?
-          ExecStop = "/run/current-system/sw/bin/umount /replicated/apps";
+          ExecStop = "${pkgs.fuse}/bin/fusermount -u -z /replicated/apps";
           Restart = "on-failure";
           RestartSec = "10s";
           User = "root";
         };
       };
-      # TODO: needed?
-      systemd.tmpfiles.rules = [
-        "d /var/cache/rclone 0750 root root -"
-      ];
     })
     (lib.mkIf (config.networking.hostName == sftpHost) {
       users = {

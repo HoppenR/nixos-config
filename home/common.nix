@@ -374,11 +374,10 @@
         PS1 = "\\$(_in_nix_shell)[%n@%m %F{2}%4(c:…/:)%3c%f\\$vcs_info_msg_0_]%F{2}%(?.$.?)%f ";
         RPS1 = "%(?..%F{1}%?%f)";
         zle_highlight = [ "region:bg=14,fg=0" ];
+        ZSH_HIGHLIGHT_PRECOMMANDS = [ "run0" ];
       };
       shellAliases = {
         edit-var = "vared -i edit-command-line";
-        run0 = "run0 --background='48;2;0;95;96' --setenv=TERM=xterm-256color --via-shell";
-        ssh = "kitty +kitten ssh";
       };
       syntaxHighlighting.enable = true;
     };

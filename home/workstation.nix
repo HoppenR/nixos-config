@@ -43,6 +43,7 @@
       "$run_menu" = "${lib.getExe pkgs.wofi} --show=run $menu_opts";
       "$drun_menu" = "${lib.getExe pkgs.wofi} --show=drun $menu_opts";
       "$terminal" = "${lib.getExe pkgs.kitty} --single-instance";
+      "$quickterm" = "${pkgs.kitty}/bin/kitten quick-access-terminal";
       bind = [
         "$mod_apps, RETURN, exec, $terminal"
         "$mod_apps, a, exec, ${lib.getExe pkgs.pavucontrol}"
@@ -231,6 +232,7 @@
           modules-left = [
             "hyprland/workspaces"
             "tray"
+            "hyprland/language"
             "hyprland/submap"
             "cpu"
           ];
@@ -451,6 +453,11 @@
             show-passive-items = true;
             spacing = 7;
           };
+          "hyprland/language" = {
+            format-ru = "🇷🇺";
+            format-sv = "🇸🇪";
+            on-click = "hyprctl switchxkblayout all next";
+          };
         };
       };
       style = /* css */ ''
@@ -494,7 +501,9 @@
         #workspaces button.active {
           background-color: rgba(153, 209, 219, 0.1);
         }
+        #language,
         #tray {
+          font-size: 18px;
           margin-right: 5px;
         }
         menu menuitem label,
@@ -558,6 +567,12 @@
           color: #e78284;
         }
       '';
+    };
+    zsh = {
+      shellAliases = {
+        run0 = "run0 --background='48;2;0;95;96' --setenv=TERM=xterm-256color --via-shell";
+        ssh = "kitty +kitten ssh";
+      };
     };
   };
 

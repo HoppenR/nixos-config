@@ -9,7 +9,6 @@ let
   pusher = "skadi";
   sink = "hoddmimir";
 
-  pushNode = topology.${pusher};
   sinkNode = topology.${sink};
 in
 {

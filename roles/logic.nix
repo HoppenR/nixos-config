@@ -58,9 +58,7 @@ in
     greetd = {
       enable = true;
       theme = "container=blue;window=black;border=magenta;greet=magenta;prompt=magenta;input=magenta;action=blue";
-    };
-    streamserver = {
-      enable = true;
+      useZshLogin = true;
     };
   };
 
@@ -226,10 +224,6 @@ in
   };
 
   systemd.services = {
-    caddy = {
-      # TODO: needed?
-      unitConfig.RequiresMountsFor = "/replicated/web";
-    };
     vaultwarden = {
       after = [ "postgresql.service" ];
       requires = [ "postgresql.service" ];

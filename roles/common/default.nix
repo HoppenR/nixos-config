@@ -15,11 +15,7 @@ in
 
   imports = [
     ./greetd.nix
-    ./syncthing.nix
-
-    # TODO: import when they are ready and conditional:
     ./booklore.nix
-    ./streamserver.nix
 
     inputs.home-manager.nixosModules.home-manager
     # inputs.run0-sudo-shim.nixosModules.default
