@@ -14,19 +14,19 @@ let
     ''
   );
   roleArt = {
-    logic = lib.strings.escapeShellArg ''
+    skadi = lib.strings.escapeShellArg ''
       ${sp}         * / __ | |/ /  /_\  |   \|_ _| *         ${sp}
       ${sp}          *\__ \| ' <  / * \ ┼─|)  | | *          ${sp}
       ${sp}         * |___/ _|\_\/_/ \_\|___/|___| *         ${sp}
       ${sp}          * ━━━━━━━━━━━━━━━━━━━━━━━━━━ *          ${sp}
     '';
-    storage = lib.strings.escapeShellArg ''
+    hoddmimir = lib.strings.escapeShellArg ''
       ${sp}| || |/ _ \|   \|   \|  \|/  |_ _||  \/  |_ _| _ \${sp}
       ${sp}| __ | (_) | |) | |) | |\|/|  | | | |\/|  | |    /${sp}
       ${sp}|_||_|\___/|___/|___/|_| | |_|___||_|  |_|___|_|_\${sp}
       ${sp}            -------------┴-------------           ${sp}
     '';
-    workstation = lib.strings.escapeShellArg ''
+    rime = lib.strings.escapeShellArg ''
       ${sp}    .     :    |  _ \_ _|| \/ | __| ..  .    .    ${sp}
       ${sp} . ..:  . .    | `  /| | |    | __|       :       ${sp}
       ${sp}  :    .  :    |__|_\___||_||_|___|   : .   :     ${sp}
@@ -37,7 +37,7 @@ let
   greetingEnding = lib.strings.escapeShellArg ''
     NixOS ${config.system.nixos.version}
   '';
-  greeting = greeingCommon + roleArt.${config.networking.role} + greetingEnding;
+  greeting = greeingCommon + roleArt.${config.networking.hostName} + greetingEnding;
 
   cmdAndArgsArray = [
     "${lib.getExe pkgs.tuigreet}"

@@ -15,27 +15,33 @@
       url = "github:nix-community/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # run0-sudo-shim = {
+    #   url = "github:lordgrimmauld/run0-sudo-shim";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
   };
   outputs =
     { nixpkgs, ... }@inputs:
     let
       system = "x86_64-linux";
+      topology = import ./topology.nix;
+      specialArgs = { inherit inputs system topology; };
     in
     {
       nixosConfigurations = {
-        logic = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs system; };
-          modules = [ ./roles/logic ];
+        skadi = nixpkgs.lib.nixosSystem {
+          inherit specialArgs;
+          modules = [ ./hosts/skadi ];
         };
 
-        storage = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs system; };
-          modules = [ ./roles/storage ];
+        hoddmimir = nixpkgs.lib.nixosSystem {
+          inherit specialArgs;
+          modules = [ ./hosts/hoddmimir ];
         };
 
-        workstation = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs system; };
-          modules = [ ./roles/workstation ];
+        rime = nixpkgs.lib.nixosSystem {
+          inherit specialArgs;
+          modules = [ ./hosts/rime ];
         };
       };
     };

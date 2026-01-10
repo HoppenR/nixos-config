@@ -9,131 +9,39 @@
   imports = [
     inputs.nix-index-database.homeModules.nix-index
   ];
-  xdg = {
-    enable = true;
-    userDirs = {
-      enable = true;
-      createDirectories = true;
-    };
-    mimeApps = {
-      enable = true;
-      defaultApplications = {
-        "text/*" = [ "nvim.desktop" ];
-        "inode/directory" = [ "kitty-open.desktop" ];
-      };
-    };
-  };
 
-  home.packages = builtins.attrValues {
-    inherit (pkgs)
-      discord
-      gcr
-      fd
-      jq
-      libnotify
-      ripgrep
-      tree-sitter
-      unzip
-      wget
-      wl-clipboard
-      ;
-  };
-
-  wayland.windowManager.hyprland = {
-    enable = true;
-    systemd.enable = true;
-    settings = {
-      "$mod_apps" = "MOD3";
-      "$mod_move" = "SUPER";
-      "$mod_hypr" = "MOD5";
-      "$mon_dock" = "desc:Acer Technologies Acer XF270H 0x542079DA";
-      "$mon_bltn" = "desc:California Institute of Technology 0x1404";
-      "$menu_opts" = "--insensitive --match=multi-contains";
-      "$run_menu" = "${lib.getExe pkgs.wofi} --show=run $menu_opts";
-      "$drun_menu" = "${lib.getExe pkgs.wofi} --show=drun $menu_opts";
-      "$terminal" = "${lib.getExe pkgs.kitty} --single-instance";
-      bind = [
-        "$mod_apps, RETURN, exec, $terminal"
-        "$mod_apps, w, exec, ${lib.getExe pkgs.firefox}"
-        "$mod_apps, e, exec, $terminal -e ${lib.getExe config.programs.neovim.finalPackage}"
-        "$mod_apps, q, exec, $run_menu"
-        "$mod_apps, d, exec, $drun_menu"
-        "$mod_apps, f, exec, ${lib.getExe pkgs.hyprshot} --mode region"
-        "$mod_hypr+SHIFT, q, killactive"
-        "$mod_move, h, movefocus, l"
-        "$mod_move, j, movefocus, d"
-        "$mod_move, k, movefocus, u"
-        "$mod_move, l, movefocus, r"
-        "$mod_move, q, workspace, 1"
-        "$mod_move, w, workspace, 2"
-        "$mod_move, e, workspace, 3"
-        "$mod_move, r, workspace, 4"
-        "$mod_move, t, workspace, 5"
-        "$mod_move, y, workspace, 6"
-        "$mod_move, u, workspace, 7"
-        "$mod_move, i, workspace, 8"
-        "$mod_move, o, workspace, 9"
-        "$mod_move+SHIFT, q, movetoworkspacesilent, 1"
-        "$mod_move+SHIFT, w, movetoworkspacesilent, 2"
-        "$mod_move+SHIFT, e, movetoworkspacesilent, 3"
-        "$mod_move+SHIFT, r, movetoworkspacesilent, 4"
-        "$mod_move+SHIFT, t, movetoworkspacesilent, 5"
-        "$mod_move+SHIFT, y, movetoworkspacesilent, 6"
-        "$mod_move+SHIFT, u, movetoworkspacesilent, 7"
-        "$mod_move+SHIFT, i, movetoworkspacesilent, 8"
-        "$mod_move+SHIFT, o, movetoworkspacesilent, 9"
-        "$mod_move+SHIFT, h, movewindow, l"
-        "$mod_move+SHIFT, j, movewindow, d"
-        "$mod_move+SHIFT, k, movewindow, u"
-        "$mod_move+SHIFT, l, movewindow, r"
-      ];
-      binde = [
-        ", XF86AudioRaiseVolume, exec, wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"
-        ", XF86AudioLowerVolume, exec, wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%-"
-        ", XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
-      ];
-      workspace = [
-        "1,monitor:$mon_dock,default:true"
-        "2,monitor:$mon_dock"
-        "3,monitor:$mon_dock"
-        "4,monitor:$mon_dock"
-        "5,monitor:$mon_dock"
-        "6,monitor:$mon_bltn,default:true"
-        "7,monitor:$mon_bltn"
-        "8,monitor:$mon_bltn"
-        "9,monitor:$mon_bltn"
-      ];
-      device = {
-        name = "at-translated-set-2-keyboard";
-        repeat_delay = 200;
-        repeat_rate = 25;
+  home = {
+    file = {
+      "${config.xdg.configHome}/nvim/rocks.toml" = {
+        source = config.lib.file.mkOutOfStoreSymlink "/persist/nixos/res/rocks.toml";
       };
-      input = {
-        kb_layout = "se";
-        repeat_delay = 200;
-        repeat_rate = 25;
-        kb_file = "${pkgs.writeText "hyprland.xkb" /* xkb */ ''
-          xkb_keymap {
-            xkb_keycodes { include "evdev+aliases(qwerty)" };
-            xkb_types { include "complete" };
-            xkb_compat { include "complete" };
-            xkb_symbols {
-              include "pc+se+ru:2+inet(evdev)"
-              replace key <PRSC> { [ ISO_Level5_Shift ] };
-              replace key <CAPS> {
-                type = "TWO_LEVEL",
-                symbols[Group1] = [ ISO_Next_Group, Caps_Lock ]
-              };
-            };
-          };
-        ''}";
-      };
-      monitor = [
-        "$mon_bltn, 1920x1080@60, 0x0, 1"
-        "$mon_dock, 1920x1080@144, -1920x0, 1"
-      ];
     };
-    xwayland.enable = true;
+    packages = builtins.attrValues {
+      inherit (pkgs)
+        fd
+        jq
+        ripgrep
+        tree-sitter
+        unzip
+        wget
+        ;
+
+      inherit (pkgs.maple-mono // pkgs)
+        NF
+        cozette
+        fira-code
+        jetbrains-mono
+        noto-fonts
+        ;
+    };
+    sessionVariables = {
+      CARGO_HOME = "${config.xdg.cacheHome}/cargo";
+      FZF_ALT_C_COMMAND = "fd --strip-cwd-prefix --type directory";
+      FZF_CTRL_R_OPTS = "--border=rounded";
+      FZF_CTRL_T_COMMAND = "fd --strip-cwd-prefix --type file";
+      LESS = "-FRXi -x1,5";
+      LESSHISTFILE = "${config.xdg.stateHome}/less/history";
+    };
   };
 
   programs = {
@@ -148,13 +56,6 @@
       enable = true;
       enableZshIntegration = true;
     };
-    firefox = {
-      enable = true;
-      languagePacks = [
-        "en-US"
-        "sv-SE"
-      ];
-    };
     git = {
       enable = true;
       settings = {
@@ -162,7 +63,6 @@
           name = "Christoffer Lundell";
           email = "christofferlundell@protonmail.com";
         };
-        safe.directory = "/persist/nixos";
         init.defaultBranch = "main";
       };
     };
@@ -176,78 +76,13 @@
       };
       publicKeys = [
         {
-          source = ../../keys/pgp_pub.asc;
+          source = ../keys/pgp_pub.asc;
           trust = 5;
         }
       ];
     };
-    hyprlock = {
+    home-manager = {
       enable = true;
-      settings = {
-        general = {
-          hide_cursor = true;
-          ignore_empty_input = true;
-        };
-
-        background = [
-          {
-            path = "${config.home.homeDirectory}/Pictures/backgrounds/Palma_screensaver_Bunny_leaping_from_moon.png";
-            blur_passes = 3;
-            blur_size = 8;
-          }
-        ];
-        input-field = [
-          {
-            monitor = "";
-            size = "200, 50";
-            position = "0, -80";
-            dots_center = true;
-            fade_on_empty = false;
-            font_color = "rgb(202, 211, 245)";
-            inner_color = "rgb(91, 96, 120)";
-            outer_color = "rgb(24, 25, 38)";
-            outline_thickness = 5;
-            # placeholder_text = "<span foreground=\"##cad3f5\">Password...</sp an>";
-            shadow_passes = 2;
-          }
-        ];
-      };
-    };
-    kitty = {
-      enable = true;
-      shellIntegration = {
-        enableZshIntegration = true;
-      };
-      settings = {
-        font_family = "monospace";
-        font_size = 15;
-        disable_ligatures = "cursor";
-        scrollback_lines = 5000;
-        enable_audio_bell = false;
-        visual_bell_duration = 0.5;
-        visual_bell_color = "black";
-        window_alert_on_bell = true;
-        remember_window_size = false;
-        tab_bar_edge = "top";
-        tab_bar_style = "powerline";
-        tab_bar_align = "left";
-        tab_bar_min_tabs = 1;
-        tab_title_template = "{index}: {tab.active_exe}";
-        background = "#1D1F21";
-        background_opacity = 0.95;
-        "map ctrl+alt+1" = "first_window";
-        "map ctrl+alt+2" = "second_window";
-        "map ctrl+alt+3" = "third_window";
-        "map kitty_mod+t" = "new_tab_with_cwd";
-        "map kitty_mod+y" = "new_tab";
-        "map alt+1" = "goto_tab 1";
-        "map alt+2" = "goto_tab 2";
-        "map alt+3" = "goto_tab 3";
-        "map alt+4" = "goto_tab 4";
-        cursor_trail = 1;
-        cursor_trail_decay = "0.1 0.1";
-        cursor_trail_start_threshold = 2;
-      };
     };
     neovim = {
       enable = true;
@@ -353,223 +188,16 @@
       viAlias = true;
       vimAlias = true;
     };
+    nix-index.enable = true;
     nix-index-database.comma.enable = true;
-    obs-studio = {
+    readline = {
       enable = true;
-    };
-    waybar = {
-      enable = true;
-      systemd.enable = true;
-      settings = {
-        mainBar = {
-          layer = "top";
-          position = "top";
-          modules-left = [
-            "hyprland/workspaces"
-            "tray"
-            "hyprland/submap"
-            "cpu"
-          ];
-          modules-center = [ "clock" ];
-          modules-right = [
-            "bluetooth"
-            "network"
-            "pulseaudio"
-            "backlight"
-            "battery"
-          ];
-          backlight = {
-            format = "󰖨 {percent:>3}%";
-          };
-          battery = {
-            format = "{icon} {capacity:>3}%";
-            format-icons = {
-              charging = [
-                "󰢜"
-                "󰂆"
-                "󰂇"
-                "󰂈"
-                "󰢝"
-                "󰂉"
-                "󰢞"
-                "󰂊"
-                "󰂋"
-                "󰂅"
-              ];
-              default = [
-                "󰁺"
-                "󰁻"
-                "󰁼"
-                "󰁽"
-                "󰁾"
-                "󰁿"
-                "󰂀"
-                "󰂁"
-                "󰂂"
-                "󰁹"
-              ];
-            };
-            full-at = 70;
-          };
-          bluetooth = {
-            format = "";
-            format-disabled = "󰂲";
-            format-connected = "󰂱 {num_connections}";
-            tooltip-format = " {device_alias}";
-            tooltip-format-connected = "{device_enumerate}";
-            tooltip-format-enumerate-connected = " {device_alias}";
-            on-click = "${lib.getExe pkgs.kitty} -e bluetoothctl";
-            on-click-right = pkgs.writeShellScript "wofi-bluetooth-connect.sh" ''
-              declare -a trusted_devices
-              # TODO: fetch these automatically, with names
-              trusted_devices=(
-                12:34:50:83:34:65
-                78:5E:A2:D0:76:18
-              )
-              connect=$(printf "%s\n" "''${trusted_devices[@]}" | ${lib.getExe pkgs.wofi} --show dmenu)
-              if [[ -n "$connect" ]]; then
-                bluetoothctl connect "$connect"
-              fi
-            '';
-          };
-          clock = {
-            locale = "sv_SE.UTF-8";
-            tooltip-format = "{:L%A %F}";
-          };
-          cpu = {
-            format = "  {icon0} {icon1} {icon2} {icon3} {usage:>2}%";
-            format-icons = [
-              "▁"
-              "▂"
-              "▃"
-              "▄"
-              "▅"
-              "▆"
-              "▇"
-              "█"
-            ];
-            on-click = "${lib.getExe pkgs.kitty} - ${lib.getExe pkgs.btop}";
-          };
-          network = {
-            format-ethernet = "󰌘 {ifname}";
-            format-wifi = "󰘊 {essid}";
-            format-disconnected = "󱘖 no network";
-            on-click = "${lib.getExe pkgs.kitty} -e iwctl";
-          };
-          pulseaudio = {
-            format = "{icon} {volume:>3}%";
-            format-muted = " {volume:>3}%";
-            format-icons = {
-              default = [
-                ""
-                ""
-                ""
-              ];
-            };
-            on-click = "${lib.getExe pkgs.pavucontrol}";
-          };
-        };
+      variables = {
+        editing-mode = "vi";
+        completion-ignore-case = "on";
+        show-all-if-ambiguous = "on";
+        expand-tilde = "on";
       };
-      style = /* css */ ''
-        * {
-          background: transparent;
-          font-size: 14px;
-          font-family: "monospace";
-          color: #c6d0f5;
-        }
-        #workspaces,
-        #cpu,
-        #clock {
-          background-color: #1a1b26;
-          padding: 0.3rem 0.7rem;
-          margin: 5px 0px;
-          border-radius: 6px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          min-width: 0;
-          border: none;
-          transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
-        }
-        #workspaces {
-          padding: 2px;
-          margin-left: 7px;
-          margin-right: 5px;
-        }
-        #workspaces > button {
-          color: #babbf1;
-          border-radius: 5px;
-          padding: 0.3rem 0.7rem;
-          background: transparent;
-          transition: all 0.2s ease-in-out;
-          border: none;
-          outline: none;
-          box-shadow: none;
-        }
-        #workspaces > button:hover {
-          background-image: none;
-          text-shadow: none;
-        }
-        #workspaces button.active {
-          background-color: rgba(153, 209, 219, 0.1);
-        }
-        #tray {
-          margin-right: 5px;
-        }
-        #tray window {
-          color: #656c73;
-        }
-        #tray window:hover {
-          color: white;
-        }
-        #tray window decoration {
-          background-color: #1a1b26;
-        }
-        tooltip {
-          background-color: #1D1F21;
-          border: 1px solid #000000;
-        }
-        tooltip label {
-          color: white;
-        }
-        #bluetooth,
-        #pulseaudio,
-        #backlight,
-        #network,
-        #battery {
-          background-color: #1a1b26;
-          padding: 0.3rem 0.6rem;
-          margin: 5px 0px;
-          border-radius: 0;
-          box-shadow: none;
-          min-width: 0;
-          border: none;
-          transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
-        }
-        #bluetooth {
-          margin-left: 0px;
-          border-top-left-radius: 6px;
-          border-bottom-left-radius: 6px;
-        }
-        #battery {
-          border-top-right-radius: 6px;
-          border-bottom-right-radius: 6px;
-          margin-right: 7px;
-        }
-        #battery:not(.discharging),
-        #battery.charging,
-        #bluetooth.connected,
-        #clock {
-          color: #99d1db;
-        }
-        #clock {
-          font-weight: 600;
-        }
-        #network.disconnected {
-          color: #e78284;
-        }
-        #battery.warning:not(.charging) {
-          color: #e78284;
-        }
-      '';
     };
     zsh = {
       enable = true;
@@ -604,6 +232,7 @@
           setopt    MENU_COMPLETE
           setopt    PROMPT_SUBST
           setopt    SHARE_HISTORY
+          setopt    TRANSIENT_RPROMPT
           stty -ixoff
           stty -ixon
           tabs -4
@@ -744,10 +373,11 @@
         KEYTIMEOUT = 1;
         PS1 = "\\$(_in_nix_shell)[%n@%m %F{2}%4(c:…/:)%3c%f\\$vcs_info_msg_0_]%F{2}%(?.$.?)%f ";
         RPS1 = "%(?..%F{1}%?%f)";
-        zle_highlight = [ "region:bg=6,fg=0" ];
+        zle_highlight = [ "region:bg=14,fg=0" ];
       };
       shellAliases = {
         edit-var = "vared -i edit-command-line";
+        run0 = "run0 --background='48;2;0;95;96' --setenv=TERM=xterm-256color --via-shell";
         ssh = "kitty +kitten ssh";
       };
       syntaxHighlighting.enable = true;
@@ -758,64 +388,15 @@
     gpg-agent = {
       enable = true;
       enableSshSupport = true;
-      pinentry.package = pkgs.pkgs.wayprompt;
-    };
-    hypridle = {
-      enable = true;
-      settings = {
-        general = {
-          after_sleep_cmd = "hyprctl dispatch dpms on";
-          ignore_dbus_inhibit = false;
-          lock_cmd = "${pkgs.hyprlock}/bin/hyprlock";
-        };
-        listener = [
-          {
-            timeout = 900;
-            on-timeout = "${pkgs.hyprlock}/bin/hyprlock";
-          }
-          {
-            timeout = 1200;
-            on-timeout = "${pkgs.hyprland}/bin/hyprctl dispatch dpms off";
-            on-resume = "${pkgs.hyprland}/bin/hyprctl dispatch dpms on";
-          }
-        ];
-      };
-    };
-    hyprpaper = {
-      enable = true;
-      settings = {
-        ipc = "on";
-        splash = true;
-        splash_offset = 2.0;
-        preload = [
-          "${config.home.homeDirectory}/Pictures/backgrounds/saturn-rings.jpg"
-        ];
-        wallpaper = [
-          ",${config.home.homeDirectory}/Pictures/backgrounds/saturn-rings.jpg"
-        ];
-      };
-    };
-    syncthing = {
-      enable = true;
+      pinentry.package = lib.mkDefault pkgs.pinentry-tty;
     };
   };
 
-  systemd.user.services = {
-    hyprnotify = {
-      Install = {
-        WantedBy = [ "graphical-session.target" ];
-      };
-      Service = {
-        ExecStart = "${pkgs.hyprnotify}/bin/hyprnotify";
-        Restart = "always";
-        RestartSec = 10;
-      };
-      Unit = {
-        After = [ "graphical-session.target" ];
-        ConditionEnvironment = "WAYLAND_DISPLAY";
-        Description = "`hyprctl notify` daemon for dbus clients";
-        PartOf = "graphical-session.target";
-      };
+  xdg = {
+    enable = true;
+    userDirs = {
+      enable = true;
+      createDirectories = true;
     };
   };
 
@@ -1116,27 +697,4 @@
         }
       '';
   };
-
-  home.file = {
-    "${config.xdg.configHome}/nvim/rocks.toml" = {
-      source = config.lib.file.mkOutOfStoreSymlink "/persist/nixos/res/rocks.toml";
-    };
-    ".pki" = {
-      source = config.lib.file.mkOutOfStoreSymlink "${config.xdg.stateHome}/pki";
-    };
-  };
-
-  home.sessionVariables = {
-    BROWSER = "firefox";
-    CARGO_HOME = "${config.xdg.cacheHome}/cargo";
-    FZF_ALT_C_COMMAND = "fd --strip-cwd-prefix --type directory";
-    FZF_CTRL_R_OPTS = "--border=rounded";
-    FZF_CTRL_T_COMMAND = "fd --strip-cwd-prefix --type file";
-    LESS = "-FRX -x1,5";
-    LESSHISTFILE = "${config.xdg.stateHome}/less/history";
-    TERMINAL = "kitty";
-  };
-
-  home.stateVersion = "25.11";
-  programs.home-manager.enable = true;
 }

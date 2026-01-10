@@ -1,26 +1,40 @@
 {
   lib,
-  roles,
+  config,
+  topology,
   ...
 }:
+let
+  server = "skadi";
+  clients = [ "rime" ];
+in
 {
-  # TODO: this file shouldn't really be roles/common if it is this setup specific
-  config = {
-    services.syncthing = {
-      enable = true;
-      configDir = "/var/lib/syncthing";
-      dataDir = "/replicated/apps/syncthing";
-      guiAddress = "${roles.logic.ipv4}:8384";
-      openDefaultPorts = true;
-    };
-    systemd.services = {
-      syncthing = {
-        after = [ "rclone-replicated-apps.service" ];
-        requires = [ "rclone-replicated-apps.service" ];
-        serviceConfig.StateDirectory = "syncthing";
+  config = lib.mkMerge [
+    (lib.mkIf (lib.elem config.networking.hostName clients) {
+      home-manager.users.christoffer = {
+        services.syncthing.enable = true;
       };
-    };
-    users.users.syncthing.createHome = lib.mkForce false;
-    networking.firewall.allowedTCPPorts = [ 8384 ];
-  };
+      services.syncthing = {
+        openDefaultPorts = true;
+      };
+    })
+    (lib.mkIf (config.networking.hostName == server) {
+      services.syncthing = {
+        enable = true;
+        configDir = "/var/lib/syncthing";
+        dataDir = "/replicated/apps/syncthing";
+        guiAddress = "${topology.skadi.ipv4}:8384";
+        openDefaultPorts = true;
+      };
+      systemd.services = {
+        syncthing = {
+          after = [ "rclone-replicated-apps.service" ];
+          requires = [ "rclone-replicated-apps.service" ];
+          serviceConfig.StateDirectory = "syncthing";
+        };
+      };
+      users.users.syncthing.createHome = lib.mkForce false;
+      networking.firewall.allowedTCPPorts = [ 8384 ];
+    })
+  ];
 }

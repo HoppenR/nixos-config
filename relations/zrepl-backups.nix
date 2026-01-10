@@ -1,45 +1,31 @@
 {
   config,
   lib,
-  roles,
+  topology,
   ...
 }:
-
 let
   zreplPort = 8219;
-  zreplTypes = [
-    "push"
-    "sink"
-  ];
+  pusher = "skadi";
+  sink = "hoddmimir";
+
+  pushNode = topology.${pusher};
+  sinkNode = topology.${sink};
 in
 {
-  options.lab.zrepl = {
-    enable = lib.mkEnableOption "enable zrepl lab configuration";
-    type = lib.mkOption {
-      type = lib.types.nullOr (lib.types.enum zreplTypes);
-      default = null;
-      description = "The zrepl lab role";
-    };
-  };
-
-  config = lib.mkIf config.lab.zrepl.enable {
-    sops.secrets = {
-      "zrepl-storage-key".key = "zrepl/storage-key";
-      "zrepl-logic-key".key = "zrepl/logic-key";
-    };
-
-    networking.firewall.allowedTCPPorts = lib.mkIf (config.lab.zrepl.type == "sink") [ zreplPort ];
-    services.zrepl = {
-      enable = true;
-      settings = {
-        jobs = [
-          (lib.mkIf (config.lab.zrepl.type == "push") {
+  config = lib.mkMerge [
+    (lib.mkIf (config.networking.hostName == pusher) {
+      sops.secrets."zrepl-logic-key".key = "zrepl/logic-key";
+      services.zrepl = {
+        enable = true;
+        settings.jobs = [
+          {
             # For running zrepl job [skadi:tank -> hoddmimir:holt]
             type = "push";
-            name = "push_db_${roles.storage.hostName}";
+            name = "push_db_${sink}";
             connect = {
               type = "tls";
-              address = "${roles.storage.ipv4}:${toString zreplPort}";
+              address = "${sinkNode.ipv4}:${toString zreplPort}";
               ca = "${../../certs/ca.crt}";
               cert = "${../../certs/logic01.crt}";
               key = config.sops.secrets."zrepl-logic-key".path;
@@ -47,6 +33,7 @@ in
             };
             filesystems = {
               "tank/replicated/db<" = true;
+              "tank/replicated/db" = false;
             };
             pruning = {
               keep_sender = [
@@ -79,11 +66,20 @@ in
               timestamp_format = "iso-8601";
               type = "periodic";
             };
-          })
-          (lib.mkIf (config.lab.zrepl.type == "sink") {
+          }
+        ];
+      };
+    })
+    (lib.mkIf (config.networking.hostName == sink) {
+      networking.firewall.allowedTCPPorts = [ zreplPort ];
+      sops.secrets."zrepl-storage-key".key = "zrepl/storage-key";
+      services.zrepl = {
+        enable = true;
+        settings.jobs = [
+          {
             # For running zrepl job [hoddmimir:holt <- skadi:tank]
             type = "sink";
-            name = "sink_db_${roles.logic.hostName}";
+            name = "sink_db_${pusher}";
             root_fs = "holt";
             recv = {
               placeholder.encryption = "inherit";
@@ -102,9 +98,9 @@ in
               key = config.sops.secrets."zrepl-storage-key".path;
               client_cns = [ "logic01" ];
             };
-          })
+          }
         ];
       };
-    };
-  };
+    })
+  ];
 }
