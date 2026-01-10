@@ -1,18 +1,4 @@
 {
-  # TODO: should admins be a
-  #       relationship in the schema?
-  # pros: I can add it to every
-  #       machine with individual
-  #       exclusions, and it
-  #       would be more clear what
-  #       it is, I could also add
-  #       benjamin's keys with lesser
-  #       access as another relationship
-  # cons: it's not really a relationship
-  #       between machines, but rather
-  #       an ACL-based list
-  #       so maybe under acl/
-  #       instead of relations/
   skadi = {
     admins = [ "christoffer" ];
     ipv4 = "192.168.0.41";

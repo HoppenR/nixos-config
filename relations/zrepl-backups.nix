@@ -26,8 +26,8 @@ in
             connect = {
               type = "tls";
               address = "${sinkNode.ipv4}:${toString zreplPort}";
-              ca = "${../../certs/ca.crt}";
-              cert = "${../../certs/logic01.crt}";
+              ca = "${../certs/ca.crt}";
+              cert = "${../certs/logic01.crt}";
               key = config.sops.secrets."zrepl-logic-key".path;
               server_cn = "storage01";
             };
@@ -93,8 +93,8 @@ in
             serve = {
               type = "tls";
               listen = ":${toString zreplPort}";
-              ca = "${../../certs/ca.crt}";
-              cert = "${../../certs/storage01.crt}";
+              ca = "${../certs/ca.crt}";
+              cert = "${../certs/storage01.crt}";
               key = config.sops.secrets."zrepl-storage-key".path;
               client_cns = [ "logic01" ];
             };
