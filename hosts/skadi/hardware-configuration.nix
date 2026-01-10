@@ -39,8 +39,18 @@
       fsType = "zfs";
     };
 
-  fileSystems."/replicated/db" =
-    { device = "tank/replicated/db";
+  fileSystems."/replicated/db/mariadb" =
+    { device = "tank/replicated/db/mariadb";
+      fsType = "zfs";
+    };
+
+  fileSystems."/replicated/db/postgres" =
+    { device = "tank/replicated/db/postgres";
+      fsType = "zfs";
+    };
+
+  fileSystems."/replicated/apps" =
+    { device = "tank/replicated/apps";
       fsType = "zfs";
     };
 
@@ -52,7 +62,7 @@
   fileSystems."/boot" =
     { device = "/dev/disk/by-uuid/0AA7-88C1";
       fsType = "vfat";
-        options = [ "fmask=0077" "dmask=0077" ];
+      options = [ "fmask=0077" "dmask=0077" ];
     };
 
   swapDevices =

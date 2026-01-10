@@ -10,7 +10,7 @@ let
   sftpHost = "hoddmimir";
 
   rcloneMountNode = topology.${rcloneMount};
-  sftpHostNode = topology.${sftpHostNode};
+  sftpHostNode = topology.${sftpHost};
 in
 {
   config = lib.mkMerge [
@@ -23,16 +23,20 @@ in
         stopIfChanged = false;
         serviceConfig = {
           Type = "notify";
-          ExecStartPre = "/run/current-system/sw/bin/mkdir -p /replicated/apps";
+          # TODO: make the mount at /replicated/apps/syncthing/
+          #       with syncthing.homeDir the same ?
+          #       with users.users.syncthing.createHome ?
+          #     no because it will create the directory before everyt▸
           # TODO: is --cache-dir needed? This is probably the default
           ExecStart = ''
             ${lib.getExe pkgs.rclone} mount \
               ":sftp,host=${sftpHostNode.ipv4},user=sftpuser,key_file=/persist/etc/ssh/ssh_host_ed25519_key:/apps" \
               /replicated/apps \
+              --allow-non-empty \
               --config /dev/null \
               --allow-other \
               --vfs-cache-mode full \
-              --vfs-cache-max-size 5Gi \
+              --vfs-cache-max-size 8Gi \
               --vfs-write-back 5m \
               --dir-cache-time 336h \
               --attr-timeout 336h \

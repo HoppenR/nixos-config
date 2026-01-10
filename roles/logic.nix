@@ -52,9 +52,15 @@ in
   };
 
   lab = {
+    booklore = {
+      enable = true;
+    };
     greetd = {
       enable = true;
       theme = "container=blue;window=black;border=magenta;greet=magenta;prompt=magenta;input=magenta;action=blue";
+    };
+    streamserver = {
+      enable = true;
     };
   };
 
@@ -71,6 +77,7 @@ in
           reverse_proxy localhost:${toString config.services.vaultwarden.config.ROCKET_PORT}
         '';
         "www" = "redir https://${domainName}{uri}";
+        "booklore" = "reverse_proxy localhost:6060";
       };
       makeVirtualHost =
         hostname: extraConfig:
@@ -145,7 +152,22 @@ in
         dataDir = "/replicated/db/postgres";
         initdbArgs = [ "--data-checksums" ];
         settings = {
+          full_page_writes = "off";
           listen_addresses = lib.mkForce "";
+        };
+      };
+      mysql = {
+        enable = true;
+        package = pkgs.mariadb;
+        dataDir = "/replicated/db/mariadb";
+        settings.mysqld = {
+          innodb_checksum_algorithm = "crc32";
+          innodb_doublewrite = 0;
+          innodb_flush_method = "O_DIRECT";
+          innodb_page_size = "16k";
+          innodb_use_atomic_writes = 0;
+          innodb_use_native_aio = 0;
+          bind-address = "10.88.0.1";
         };
       };
       vaultwarden = {
@@ -168,8 +190,6 @@ in
 
   sops = {
     secrets = {
-      "streamserver-client-id".key = "streamserver/client-id";
-      "streamserver-client-secret".key = "streamserver/client-secret";
       "cloudflare-account-tag".key = "cloudflare/account-tag";
       "cloudflare-api-token".key = "cloudflare/api-token";
       "cloudflare-tunnel-id".key = "cloudflare/tunnel-id";
@@ -183,14 +203,6 @@ in
         content = ''
           [smtp.protonmail.ch]:587 contact@${domainName}:${config.sops.placeholder."postfix-token"}
         '';
-      };
-      "streamserver-env" = {
-        content = ''
-          CLIENT_ID=${config.sops.placeholder."streamserver-client-id"}
-          CLIENT_SECRET=${config.sops.placeholder."streamserver-client-secret"}
-          USER_NAME=hoppenr
-        '';
-        restartUnits = [ "podman-streamserver.service" ];
       };
       "cloudflare-tunnel-config" = {
         content = ''
@@ -215,6 +227,7 @@ in
 
   systemd.services = {
     caddy = {
+      # TODO: needed?
       unitConfig.RequiresMountsFor = "/replicated/web";
     };
     vaultwarden = {
@@ -233,18 +246,12 @@ in
       enable = true;
       dates = "weekly";
     };
-    # TODO: set this up via pkgs.buildGoModule instead of container
-    #       can host in /var/lib/streamserver
-    oci-containers = {
-      backend = "podman";
-      containers = {
-        streamserver = {
-          autoStart = true;
-          image = "ghcr.io/hoppenr/streamserver:latest";
-          ports = [ "${toString streamsPort}:8181" ];
-          environmentFiles = [ config.sops.templates."streamserver-env".path ];
-        };
-      };
-    };
+  };
+
+  # TODO: move to module for mysql ?
+  networking = {
+    firewall.extraCommands = ''
+      iptables -A INPUT -i podman0 -p tcp --dport 3306 -j ACCEPT
+    '';
   };
 }

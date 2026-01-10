@@ -17,6 +17,10 @@ in
     ./greetd.nix
     ./syncthing.nix
 
+    # TODO: import when they are ready and conditional:
+    ./booklore.nix
+    ./streamserver.nix
+
     inputs.home-manager.nixosModules.home-manager
     # inputs.run0-sudo-shim.nixosModules.default
     inputs.sops-nix.nixosModules.sops
@@ -210,7 +214,9 @@ in
         hashedPasswordFile = config.sops.secrets.user-password.path;
         isNormalUser = true;
         shell = pkgs.zsh;
-        openssh.authorizedKeys.keys = map (name: identities.people.${name}.publicKeys) machine.admins;
+        openssh.authorizedKeys.keys = lib.concatMap (
+          name: identities.people.${name}.publicKeys
+        ) machine.admins;
       };
       "root" = {
         hashedPassword = null;
