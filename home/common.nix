@@ -369,12 +369,11 @@
           "m:{a-z-}={A-Z_} r:|?=**" # then try fuzzy finding
         ];
         DISABLE_AUTO_TITLE = true;
-        WORDCHARS = "*?[]~=&;!#$%^(){}<>";
         KEYTIMEOUT = 1;
-        PS1 = "\\$(_in_nix_shell)[%n@%m %F{2}%4(c:…/:)%3c%f\\$vcs_info_msg_0_]%F{2}%(?.$.?)%f ";
-        RPS1 = "%(?..%F{1}%?%f)";
+        PROMPT = "\\$(_in_nix_shell)[%n@%m %F{2}%4(c:…/:)%3c%f\\$vcs_info_msg_0_]%F{2}%(?.$.?)%f ";
+        RPROMPT = "%(?..%F{1}%?%f)";
+        WORDCHARS = "*?[]~=&;!#$%^(){}<>";
         zle_highlight = [ "region:bg=14,fg=0" ];
-        ZSH_HIGHLIGHT_PRECOMMANDS = [ "run0" ];
       };
       shellAliases = {
         edit-var = "vared -i edit-command-line";

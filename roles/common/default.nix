@@ -24,7 +24,10 @@ in
 
   boot = {
     loader = {
-      systemd-boot.enable = true;
+      systemd-boot = {
+        enable = true;
+        configurationLimit = 5;
+      };
       efi.canTouchEfiVariables = true;
     };
   };
@@ -119,13 +122,19 @@ in
     resolvconf.enable = false;
   };
 
-  nix.settings = {
-    experimental-features = [
-      "nix-command"
-      "flakes"
-    ];
-    auto-optimise-store = true;
-    allowed-users = [ "@wheel" ];
+  nix = {
+    gc = {
+      automatic = true;
+      dates = "weekly";
+    };
+    settings = {
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
+      auto-optimise-store = true;
+      allowed-users = [ "@wheel" ];
+    };
   };
 
   programs = {
@@ -193,6 +202,17 @@ in
         interval = "monthly";
       };
     };
+  };
+
+  systemd.services."trim-nix-profiles" = {
+    description = "Trim nix profiles to keep last 5 generations";
+    serviceConfig.Type = "oneshot";
+    script = ''
+      ${pkgs.nix}/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations +5
+      ${pkgs.nix}/bin/nix-env --profile /etc/profiles/per-user/christoffer --delete-generations +5
+      /run/current-system/bin/switch-to-configuration boot
+    '';
+    startAt = "weekly";
   };
 
   time.timeZone = "Europe/Stockholm";

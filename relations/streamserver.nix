@@ -8,6 +8,7 @@ let
   server = "skadi";
   clients = [ "rime" ];
 
+  # TODO: recv domain name from arguments (_module.args?)
   # TODO: these pkgs should be moved into flakes into respective repository
   streamshower-pkg = pkgs.buildGoModule {
     name = "streamshower";
