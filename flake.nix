@@ -23,9 +23,17 @@
   outputs =
     { nixpkgs, ... }@inputs:
     let
+      identities = import ./identities.nix;
       system = "x86_64-linux";
       topology = import ./topology.nix;
-      specialArgs = { inherit inputs system topology; };
+      specialArgs = {
+        inherit
+          identities
+          inputs
+          system
+          topology
+          ;
+      };
     in
     {
       nixosConfigurations = {

@@ -5,16 +5,6 @@
   ...
 }:
 {
-  xdg = {
-    mimeApps = {
-      enable = true;
-      defaultApplications = {
-        "text/*" = [ "nvim.desktop" ];
-        "inode/directory" = [ "kitty-open.desktop" ];
-      };
-    };
-  };
-
   home = {
     sessionVariables = {
       BROWSER = "firefox";
@@ -42,13 +32,13 @@
       "$menu_opts" = "--insensitive --match=multi-contains";
       "$run_menu" = "${lib.getExe pkgs.wofi} --show=run $menu_opts";
       "$drun_menu" = "${lib.getExe pkgs.wofi} --show=drun $menu_opts";
-      "$terminal" = "${lib.getExe pkgs.kitty} --single-instance";
+      "$terminal" = "${lib.getExe pkgs.kitty}";
       "$quickterm" = "${pkgs.kitty}/bin/kitten quick-access-terminal";
       bind = [
         "$mod_apps, RETURN, exec, $terminal"
         "$mod_apps, a, exec, ${lib.getExe pkgs.pavucontrol}"
         "$mod_apps, d, exec, $drun_menu"
-        "$mod_apps, e, exec, $terminal -e ${lib.getExe config.programs.neovim.finalPackage}"
+        "$mod_apps, e, exec, $terminal --execute ${lib.getExe config.programs.neovim.finalPackage}"
         "$mod_apps, f, exec, ${lib.getExe pkgs.hyprshot} --mode region --output-folder ${config.home.homeDirectory}/Pictures/screenshots"
         "$mod_apps, q, exec, $run_menu"
         "$mod_apps, w, exec, ${lib.getExe pkgs.firefox}"
@@ -292,7 +282,7 @@
             tooltip-format = " {device_alias}";
             tooltip-format-connected = "{device_enumerate}";
             tooltip-format-enumerate-connected = " {device_alias}";
-            on-click = "${lib.getExe pkgs.kitty} -e bluetoothctl";
+            on-click = "${lib.getExe pkgs.kitty} --execute bluetoothctl";
             menu = "on-click-right";
             menu-file = pkgs.writeText "waybar-bluetooth-menu.xml" /* xml */ ''
               <?xml version="1.0" encoding="UTF-8"?>
@@ -357,7 +347,7 @@
               "▇"
               "█"
             ];
-            on-click = "${lib.getExe pkgs.kitty} -e ${lib.getExe pkgs.btop} --preset 1";
+            on-click = "${lib.getExe pkgs.kitty} --execute ${lib.getExe pkgs.btop} --preset 1";
           };
           "custom/spacer" = {
             format = "│";
@@ -415,7 +405,7 @@
             format-disconnected = "󱘖 no lan";
             format-ethernet = "󰌘 {ifname}";
             interface = "lan0";
-            on-click = "${lib.getExe pkgs.kitty} -e ${lib.getExe pkgs.btop} --preset 3";
+            on-click = "${lib.getExe pkgs.kitty} --execute ${lib.getExe pkgs.btop} --preset 3";
             tooltip-format = ''
               󰈀 {ifname} via {gwaddr}
               IP: {ipaddr}/{cidr}'';
@@ -430,7 +420,7 @@
               "󰤨"
             ];
             interface = "laptop-wifi";
-            on-click = "${lib.getExe pkgs.kitty} -e ${pkgs.iwd}/bin/iwctl";
+            on-click = "${lib.getExe pkgs.kitty} --execute ${pkgs.iwd}/bin/iwctl";
             tooltip-format = ''
                {essid} ({signalStrength}%)
               IP: {ipaddr}/{cidr}
@@ -571,7 +561,7 @@
     zsh = {
       shellAliases = {
         run0 = "run0 --background='48;2;0;95;96' --setenv=TERM=xterm-256color --via-shell";
-        ssh = "kitty +kitten ssh";
+        ssh = "${pkgs.kitty}/bin/kitten ssh";
       };
     };
   };
@@ -638,6 +628,16 @@
         ConditionEnvironment = "WAYLAND_DISPLAY";
         Description = "`hyprctl notify` daemon for dbus clients";
         PartOf = "graphical-session.target";
+      };
+    };
+  };
+
+  xdg = {
+    mimeApps = {
+      enable = true;
+      defaultApplications = {
+        "text/*" = [ "nvim.desktop" ];
+        "inode/directory" = [ "kitty-open.desktop" ];
       };
     };
   };

@@ -225,8 +225,7 @@
           setopt no_CASE_GLOB
           setopt    CHASE_LINKS
           setopt    EXTENDED_GLOB
-          setopt    HIST_EXPIRE_DUPS_FIRST
-          setopt    HIST_FIND_NO_DUPS
+          setopt    HIST_IGNORE_ALL_DUPS
           setopt    HIST_VERIFY
           setopt no_NO_MATCH
           setopt    MENU_COMPLETE
@@ -386,7 +385,7 @@
     gpg-agent = {
       enable = true;
       enableSshSupport = true;
-      pinentry.package = lib.mkDefault pkgs.pinentry-tty;
+      pinentry.package = lib.mkDefault pkgs.pinentry-curses;
     };
   };
 

@@ -1,9 +1,5 @@
 { ... }:
 {
-  _module.args = {
-    topology = import ../../topology.nix;
-    identities = import ../../identities.nix;
-  };
   imports = [
     ../../roles/workstation.nix
     ../../relations
@@ -40,13 +36,6 @@
   };
 
   networking = {
-    hostId = "007f0200";
-    hostName = "rime";
-
-    defaultGateway = {
-      address = "192.168.0.1";
-      interface = "lan0";
-    };
     bonds = {
       lan0 = {
         interfaces = [
@@ -60,6 +49,8 @@
         };
       };
     };
+    hostId = "007f0200";
+    hostName = "rime";
     useDHCP = false;
   };
 

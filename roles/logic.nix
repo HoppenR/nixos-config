@@ -243,9 +243,10 @@ in
   };
 
   # TODO: move to module for mysql ?
+  #       still needed after moving to nftables?
   networking = {
-    firewall.extraCommands = ''
-      iptables -A INPUT -i podman0 -p tcp --dport 3306 -j ACCEPT
+    firewall.extraInputRules = ''
+      iifname "podman0" tcp dport 3306 accept
     '';
   };
 }

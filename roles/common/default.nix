@@ -99,8 +99,11 @@ in
   };
 
   networking = {
-    firewall.enable = true;
-    useNetworkd = true;
+    defaultGateway = {
+      address = "192.168.0.1";
+      interface = "lan0";
+    };
+    nftables.enable = true;
     hosts = lib.mapAttrs' (hostName: hostData: lib.nameValuePair hostData.ipv4 [ hostName ]) (
       lib.filterAttrs (hostName: hostData: hostName != config.networking.hostName) topology
     );
@@ -120,6 +123,7 @@ in
       useDHCP = false;
     };
     resolvconf.enable = false;
+    useNetworkd = true;
   };
 
   nix = {

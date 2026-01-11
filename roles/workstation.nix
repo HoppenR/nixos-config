@@ -75,13 +75,19 @@ in
     };
   };
 
-  nixpkgs.config.allowUnfreePredicate =
-    pkg:
-    builtins.elem (lib.getName pkg) [
-      "discord"
-      "steam"
-      "steam-unwrapped"
+  nixpkgs = {
+    config.allowUnfreePredicate = (
+      pkg:
+      builtins.elem (lib.getName pkg) [
+        "discord"
+        "steam"
+        "steam-unwrapped"
+      ]
+    );
+    overlays = [
+      (import ../overlays/kitty-single.nix)
     ];
+  };
 
   services = {
     pipewire = {

@@ -1,9 +1,5 @@
 { ... }:
 {
-  _module.args = {
-    topology = import ../../topology.nix;
-    identities = import ../../identities.nix;
-  };
   imports = [
     ../../roles/storage.nix
     ../../relations
@@ -17,6 +13,12 @@
     };
   };
 
+  networking = {
+    hostId = "299a21e5";
+    hostName = "hoddmimir";
+    useDHCP = false;
+  };
+
   services = {
     zfs = {
       trim = {
@@ -24,16 +26,6 @@
         interval = "monthly";
       };
     };
-  };
-
-  networking = {
-    defaultGateway = {
-      address = "192.168.0.1";
-      interface = "lan0";
-    };
-    hostId = "299a21e5";
-    hostName = "hoddmimir";
-    useDHCP = false;
   };
   systemd.network.links = {
     "20-lan0" = {
