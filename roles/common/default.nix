@@ -134,6 +134,7 @@ in
       ];
       auto-optimise-store = true;
       allowed-users = [ "@wheel" ];
+      trusted-users = [ "@wheel" ];
     };
   };
 
