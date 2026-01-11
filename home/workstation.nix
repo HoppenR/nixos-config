@@ -441,7 +441,7 @@
           tray = {
             icon-size = 24;
             show-passive-items = true;
-            spacing = 7;
+            spacing = 5;
           };
           "hyprland/language" = {
             format-ru = "🇷🇺";
