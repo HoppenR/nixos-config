@@ -64,7 +64,6 @@
         signByDefault = true;
       };
       settings = {
-        gpg.program = "${pkgs.gnupg}/bin/gpg2";
         init.defaultBranch = "main";
         user = {
           name = "Christoffer Lundell";
@@ -77,7 +76,8 @@
       homedir = "${config.xdg.stateHome}/gnupg";
       scdaemonSettings = {
         disable-ccid = true;
-        pcsc-shared = true;
+        # Disabling this enables the OpenPGP PIN cache, but creates resource contention for other commands
+        pcsc-shared = false;
         deny-admin = true;
       };
       publicKeys = [
@@ -387,6 +387,11 @@
       enable = true;
       enableSshSupport = true;
       pinentry.package = lib.mkDefault pkgs.pinentry-curses;
+
+      defaultCacheTtl = 900;
+      defaultCacheTtlSsh = 900;
+      maxCacheTtl = 7200;
+      maxCacheTtlSsh = 7200;
     };
   };
 

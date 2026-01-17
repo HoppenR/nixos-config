@@ -57,6 +57,7 @@ tree-sitter-typescript = "0.0.37"
 tree-sitter-xml = "0.0.40"
 tree-sitter-yaml = "scm"
 tree-sitter-zsh = "0.0.10"
+tree-sitter-gpg = "scm"
 
 [config]
 auto_setup = false
