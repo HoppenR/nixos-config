@@ -5,12 +5,10 @@
   ...
 }:
 let
-  writeZsh = pkgs.writers.makeScriptWriter {
-    interpreter = lib.getExe pkgs.zsh;
-  };
+  writeZsh = pkgs.writers.makeScriptWriter { interpreter = lib.getExe pkgs.zsh; };
+  writeZshBin = name: text: pkgs.writeScriptBin name ("#!${lib.getExe pkgs.zsh}\n" + text);
 
-  vlog = pkgs.writeScriptBin "vlog" ''
-    #!${lib.getExe pkgs.zsh}
+  vlog = writeZshBin "vlog" /* zsh */ ''
     local filter='. | "[\(.__REALTIME_TIMESTAMP | tonumber / 1000000 | strflocaltime("%H:%M:%S"))] \(.MESSAGE)"'
 
     ${pkgs.systemd}/bin/journalctl --user --unit=notification-logger "$@" --output=json \
@@ -324,7 +322,7 @@ in
               </interface>
             '';
             menu-actions = {
-              "connect-script" = writeZsh "wofi-bluetooth-connect.zsh" ''
+              "connect-script" = writeZsh "wofi-bluetooth-connect.zsh" /* zsh */ ''
                 setopt ERR_EXIT NO_UNSET PIPE_FAIL
                 typeset -a action_list
                 for line in "''${(@f)$(${pkgs.bluez}/bin/bluetoothctl devices)}"; do
@@ -425,7 +423,7 @@ in
               suspend = "${pkgs.systemd}/bin/systemctl suspend";
               logout = "${pkgs.hyprland}/bin/hyprctl dispatch exit";
             };
-            on-click = writeZsh "hyprland-poweroff-dialog.zsh" ''
+            on-click = writeZsh "hyprland-poweroff-dialog.zsh" /* zsh */ ''
               ans="$(${pkgs.hyprland-qtutils}/bin/hyprland-dialog --title 'Exit Hyprland?' --text 'Are you sure?' --buttons 'Yes;No')"
               if [[ "$ans" == Yes ]]; then
                 ${pkgs.hyprland}/bin/hyprctl dispatch exit
@@ -726,7 +724,7 @@ in
         WantedBy = [ "graphical-session.target" ];
       };
       Service = {
-        ExecStart = writeZsh "notification-logger.zsh" ''
+        ExecStart = writeZsh "notification-logger.zsh" /* zsh */ ''
           read_dbus_string() {
             local input
             read -r input
