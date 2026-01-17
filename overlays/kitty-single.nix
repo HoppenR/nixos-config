@@ -9,7 +9,7 @@ let
     installPhase = ''
       mkdir -p $out/bin
       makeWrapper ${kitty-unwrapped}/bin/kitty $out/bin/kitty \
-        --append-flags "--single-instance"
+        --add-flags "--single-instance"
     '';
     meta = kitty-unwrapped.meta // {
       description = "Kitty wrapped to always use --single‑instance";

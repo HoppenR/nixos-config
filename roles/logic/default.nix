@@ -15,7 +15,8 @@ in
   };
 
   imports = [
-    ./common
+    ../common
+    ./booklore.nix
   ];
 
   console.colors = lib.attrValues {

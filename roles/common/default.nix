@@ -15,7 +15,6 @@ in
 
   imports = [
     ./greetd.nix
-    ./booklore.nix
 
     inputs.home-manager.nixosModules.home-manager
     # inputs.run0-sudo-shim.nixosModules.default
@@ -53,7 +52,6 @@ in
         inherit (pkgs)
           gcc
           git
-          # glibc
           neovim-unwrapped
           sops
           yubikey-manager

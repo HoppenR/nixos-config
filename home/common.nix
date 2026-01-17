@@ -41,6 +41,7 @@
       FZF_CTRL_T_COMMAND = "fd --strip-cwd-prefix --type file";
       LESS = "-FRXi -x1,5";
       LESSHISTFILE = "${config.xdg.stateHome}/less/history";
+      INPUTRC = "${config.xdg.configHome}/readline/config";
     };
   };
 
@@ -58,12 +59,17 @@
     };
     git = {
       enable = true;
+      signing = {
+        key = "EB37A6ACFEC39658!";
+        signByDefault = true;
+      };
       settings = {
+        gpg.program = "${pkgs.gnupg}/bin/gpg2";
+        init.defaultBranch = "main";
         user = {
           name = "Christoffer Lundell";
           email = "christofferlundell@protonmail.com";
         };
-        init.defaultBranch = "main";
       };
     };
     gpg = {
@@ -156,6 +162,9 @@
         vim.opt.listchars = { extends = '▸', nbsp = '◇', tab = '│ ', trail = '∘', leadmultispace = '│   ' }
         vim.opt.matchpairs = { '(:)', '{:}', '[:]', '<:>', '«:»' }
 
+        vim.env.nix = '/persist/nixos'
+        vim.env.personal = '${config.home.homeDirectory}/projects/personal'
+
         vim.diagnostic.config({
           virtual_text = true,
           virtual_lines = false,
@@ -190,15 +199,6 @@
     };
     nix-index.enable = true;
     nix-index-database.comma.enable = true;
-    readline = {
-      enable = true;
-      variables = {
-        editing-mode = "vi";
-        completion-ignore-case = "on";
-        show-all-if-ambiguous = "on";
-        expand-tilde = "on";
-      };
-    };
     zsh = {
       enable = true;
       enableCompletion = true;
@@ -236,6 +236,7 @@
           stty -ixon
           tabs -4
 
+          zstyle ':completion:*' completer _expand_alias _complete _ignored
           zstyle ':completion:*' list-colors ''${(s.:.)LS_COLORS}
           zstyle ':completion:*' group-name ""
           zstyle ':completion:*' insert-unambiguous true
@@ -375,7 +376,7 @@
         zle_highlight = [ "region:bg=14,fg=0" ];
       };
       shellAliases = {
-        edit-var = "vared -i edit-command-line";
+        edit-var = "builtin vared -i edit-command-line";
       };
       syntaxHighlighting.enable = true;
     };
@@ -398,6 +399,21 @@
   };
 
   xdg.configFile = {
+    "readline/config".text = ''
+      set completion-ignore-case on
+      set editing-mode vi
+      set expand-tilde on
+      set keyseq-timeout 50
+      set show-all-if-ambiguous on
+      set show-mode-in-prompt on
+      set vi-cmd-mode-string \1\e[0 q\2
+      set vi-ins-mode-string \1\e[5 q\2
+
+      set keymap vi-insert
+      "\C-b":beginning-of-line
+      "\C-e":end-of-line
+      "\C-l":clear-screen
+    '';
     "nvim/lua/nix-deps.lua" =
       let
         luaInterpreter = config.programs.neovim.package.lua;

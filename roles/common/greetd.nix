@@ -63,6 +63,7 @@ in
   config = lib.mkIf config.lab.greetd.enable {
     services.greetd = {
       enable = true;
+      useTextGreeter = true;
       settings = {
         default_session = {
           command = lib.concatStringsSep " " cmdAndArgsArray;

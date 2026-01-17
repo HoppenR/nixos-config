@@ -4,6 +4,20 @@
   pkgs,
   ...
 }:
+let
+  writeZsh = pkgs.writers.makeScriptWriter {
+    interpreter = lib.getExe pkgs.zsh;
+  };
+
+  vlog = pkgs.writeScriptBin "vlog" ''
+    #!${lib.getExe pkgs.zsh}
+    local filter='. | "[\(.__REALTIME_TIMESTAMP | tonumber / 1000000 | strflocaltime("%H:%M:%S"))] \(.MESSAGE)"'
+
+    ${pkgs.systemd}/bin/journalctl --user --unit=notification-logger "$@" --output=json \
+      | ${pkgs.jq}/bin/jq --raw-output "$filter" \
+      | less +G
+  '';
+in
 {
   home = {
     sessionVariables = {
@@ -11,9 +25,15 @@
       TERMINAL = "kitty";
     };
     packages = builtins.attrValues {
+      inherit
+        vlog
+        ;
+
       inherit (pkgs)
         discord
+        koreader
         libnotify
+        scrcpy
         wl-clipboard
         ;
     };
@@ -41,8 +61,9 @@
         "$mod_apps, e, exec, $terminal --execute ${lib.getExe config.programs.neovim.finalPackage}"
         "$mod_apps, f, exec, ${lib.getExe pkgs.hyprshot} --mode region --output-folder ${config.home.homeDirectory}/Pictures/screenshots"
         "$mod_apps, q, exec, $run_menu"
-        "$mod_apps, w, exec, ${lib.getExe pkgs.firefox}"
+        "$mod_apps, w, exec, ${lib.getExe config.programs.firefox.finalPackage}"
         "$mod_hypr+SHIFT, q, killactive"
+        "$mod_hypr, Space, togglefloating"
         "$mod_hypr, f, fullscreen"
         "$mod_move, h, movefocus, l"
         "$mod_move, j, movefocus, d"
@@ -81,6 +102,10 @@
         "$mod_hypr, h, resizeactive, -50 0"
         "$mod_hypr, k, resizeactive, 0 -50"
         "$mod_hypr, j, resizeactive, 0 50"
+      ];
+      bindm = [
+        "$mod_move, mouse:272, movewindow"
+        "$mod_move, mouse:273, resizewindow"
       ];
       workspace = [
         "1,monitor:$mon_dock,default:true"
@@ -224,7 +249,9 @@
             "tray"
             "hyprland/language"
             "hyprland/submap"
+            "idle_inhibitor"
             "cpu"
+            "custom/timers"
           ];
           modules-center = [ "clock" ];
           modules-right = [
@@ -297,35 +324,39 @@
               </interface>
             '';
             menu-actions = {
-              "connect-script" = pkgs.writeShellScript "wofi-bluetooth-connect.sh" ''
-                set -euo pipefail
-                declare -a action_list
-                while read -r line; do
-                  if [[ "$line" =~ ^Device\ ([0-9A-F:]+)\ (.+)$ ]]; then
-                    info="$(${pkgs.bluez}/bin/bluetoothctl info "''${BASH_REMATCH[1]}")"
-                    if grep -q "Connected: yes" <<< "$info"; then
-                      action_list+=("[x] Disconnect from ''${BASH_REMATCH[2]} -- ''${BASH_REMATCH[1]}")
-                    elif grep -q "Connected: no" <<< "$info"; then
-                      action_list+=("[ ] Connect to ''${BASH_REMATCH[2]} -- ''${BASH_REMATCH[1]}")
+              "connect-script" = writeZsh "wofi-bluetooth-connect.zsh" ''
+                setopt ERR_EXIT NO_UNSET PIPE_FAIL
+                typeset -a action_list
+                for line in "''${(@f)$(${pkgs.bluez}/bin/bluetoothctl devices)}"; do
+                  if [[ "$line" =~ '^Device ([0-9A-F:]+) (.+)$' ]]; then
+                    info="$(${pkgs.bluez}/bin/bluetoothctl info "$match[1]")"
+                    if [[ "$info" == *"Connected: yes"* ]]; then
+                      action_list+=("[x] Disconnect from $match[2] -- $match[1]")
+                    elif [[ "$info" == *"Connected: no"* ]]; then
+                      action_list+=("[ ] Connect to $match[2] -- $match[1]")
                     fi
                   fi
-                done <<< "$(${pkgs.bluez}/bin/bluetoothctl devices)"
-                declare -ar wofi_opts=(
+                done
+                if (( ''${#action_list} == 0 )); then
+                  exit 0
+                fi
+                wofi_opts=(
                   --show dmenu
                   --insensitive
                   --match=multi-contains
                   --prompt "Bluetooth Connect/Disconnect"
                   --cache-file /dev/null
                 )
-                selection=$(printf "%s\n" "''${action_list[@]}" | ${lib.getExe pkgs.wofi} "''${wofi_opts[@]}")
-                if [[ "$selection" =~ ^\[(.)\]\ (Connect\ to|Disconnect\ from)\ (.*)\ --\ (.*)$ ]]; then
-                  device_path="/org/bluez/hci0/dev_''${BASH_REMATCH[4]//:/_}"
-                  if [[ "''${BASH_REMATCH[1]}" == "x" ]]; then
-                    busctl call org.bluez "$device_path" org.bluez.Device1 Disconnect
-                    notify-send "Bluetooth" "Disconnected ''${BASH_REMATCH[3]}..."
-                  elif [[ "''${BASH_REMATCH[1]}" == " " ]]; then
-                    busctl call org.bluez "$device_path" org.bluez.Device1 Connect
-                    notify-send "Bluetooth" "Connecting to ''${BASH_REMATCH[3]}..."
+                selection=$(print -rl -- $action_list | ${lib.getExe pkgs.wofi} $wofi_opts)
+                if [[ "$selection" =~ '^\[(.)\] (Connect to|Disconnect from) (.*) -- (.*)$' ]]; then
+                  device_path="/org/bluez/hci0/dev_''${match[4]//:/_}"
+                  if [[ "$match[1]" == "x" ]]; then
+                    notify-send "Bluetooth" "Disconnecting from $match[3]"
+                    busctl call --timeout=15 org.bluez "$device_path" org.bluez.Device1 Disconnect
+                  elif [[ "$match[1]" == " " ]]; then
+                    notify-send "Bluetooth" "Connecting to $match[3]..."
+                    busctl call --timeout=15 org.bluez "$device_path" org.bluez.Device1 Connect
+                    notify-send "Bluetooth" "Connected to $match[3]."
                   fi
                 fi
               '';
@@ -394,12 +425,74 @@
               suspend = "${pkgs.systemd}/bin/systemctl suspend";
               logout = "${pkgs.hyprland}/bin/hyprctl dispatch exit";
             };
-            on-click = pkgs.writeShellScript "hyprland-poweroff-dialog.sh" ''
+            on-click = writeZsh "hyprland-poweroff-dialog.zsh" ''
               ans="$(${pkgs.hyprland-qtutils}/bin/hyprland-dialog --title 'Exit Hyprland?' --text 'Are you sure?' --buttons 'Yes;No')"
               if [[ "$ans" == Yes ]]; then
                 ${pkgs.hyprland}/bin/hyprctl dispatch exit
               fi
             '';
+          };
+          "custom/timers" = {
+            exec = pkgs.writers.writePerl "timers.pl" { } ''
+              use strict;
+              use warnings;
+
+              my @tooltip_lines;
+              my @timer_table = qx(systemctl --quiet list-timers);
+              my $first_timer;
+              die "list-timers command exited with non-zero status: $?\n" if $? != 0;
+
+              if (scalar @timer_table != 0) {
+                  my $re_date = qr/\w{3} [\d-]{10} [\d:]{8} \w{3,4}/;
+                  my $re_last = qr/-|$re_date/;
+                  my $re_unit = qr/years?|months?|weeks?|days?|h|min|s/;
+                  my $re_qnty = qr/\d{1,2} ?$re_unit/;
+                  my $re_time = qr/$re_qnty ?$re_qnty?/;
+                  my $re_pass = qr/-|$re_time ago/;
+                  my $re_main = qr/
+                      ^
+                      $re_date\s+            # NEXT
+                      (?<time>$re_time)\s    # LEFT
+                      $re_last\s+            # LAST
+                      $re_pass\s             # PASSED
+                      (?<name>\S+)\.timer\s+   # UNIT
+                      \k<name>\.service        # ACTIVATES
+                      $
+                  /x;
+                  push @tooltip_lines, "--- Timers ---";
+                  my @timers = map { /$re_main/ ? "$+{name}: $+{time}" : () } @timer_table;
+                  $first_timer = $timers[0];
+                  push @tooltip_lines, @timers;
+              }
+
+              my @fail_table = qx(systemctl --quiet list-units --failed --plain);
+              my $first_failed;
+              die "list-units command exited with non-zero status: $?\n" if $? != 0;
+
+              if (scalar @fail_table != 0) {
+                  my $re_failed = qr/(?<name>\S+)\.service/;
+                  push @tooltip_lines, "--- Failed units ---";
+                  my @failed = map { /$re_failed/ ? "$+{name}" : () } @fail_table;
+                  $first_failed = $failed[0];
+                  push @tooltip_lines, @failed;
+              }
+
+              my $class = (scalar @fail_table == 0) ? "" : 'warning';
+              my $text = (defined $first_failed) ? "Failed: $first_failed" : ($first_timer // "none");
+              my $tooltip = join('\n', @tooltip_lines);
+              printf '{"class":"%s","text":" %s","tooltip":"%s"}', $class, $text, $tooltip;
+            '';
+            interval = 300;
+            on-click = "${lib.getExe pkgs.kitty} --execute ${pkgs.systemd}/bin/systemctl --user status";
+            return-type = "json";
+          };
+          idle_inhibitor = {
+            format = "{icon}";
+            format-icons = {
+              activated = "󰒳 ";
+              deactivated = "󰒲 ";
+            };
+            "timeout" = 60;
           };
           "network#lan" = {
             format-disconnected = "󱘖 no lan";
@@ -441,7 +534,7 @@
           tray = {
             icon-size = 24;
             show-passive-items = true;
-            spacing = 5;
+            spacing = 4;
           };
           "hyprland/language" = {
             format-ru = "🇷🇺";
@@ -457,9 +550,9 @@
           font-family: "monospace";
           color: #c6d0f5;
         }
-        #workspaces,
+        #clock,
         #cpu,
-        #clock {
+        #workspaces {
           background-color: #1a1b26;
           padding: 0.3rem 0.7rem;
           margin: 5px 0px;
@@ -491,9 +584,22 @@
         #workspaces button.active {
           background-color: rgba(153, 209, 219, 0.1);
         }
+        #idle_inhibitor.activated {
+          font-size: 18px;
+          color: #00f7e2;
+        }
+        #idle_inhibitor.deactivated {
+          font-size: 18px;
+          color: #005F60;
+        }
+        #custom-timers {
+          font-size: 10px;
+          text-shadow: 1px 1px black;
+        }
+        #cpu,
+        #idle_inhibitor,
         #language,
         #tray {
-          font-size: 18px;
           margin-right: 5px;
         }
         menu menuitem label,
@@ -560,8 +666,9 @@
     };
     zsh = {
       shellAliases = {
-        run0 = "run0 --background='48;2;0;95;96' --setenv=TERM=xterm-256color --via-shell";
+        run0 = "${pkgs.systemd}/bin/run0 --background='48;2;0;95;96' --setenv=TERM=xterm-256color --via-shell";
         ssh = "${pkgs.kitty}/bin/kitten ssh";
+        scrcpy-Pixel = "${lib.getExe pkgs.scrcpy} --new-display=1880x992/140 --render-driver=vulkan --video-codec=h265 --keyboard=uhid --mouse=uhid --video-bit-rate=16M --stay-awake";
       };
     };
   };
@@ -614,6 +721,61 @@
   };
 
   systemd.user.services = {
+    notification-logger = {
+      Install = {
+        WantedBy = [ "graphical-session.target" ];
+      };
+      Service = {
+        ExecStart = writeZsh "notification-logger.zsh" ''
+          read_dbus_string() {
+            local input
+            read -r input
+            print -r -- "''${(Q)input#string }"
+          }
+          declare -a session_args
+          session_args=(
+              type='method_call'
+              interface='org.freedesktop.Notifications'
+              member='Notify'
+          )
+          ${pkgs.coreutils}/bin/stdbuf --output=L \
+              ${pkgs.dbus}/bin/dbus-monitor "''${(j:,:)session_args}" \
+              | while read -r line; do
+            if [[ "$line" =~ member=Notify ]]; then
+              app_name=$(read_dbus_string)
+              repeat 2 read -r _
+              summary=$(read_dbus_string)
+              body=$(read_dbus_string)
+              if [[ "$app_name" == discord ]]; then
+                local body_str=""
+                if [[ "$body" =~ 'Reacted(.*)to your(.*)' ]]; then
+                  body_str=" $match[1] ($match[2])"
+                else
+                  body_str=": $body"
+                fi
+                if [[ "$summary" == Kitty ]]; then
+                  print -r -- "<5>💜 $summary$body_str"
+                else
+                  print -r -- " $summary$body_str"
+                fi
+              else
+                print -r -- "($app_name)🔔 $summary - $body"
+              fi
+            fi
+          done
+        '';
+        SyslogIdentifier = "notification-logger";
+        Restart = "always";
+        RestartSec = 10;
+      };
+      Unit = {
+        After = [ "graphical-session.target" ];
+        ConditionEnvironment = "WAYLAND_DISPLAY";
+        Description = "dbus notification logging service";
+        PartOf = "graphical-session.target";
+        X-Restart-Triggers = [ "" ];
+      };
+    };
     hyprnotify = {
       Install = {
         WantedBy = [ "graphical-session.target" ];
