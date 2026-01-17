@@ -16,10 +16,10 @@ let
     src = pkgs.fetchFromGitHub {
       owner = "HoppenR";
       repo = "streamshower";
-      rev = "e0f4d7fe99748ccb064bf08595cb9787179bf04c";
-      hash = "sha256-IQOd22sTr27/MI3/PwI3m0rfrj2uyxSxxGkxifjDs0M=";
+      rev = "af5bdabefaf1a995c068f3eecf94de14e9a711a5";
+      hash = "sha256-PQLNdnwkzNmmjsIkr+LemfFcoI5lzYsL5/G0AmQZ8s0=";
     };
-    vendorHash = "sha256-rAToVcauhNkVb2Ybz8X/piFqYGr2vCsFX/VQ3u/+6Rc=";
+    vendorHash = "sha256-N7jvv1Wlt5BpMvOKdsJSX5/Vxe7SSVnDJn1qMbmrcCg=";
     meta = {
       homepage = "https://github.com/HoppenR/streamshower";
       mainProgram = "streamshower";
@@ -31,10 +31,10 @@ let
     src = pkgs.fetchFromGitHub {
       owner = "HoppenR";
       repo = "streamserver";
-      rev = "c14f514a1ec627e0de1a86397d8c666e117c5028";
-      hash = "sha256-kPLAEn4U6THQLVyHl3c+nZ50oXAws2Nh0kzex3uY4go=";
+      rev = "72a9f5993ca28dc1c2642e73018cc986149105a1";
+      hash = "sha256-w1DnwjFjPeOVuC6fZAoTIlZEnPW1Lu7zFdNdxkSQgfM=";
     };
-    vendorHash = "sha256-9IHYzbAWUWxbFOPF/e2BYgcqOqXaWP+ZDPBTN0B77Ww=";
+    vendorHash = "sha256-uJTm4l2iCUy7HTWnkFwXzE+Ls63v2gDWSixdTutB7dA=";
     meta = {
       homepage = "https://github.com/HoppenR/streamserver";
       mainProgram = "streamserver";

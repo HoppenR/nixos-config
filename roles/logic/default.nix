@@ -48,7 +48,7 @@ in
 
   home-manager = {
     users = {
-      ${mainUser} = import ../home/logic.nix;
+      ${mainUser} = import ../../home/logic.nix;
     };
   };
 
