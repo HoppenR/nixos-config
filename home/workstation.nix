@@ -34,7 +34,6 @@ in
     };
     sessionVariables = {
       BROWSER = "firefox";
-      # PULSE_COOKIE = "${config.xdg.stateHome}/pulse/cookie";
       TERMINAL = "kitty";
     };
     stateVersion = "25.11";
@@ -570,34 +569,38 @@ in
         };
       };
       style = /* css */ ''
-        * {
-          background: transparent;
+        window#waybar {
+          background: none;
           font-size: 14px;
           font-family: "monospace";
           color: #c6d0f5;
         }
-        window#waybar:not(.empty) #window,
+        #window,
+        window#waybar.empty #window,
+        window#waybar:not(.solo) #window {
+          background-color: rgba(26, 27, 38, 0.0);
+          color: rgba(198, 208, 245, 0.0);
+          transition: all 0.3s ease-in-out;
+        }
+        window#waybar.solo #window {
+          background-color: rgba(26, 27, 38, 0.5);
+          color: rgba(198, 208, 245, 0.75);
+          padding: 0.3rem 0.7rem;
+          margin: 0;
+          border-radius: 0 0 6px 6px;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          border: 0.5px solid #ffffff;
+        }
         #clock,
         #cpu,
         #workspaces {
           background-color: #1a1b26;
           padding: 0.3rem 0.7rem;
-          margin: 5px 0px;
+          margin: 5px 0;
           border-radius: 6px;
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          min-width: 0;
           border: none;
           transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
-        }
-        window#waybar.empty #window {
-          box-shadow: none;
-        }
-        window#waybar:not(.empty) #window {
-          border: 0.5px solid #ffffff;
-          margin: 0px;
-          background-color: rgba(26, 27, 38, 0.5);
-          color: rgba(198, 208, 245, 0.5);
-          border-radius: 0px 0px 6px 6px;
         }
         #workspaces {
           padding: 2px;
@@ -665,7 +668,7 @@ in
         #battery {
           background-color: #1a1b26;
           padding: 0.3rem 0.6rem;
-          margin: 5px 0px;
+          margin: 5px 0;
           border-radius: 0;
           box-shadow: none;
           min-width: 0;
@@ -675,7 +678,7 @@ in
         #bluetooth {
           border-bottom-left-radius: 6px;
           border-top-left-radius: 6px;
-          margin-left: 0px;
+          margin-left: 0;
           padding-left: 20px;
         }
         #custom-power {

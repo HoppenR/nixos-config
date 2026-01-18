@@ -61,10 +61,10 @@
       colors = {
         "bg" = "#1a1b26";
         "bg+" = "#005f60";
-        "fg" = "#babbf1";
-        "fg+" = "#c6d0f5";
+        "fg" = "#c6d0f5";
+        "fg+" = "#fff0e0";
         "hl" = "#ffffff";
-        "hl+" = "#fff0e0";
+        "hl+" = "#d8d9ff";
         "pointer" = "#c6d0f5";
       };
       defaultCommand = "fd --type file";
@@ -546,6 +546,15 @@
     "nvim/lua/plugins/oil-nvim.lua".text = /* lua */ ''
       Oil = require('oil')
       vim.keymap.set('n', '<M-e>', Oil.open)
+      vim.api.nvim_create_autocmd("BufEnter", {
+        pattern = "oil://*",
+        callback = function()
+          local dir = Oil.get_current_dir()
+          if dir then
+            vim.api.nvim_set_current_dir(dir)
+          end
+        end,
+      })
       Oil.setup({
         default_file_explorer = true,
         columns = {
@@ -580,8 +589,6 @@
             n = {
               ['<C-d>'] = Actions.results_scrolling_down,
               ['<C-u>'] = Actions.results_scrolling_up,
-              ['<Esc>'] = false,
-              ['q'] = Actions.close,
             },
             i = {
               ['<C-b>'] = Actions.preview_scrolling_up,
