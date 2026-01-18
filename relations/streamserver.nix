@@ -10,6 +10,8 @@ let
 
   # TODO: recv domain name from arguments (_module.args?)
   # TODO: these pkgs should be moved into flakes into respective repository
+  # TODO: move caddy/clooudflared config in here, alternatively collect into
+  #       attrs for those?
   streamshower-pkg = pkgs.buildGoModule {
     name = "streamshower";
     pname = "streamshower";

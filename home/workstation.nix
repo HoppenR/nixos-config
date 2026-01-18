@@ -260,6 +260,7 @@ in
             "hyprland/submap"
             "idle_inhibitor"
             "cpu"
+            "custom/spacer"
             "custom/timers"
           ];
           modules-center = [
@@ -378,7 +379,7 @@ in
             tooltip-format = "{:L%A %F}";
           };
           cpu = {
-            format = "  ${lib.concatStrings (builtins.genList (n: "{icon${toString n}}") 16)} {usage:>2}%";
+            format = "  ${lib.concatStrings (builtins.genList (n: "{icon${toString n}}") 16)}{usage:>3}%";
             format-icons = [
               "▁"
               "▂"
@@ -444,16 +445,18 @@ in
             '';
           };
           "custom/timers" = {
-            exec = pkgs.writers.writePerl "timers.pl" { } ''
+            exec = pkgs.writers.writePerl "timers.pl" { } /* perl */ ''
               use strict;
               use warnings;
 
               my @tooltip_lines;
-              my @timer_table = qx(systemctl --quiet list-timers);
+              my @system_timer_table = qx(systemctl --quiet list-timers);
+              die "list-timers system command exited with non-zero status: $?\n" if $? != 0;
+              my @user_timer_table = qx(systemctl --user --quiet list-timers);
+              die "list-timers user command exited with non-zero status: $?\n" if $? != 0;
               my $first_timer;
-              die "list-timers command exited with non-zero status: $?\n" if $? != 0;
 
-              if (scalar @timer_table != 0) {
+              if (scalar @system_timer_table != 0 or scalar @user_timer_table != 0) {
                   my $re_date = qr/\w{3} [\d-]{10} [\d:]{8} \w{3,4}/;
                   my $re_last = qr/-|$re_date/;
                   my $re_unit = qr/years?|months?|weeks?|days?|h|min|s/;
@@ -471,29 +474,36 @@ in
                       $
                   /x;
                   push @tooltip_lines, "--- Timers ---";
-                  my @timers = map { /$re_main/ ? "$+{name}: $+{time}" : () } @timer_table;
+                  my @timers = (
+                      (map { /$re_main/ ? "$+{name}: $+{time}" : () } @system_timer_table),
+                      (map { /$re_main/ ? "$+{name} --user: $+{time}" : () } @user_timer_table)
+                  );
                   $first_timer = $timers[0];
                   push @tooltip_lines, @timers;
               }
 
-              my @fail_table = qx(systemctl --quiet list-units --failed --plain);
-              my $first_failed;
-              die "list-units command exited with non-zero status: $?\n" if $? != 0;
+              my @system_fail_table = qx(systemctl --quiet list-units --failed --plain);
+              die "list-units system command exited with non-zero status: $?\n" if $? != 0;
+              my @user_fail_table = qx(systemctl --user --quiet list-units --failed --plain);
+              die "list-units user command exited with non-zero status: $?\n" if $? != 0;
+              my @failed;
 
-              if (scalar @fail_table != 0) {
+              if (scalar @system_fail_table != 0 or scalar @user_fail_table != 0) {
                   my $re_failed = qr/(?<name>\S+)\.service/;
                   push @tooltip_lines, "--- Failed units ---";
-                  my @failed = map { /$re_failed/ ? "$+{name}" : () } @fail_table;
-                  $first_failed = $failed[0];
+                  @failed = (
+                    (map { /$re_failed/ ? "$+{name}" : () } @system_fail_table),
+                    (map { /$re_failed/ ? "$+{name} --user" : () } @user_fail_table),
+                  );
                   push @tooltip_lines, @failed;
               }
 
-              my $class = (scalar @fail_table == 0) ? "" : 'warning';
-              my $text = (defined $first_failed) ? "Failed: $first_failed" : ($first_timer // "none");
+              my $class = (scalar @failed == 0) ? "" : 'warning';
+              my $text = (defined $failed[0]) ? "Failed: $failed[0]" : ($first_timer // "none");
               my $tooltip = join('\n', @tooltip_lines);
               printf '{"class":"%s","text":" %s","tooltip":"%s"}', $class, $text, $tooltip;
             '';
-            interval = 300;
+            interval = 60;
             on-click = "${lib.getExe pkgs.kitty} --execute ${pkgs.systemd}/bin/systemctl --user status";
             return-type = "json";
           };
@@ -592,7 +602,6 @@ in
           border: 0.5px solid #ffffff;
         }
         #clock,
-        #cpu,
         #workspaces {
           background-color: #1a1b26;
           padding: 0.3rem 0.7rem;
@@ -632,11 +641,6 @@ in
           font-size: 18px;
           color: #005F60;
         }
-        #custom-timers {
-          font-size: 11px;
-          text-shadow: 1px 1px black;
-        }
-        #cpu,
         #idle_inhibitor,
         #language,
         #tray {
@@ -659,13 +663,15 @@ in
         menu separator {
           background: black;
         }
-        #bluetooth,
-        #custom-spacer,
-        #custom-power,
-        #pulseaudio,
         #backlight,
+        #battery,
+        #bluetooth,
+        #cpu,
+        #custom-power,
+        #custom-spacer,
+        #custom-timers,
         #network,
-        #battery {
+        #pulseaudio {
           background-color: #1a1b26;
           padding: 0.3rem 0.6rem;
           margin: 5px 0;
@@ -675,29 +681,31 @@ in
           border: none;
           transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
         }
+        #cpu,
         #bluetooth {
           border-bottom-left-radius: 6px;
           border-top-left-radius: 6px;
           margin-left: 0;
           padding-left: 20px;
         }
+        #custom-timers,
         #custom-power {
           border-bottom-right-radius: 6px;
           border-top-right-radius: 6px;
           margin-right: 7px;
           padding-right: 20px;
         }
-        #battery:not(.discharging),
         #battery.charging,
+        #battery:not(.discharging),
         #bluetooth.connected,
-        #clock {
+        #clock,
+        #workspaces button.active {
           color: #99d1db;
           font-weight: 600;
         }
+        #battery.warning:not(.charging),
+        #custom-timers.warning,
         #network.disconnected {
-          color: #e78284;
-        }
-        #battery.warning:not(.charging) {
           color: #e78284;
         }
       '';
