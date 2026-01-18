@@ -18,10 +18,6 @@ let
 in
 {
   home = {
-    sessionVariables = {
-      BROWSER = "firefox";
-      TERMINAL = "kitty";
-    };
     packages = builtins.attrValues {
       inherit
         vlog
@@ -33,7 +29,13 @@ in
         libnotify
         scrcpy
         wl-clipboard
+        yazi
         ;
+    };
+    sessionVariables = {
+      BROWSER = "firefox";
+      # PULSE_COOKIE = "${config.xdg.stateHome}/pulse/cookie";
+      TERMINAL = "kitty";
     };
     stateVersion = "25.11";
   };
@@ -42,6 +44,10 @@ in
     enable = true;
     systemd.enable = true;
     settings = {
+      general = {
+        gaps_in = 10;
+        gaps_out = "10, 25, 25, 25";
+      };
       "$mod_apps" = "MOD3";
       "$mod_move" = "SUPER";
       "$mod_hypr" = "MOD5";
@@ -150,6 +156,12 @@ in
   };
 
   programs = {
+    neovim = {
+      extraLuaConfig = ''
+        vim.env.nix = '/persist/nixos'
+        vim.env.personal = '${config.home.homeDirectory}/projects/personal'
+      '';
+    };
     firefox = {
       enable = true;
       languagePacks = [
@@ -251,7 +263,9 @@ in
             "cpu"
             "custom/timers"
           ];
-          modules-center = [ "clock" ];
+          modules-center = [
+            "clock"
+          ];
           modules-right = [
             "bluetooth"
             "custom/spacer"
@@ -540,6 +554,20 @@ in
             on-click = "hyprctl switchxkblayout all next";
           };
         };
+        titleBar = {
+          exclusive = false;
+          layer = "top";
+          height = 27;
+          margin-top = 10;
+          modules-center = [ "hyprland/window" ];
+          passthrough = true;
+          position = "top";
+          "hyprland/window" = {
+            format = "{}";
+            max-length = 120;
+            separate-outputs = true;
+          };
+        };
       };
       style = /* css */ ''
         * {
@@ -548,6 +576,7 @@ in
           font-family: "monospace";
           color: #c6d0f5;
         }
+        window#waybar:not(.empty) #window,
         #clock,
         #cpu,
         #workspaces {
@@ -559,6 +588,16 @@ in
           min-width: 0;
           border: none;
           transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+        }
+        window#waybar.empty #window {
+          box-shadow: none;
+        }
+        window#waybar:not(.empty) #window {
+          border: 0.5px solid #ffffff;
+          margin: 0px;
+          background-color: rgba(26, 27, 38, 0.5);
+          color: rgba(198, 208, 245, 0.5);
+          border-radius: 0px 0px 6px 6px;
         }
         #workspaces {
           padding: 2px;
@@ -591,7 +630,7 @@ in
           color: #005F60;
         }
         #custom-timers {
-          font-size: 10px;
+          font-size: 11px;
           text-shadow: 1px 1px black;
         }
         #cpu,
@@ -650,8 +689,6 @@ in
         #bluetooth.connected,
         #clock {
           color: #99d1db;
-        }
-        #clock {
           font-weight: 600;
         }
         #network.disconnected {
@@ -663,6 +700,10 @@ in
       '';
     };
     zsh = {
+      dirHashes = {
+        nix = "/persist/nixos";
+        personal = "${config.home.homeDirectory}/projects/personal";
+      };
       shellAliases = {
         run0 = "${pkgs.systemd}/bin/run0 --background='48;2;0;95;96' --setenv=TERM=xterm-256color --via-shell";
         ssh = "${pkgs.kitty}/bin/kitten ssh";
@@ -718,81 +759,89 @@ in
     };
   };
 
-  systemd.user.services = {
-    notification-logger = {
-      Install = {
-        WantedBy = [ "graphical-session.target" ];
-      };
-      Service = {
-        ExecStart = writeZsh "notification-logger.zsh" /* zsh */ ''
-          read_dbus_string() {
-            local input
-            read -r input
-            print -r -- "''${(Q)input#string }"
-          }
-          declare -a session_args
-          session_args=(
-              type='method_call'
-              interface='org.freedesktop.Notifications'
-              member='Notify'
-          )
-          ${pkgs.coreutils}/bin/stdbuf --output=L \
-              ${pkgs.dbus}/bin/dbus-monitor "''${(j:,:)session_args}" \
-              | while read -r line; do
-            if [[ "$line" =~ member=Notify ]]; then
-              app_name=$(read_dbus_string)
-              repeat 2 read -r _
-              summary=$(read_dbus_string)
-              body=$(read_dbus_string)
-              if [[ "$app_name" == discord ]]; then
-                local body_str=""
-                if [[ "$body" =~ 'Reacted(.*)to your(.*)' ]]; then
-                  body_str=" $match[1] ($match[2])"
+  systemd.user = {
+    tmpfiles.rules = [
+      # "d ${config.xdg.stateHome}/pulse 0700 ${config.home.username} users -"
+    ];
+    services = {
+      notification-logger = {
+        Install = {
+          WantedBy = [ "graphical-session.target" ];
+        };
+        Service = {
+          ExecStart = writeZsh "notification-logger.zsh" /* zsh */ ''
+            read_dbus_string() {
+              local input
+              read -r input
+              print -r -- "''${(Q)input#string }"
+            }
+            declare -a session_args
+            session_args=(
+                type='method_call'
+                interface='org.freedesktop.Notifications'
+                member='Notify'
+            )
+            ${pkgs.coreutils}/bin/stdbuf --output=L \
+                ${pkgs.dbus}/bin/dbus-monitor "''${(j:,:)session_args}" \
+                | while read -r line; do
+              if [[ "$line" =~ member=Notify ]]; then
+                app_name=$(read_dbus_string)
+                repeat 2 read -r _
+                summary=$(read_dbus_string)
+                body=$(read_dbus_string)
+                if [[ "$app_name" == discord ]]; then
+                  local body_str=""
+                  if [[ "$body" =~ 'Reacted(.*)to your(.*)' ]]; then
+                    body_str=" $match[1] ($match[2])"
+                  else
+                    body_str=": $body"
+                  fi
+                  if [[ "$summary" == Kitty ]]; then
+                    print -r -- "<5>💜 $summary$body_str"
+                  else
+                    print -r -- " $summary$body_str"
+                  fi
                 else
-                  body_str=": $body"
+                  print -r -- "($app_name)🔔 $summary - $body"
                 fi
-                if [[ "$summary" == Kitty ]]; then
-                  print -r -- "<5>💜 $summary$body_str"
-                else
-                  print -r -- " $summary$body_str"
-                fi
-              else
-                print -r -- "($app_name)🔔 $summary - $body"
               fi
-            fi
-          done
-        '';
-        SyslogIdentifier = "notification-logger";
-        Restart = "always";
-        RestartSec = 10;
+            done
+          '';
+          SyslogIdentifier = "notification-logger";
+          Restart = "always";
+          RestartSec = 10;
+        };
+        Unit = {
+          After = [ "graphical-session.target" ];
+          ConditionEnvironment = "WAYLAND_DISPLAY";
+          Description = "dbus notification logging service";
+          PartOf = "graphical-session.target";
+          X-Restart-Triggers = [ "" ];
+        };
       };
-      Unit = {
-        After = [ "graphical-session.target" ];
-        ConditionEnvironment = "WAYLAND_DISPLAY";
-        Description = "dbus notification logging service";
-        PartOf = "graphical-session.target";
-        X-Restart-Triggers = [ "" ];
-      };
-    };
-    hyprnotify = {
-      Install = {
-        WantedBy = [ "graphical-session.target" ];
-      };
-      Service = {
-        ExecStart = "${pkgs.hyprnotify}/bin/hyprnotify";
-        Restart = "always";
-        RestartSec = 10;
-      };
-      Unit = {
-        After = [ "graphical-session.target" ];
-        ConditionEnvironment = "WAYLAND_DISPLAY";
-        Description = "`hyprctl notify` daemon for dbus clients";
-        PartOf = "graphical-session.target";
+      hyprnotify = {
+        Install = {
+          WantedBy = [ "graphical-session.target" ];
+        };
+        Service = {
+          ExecStart = "${pkgs.hyprnotify}/bin/hyprnotify";
+          Restart = "always";
+          RestartSec = 10;
+        };
+        Unit = {
+          After = [ "graphical-session.target" ];
+          ConditionEnvironment = "WAYLAND_DISPLAY";
+          Description = "`hyprctl notify` daemon for dbus clients";
+          PartOf = "graphical-session.target";
+        };
       };
     };
   };
 
   xdg = {
+    configFile = {
+      "nvim/rocks.toml".source = config.lib.file.mkOutOfStoreSymlink "/persist/nixos/res/rocks.toml";
+    };
     mimeApps = {
       enable = true;
       defaultApplications = {

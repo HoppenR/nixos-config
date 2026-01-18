@@ -11,11 +11,7 @@
   ];
 
   home = {
-    file = {
-      "${config.xdg.configHome}/nvim/rocks.toml" = {
-        source = config.lib.file.mkOutOfStoreSymlink "/persist/nixos/res/rocks.toml";
-      };
-    };
+    preferXdgDirectories = true;
     packages = builtins.attrValues {
       inherit (pkgs)
         fd
@@ -35,17 +31,21 @@
         ;
     };
     sessionVariables = {
-      CARGO_HOME = "${config.xdg.cacheHome}/cargo";
-      FZF_ALT_C_COMMAND = "fd --strip-cwd-prefix --type directory";
-      FZF_CTRL_R_OPTS = "--border=rounded";
-      FZF_CTRL_T_COMMAND = "fd --strip-cwd-prefix --type file";
-      LESS = "-FRXi -x1,5";
-      LESSHISTFILE = "${config.xdg.stateHome}/less/history";
-      INPUTRC = "${config.xdg.configHome}/readline/config";
+      CARGO_HOME = "${config.xdg.dataHome}/cargo";
     };
   };
 
   programs = {
+    less = {
+      enable = true;
+      options = {
+        RAW-CONTROL-CHARS = true;
+        ignore-case = true;
+        no-init = true;
+        quit-if-one-screen = true;
+        tabs = "1,5";
+      };
+    };
     btop = {
       enable = true;
       settings = {
@@ -56,6 +56,21 @@
     fzf = {
       enable = true;
       enableZshIntegration = true;
+      changeDirWidgetCommand = "fd --type directory";
+      changeDirWidgetOptions = [ "--strip-cwd-prefix" ];
+      colors = {
+        "bg" = "#1a1b26";
+        "bg+" = "#005f60";
+        "fg" = "#babbf1";
+        "fg+" = "#c6d0f5";
+        "hl" = "#ffffff";
+        "hl+" = "#fff0e0";
+        "pointer" = "#c6d0f5";
+      };
+      defaultCommand = "fd --type file";
+      fileWidgetCommand = "fd --type file";
+      fileWidgetOptions = [ "--strip-cwd-prefix" ];
+      historyWidgetOptions = [ "--border=rounded" ];
     };
     git = {
       enable = true;
@@ -89,6 +104,25 @@
     };
     home-manager = {
       enable = true;
+    };
+    readline = {
+      enable = true;
+      bindings = {
+        "\\C-b" = "beginning-of-line";
+        "\\C-e" = "end-of-line";
+        "\\C-l" = "clear-screen";
+      };
+      variables = {
+        completion-ignore-case = true;
+        editing-mode = "vi";
+        expand-tilde = true;
+        keymap = "vi-insert";
+        keyseq-timeout = 50;
+        show-all-if-ambiguous = true;
+        show-mode-in-prompt = true;
+        vi-cmd-mode-string = ''\1\e[0 q\2'';
+        vi-ins-mode-string = ''\1\e[5 q\2'';
+      };
     };
     neovim = {
       enable = true;
@@ -162,9 +196,6 @@
         vim.opt.listchars = { extends = '▸', nbsp = '◇', tab = '│ ', trail = '∘', leadmultispace = '│   ' }
         vim.opt.matchpairs = { '(:)', '{:}', '[:]', '<:>', '«:»' }
 
-        vim.env.nix = '/persist/nixos'
-        vim.env.personal = '${config.home.homeDirectory}/projects/personal'
-
         vim.diagnostic.config({
           virtual_text = true,
           virtual_lines = false,
@@ -203,10 +234,6 @@
       enable = true;
       enableCompletion = true;
       defaultKeymap = "viins";
-      dirHashes = {
-        nix = "/persist/nixos";
-        personal = "${config.home.homeDirectory}/projects/personal";
-      };
       dotDir = "${config.xdg.configHome}/zsh";
       history = {
         append = true;
@@ -395,8 +422,18 @@
     };
   };
 
+  systemd.user = {
+    tmpfiles.rules = [
+      "d ${config.xdg.stateHome}/ssh 0700 ${config.home.username} users -"
+      "d ${config.xdg.stateHome}/ssh/known_hosts.d 0700 ${config.home.username} users -"
+    ];
+  };
+
   xdg = {
     enable = true;
+    configFile = {
+      "nvim/rocks.toml".source = lib.mkDefault ../res/rocks.toml;
+    };
     userDirs = {
       enable = true;
       createDirectories = true;
@@ -404,21 +441,6 @@
   };
 
   xdg.configFile = {
-    "readline/config".text = ''
-      set completion-ignore-case on
-      set editing-mode vi
-      set expand-tilde on
-      set keyseq-timeout 50
-      set show-all-if-ambiguous on
-      set show-mode-in-prompt on
-      set vi-cmd-mode-string \1\e[0 q\2
-      set vi-ins-mode-string \1\e[5 q\2
-
-      set keymap vi-insert
-      "\C-b":beginning-of-line
-      "\C-e":end-of-line
-      "\C-l":clear-screen
-    '';
     "nvim/lua/nix-deps.lua" =
       let
         luaInterpreter = config.programs.neovim.package.lua;
