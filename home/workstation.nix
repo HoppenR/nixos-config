@@ -28,6 +28,7 @@ in
         koreader
         libnotify
         scrcpy
+        units
         wl-clipboard
         yazi
         ;

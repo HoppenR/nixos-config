@@ -539,10 +539,6 @@
         },
       })
     '';
-    "nvim/lua/plugins/flutter-tools-nvim.lua".text = /* lua */ ''
-      FlutterTools = require('flutter-tools')
-      FlutterTools.setup({})
-    '';
     "nvim/lua/plugins/oil-nvim.lua".text = /* lua */ ''
       Oil = require('oil')
       vim.keymap.set('n', '<M-e>', Oil.open)
@@ -611,18 +607,11 @@
     '';
     "nvim/plugin/lsp.lua".text = /* lua */ ''
       local servers = {
-        -- 'clangd',        -- C/C++ language server
-        -- 'dartls',        -- Dart langage server (Enabled via flutter-tools!)
-        -- 'gopls',         -- Go language server
-        -- 'hls',           -- Haskell language server
-        'lua_ls',        -- Lua language server
-        'nixd',          -- Nix language server
-        -- 'pylsp',         -- Python language server
-        -- 'rust_analyzer', -- Rust language server
-        -- 'ts_ls',         -- Typescript language server
+        'lua_ls',
+        'nixd',
       }
       for _, server in ipairs(servers) do
-        vim.lsp.enable(server)
+        vim.lsp.enable(server, true)
       end
 
       vim.api.nvim_create_autocmd("LspAttach", {
