@@ -1,7 +1,7 @@
 { ... }:
 {
   imports = [
-    ../../roles/workstation.nix
+    ../../roles/workstation
     ../../relations
     ./hardware-configuration.nix
   ];

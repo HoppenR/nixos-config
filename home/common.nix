@@ -10,6 +10,10 @@
     inputs.nix-index-database.homeModules.nix-index
   ];
 
+  fonts.fontconfig.defaultFonts = {
+    monospace = [ "JetBrainsMono Nerd Font" ];
+  };
+
   home = {
     preferXdgDirectories = true;
     packages = builtins.attrValues {
@@ -150,7 +154,6 @@
         vim.o.ignorecase = true
         vim.o.list = true
         vim.o.number = true
-        vim.o.relativenumber = true
         vim.o.ruler = false
         vim.o.smartcase = true
         vim.o.splitbelow = true

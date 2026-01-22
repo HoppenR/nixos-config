@@ -30,7 +30,6 @@ in
         scrcpy
         units
         wl-clipboard
-        yazi
         ;
     };
     sessionVariables = {
@@ -151,6 +150,10 @@ in
         "$mon_bltn, 1920x1200@60, 0x0, 1"
         "$mon_dock, 1920x1080@144, -1920x0, 1"
       ];
+      # xwayland {
+      #   force_zero_scaling = true
+      # }
+      # exec-once = xprop -root -f _XWAYLAND_GLOBAL_OUTPUT_SCALE 32c -set _XWAYLAND_GLOBAL_OUTPUT_SCALE 1
     };
     xwayland.enable = true;
   };
@@ -710,6 +713,10 @@ in
           color: #e78284;
         }
       '';
+    };
+    yazi = {
+      enable = true;
+      shellWrapperName = "y";
     };
     zsh = {
       dirHashes = {

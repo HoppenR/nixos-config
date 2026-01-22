@@ -1,6 +1,5 @@
 {
   lib,
-  pkgs,
   ...
 }:
 let
@@ -12,7 +11,7 @@ in
   };
 
   imports = [
-    ./common
+    ../common
   ];
 
   console.colors = lib.attrValues {
@@ -35,8 +34,11 @@ in
   };
 
   home-manager = {
+    extraSpecialArgs = {
+      lib = import ./lib.nix { inherit lib; };
+    };
     users = {
-      ${mainUser} = import ../home/workstation.nix;
+      ${mainUser} = import ../../home/workstation.nix;
     };
   };
 
@@ -86,7 +88,7 @@ in
       ]
     );
     overlays = [
-      (import ../overlays/kitty-single.nix)
+      (import ../../overlays/kitty-single.nix)
     ];
   };
 
