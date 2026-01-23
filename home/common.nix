@@ -701,7 +701,7 @@
               expr = '(builtins.getFlake "${config.home.homeDirectory}/projects/nixos").inputs.nixpkgs',
             },
             formatting = {
-              command = { '${pkgs.nixfmt-rfc-style}/bin/nixfmt' },
+              command = { '${lib.getExe pkgs.nixfmt}' },
             },
             options = {
               nixos = {

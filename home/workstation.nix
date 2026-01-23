@@ -762,14 +762,12 @@ in
     hyprpaper = {
       enable = true;
       settings = {
-        ipc = "on";
-        splash = true;
-        splash_offset = 2.0;
-        preload = [
-          "${config.home.homeDirectory}/Pictures/backgrounds/saturn-rings.png"
-        ];
+        splash = false;
         wallpaper = [
-          ",${config.home.homeDirectory}/Pictures/backgrounds/saturn-rings.png"
+          {
+            monitor = "";
+            path = "${config.home.homeDirectory}/Pictures/backgrounds/saturn-rings.png";
+          }
         ];
       };
     };

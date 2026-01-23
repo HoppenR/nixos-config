@@ -34,9 +34,6 @@ in
   };
 
   home-manager = {
-    extraSpecialArgs = {
-      lib = import ./lib.nix { inherit lib; };
-    };
     users = {
       ${mainUser} = import ../../home/workstation.nix;
     };
