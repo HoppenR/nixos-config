@@ -81,13 +81,17 @@ in
             "HOME=/var/lib/streamserver"
           ];
           EnvironmentFile = config.sops.templates."streamserver-env".path;
+
+          DynamicUser = true;
           ExecStart = "${lib.getExe streamserver-pkg} -a 127.0.0.1:8181 -e https://streams.hoppenr.xyz/oauth-callback";
+          MemoryDenyWriteExecute = true;
+          NoNewPrivileges = true;
+          PrivateTmp = true;
+          ProtectHome = true;
+          ProtectProc = "invisible";
+          ProtectSystem = "strict";
           Restart = "always";
           StateDirectory = "streamserver";
-          DynamicUser = true;
-          ProtectSystem = "strict";
-          ProtectHome = true;
-          PrivateTmp = true;
         };
       };
     })

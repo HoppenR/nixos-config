@@ -723,10 +723,11 @@ in
         nix = "/persist/nixos";
         personal = "${config.home.homeDirectory}/projects/personal";
       };
-      shellAliases = {
+      shellAliases = rec {
         run0 = "${pkgs.systemd}/bin/run0 --background='48;2;0;95;96' --setenv=TERM=xterm-256color --via-shell";
         ssh = "${pkgs.kitty}/bin/kitten ssh";
-        scrcpy-Pixel = "${lib.getExe pkgs.scrcpy} --new-display=1880x992/140 --render-driver=vulkan --video-codec=h265 --keyboard=uhid --mouse=uhid --video-bit-rate=16M --stay-awake";
+        scrcpy-Pixel = "${lib.getExe pkgs.scrcpy} --render-driver=vulkan --video-codec=h265 --keyboard=uhid --mouse=uhid --video-bit-rate=16M --stay-awake";
+        scrcpy-virt-Pixel = "${scrcpy-Pixel} --new-display=1880x992/140";
       };
     };
   };

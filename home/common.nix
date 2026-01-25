@@ -145,7 +145,9 @@
         vim.g.loaded_netrwPlugin = 1
         vim.g.mapleader = ' '
 
-        require('rocks-nvim')
+        require('plugins.fidget-nvim')
+        require('plugins.oil-nvim')
+        require('plugins.telescope')
 
         vim.o.autochdir = true
         vim.o.cursorline = true
@@ -223,11 +225,65 @@
         })
       '';
       defaultEditor = true;
-      plugins = builtins.attrValues {
-        inherit (pkgs.vimPlugins)
-          rocks-nvim
-          ;
-      };
+      plugins =
+        builtins.attrValues {
+          inherit (pkgs.vimPlugins)
+            fidget-nvim
+            oil-nvim
+            telescope-nvim
+            telescope-undo-nvim
+            ;
+        }
+        ++ [
+          (pkgs.vimPlugins.nvim-treesitter.withPlugins (p: [
+            p.asm
+            p.awk
+            p.bash
+            p.cmake
+            p.commonlisp
+            p.cpp
+            p.css
+            p.dart
+            p.desktop
+            p.diff
+            p.dockerfile
+            p.git_config
+            p.git_rebase
+            p.gitcommit
+            p.gitignore
+            p.go
+            p.gomod
+            p.gosum
+            p.gpg
+            p.haskell
+            p.html
+            p.hyprlang
+            p.ini
+            p.java
+            p.javascript
+            p.json
+            p.json5
+            p.latex
+            p.lua
+            p.make
+            p.nginx
+            p.nix
+            p.ocaml
+            p.passwd
+            p.perl
+            p.python
+            p.readline
+            p.rst
+            p.rust
+            p.sql
+            p.ssh_config
+            p.toml
+            p.typescript
+            p.xml
+            p.yaml
+            p.zsh
+          ]))
+        ];
       viAlias = true;
       vimAlias = true;
     };
@@ -434,9 +490,6 @@
 
   xdg = {
     enable = true;
-    configFile = {
-      "nvim/rocks.toml".source = lib.mkDefault ../res/rocks.toml;
-    };
     userDirs = {
       enable = true;
       createDirectories = true;
@@ -444,73 +497,6 @@
   };
 
   xdg.configFile = {
-    "nvim/lua/nix-deps.lua" =
-      let
-        luaInterpreter = config.programs.neovim.package.lua;
-      in
-      {
-        enable = true;
-        text = /* lua */ ''
-          local M = {}
-          M.gcc_path = "${pkgs.gcc}/bin/gcc"
-          M.lua_interpreter = "${luaInterpreter}"
-          M.luarocks_executable = "${luaInterpreter.pkgs.luarocks_bootstrap}/bin/luarocks"
-          return M
-        '';
-      };
-
-    "nvim/luarocks-config-generated.lua" =
-      let
-        luaInterpreter = config.programs.neovim.package.lua;
-        luarocksStore = luaInterpreter.pkgs.luarocks;
-        luacurlPkg = luaInterpreter.pkgs.lua-curl;
-        luarocksInitialConfigAttr =
-          pkgs.lua.pkgs.luaLib.generateLuarocksConfig { externalDeps = [ pkgs.curl.dev ]; }
-          // {
-            lua_version = "5.1";
-          };
-        luarocksConfigAttr = lib.recursiveUpdate luarocksInitialConfigAttr {
-          rocks_trees = [
-            {
-              name = "rocks.nvim";
-              root = "${config.xdg.dataHome}/nvim/rocks";
-            }
-            {
-              name = "rocks-generated.nvim";
-              root = "${luarocksStore}";
-            }
-            {
-              name = "lua-curl";
-              root = "${luacurlPkg}";
-            }
-            {
-              name = "sqlite.lua";
-              root = "${luaInterpreter.pkgs.sqlite}";
-            }
-          ];
-          variables = {
-            # MYSQL_INCDIR = "${libmysqlclient.dev}/include/mysql";
-            # MYSQL_LIBDIR = "${libmysqlclient}/lib/mysql";
-          };
-        };
-        luarocksConfigStr = lib.generators.toLua { asBindings = false; } luarocksConfigAttr;
-      in
-      {
-        enable = true;
-        text = "return ${luarocksConfigStr}";
-      };
-
-    "nvim/lua/rocks-nvim.lua".text = /* lua */ ''
-      local nix_deps = require("nix-deps")
-      local luarocks_config_filename = vim.fn.stdpath('config') .. '/luarocks-config-generated.lua'
-      local luarocks_config_fn = assert(loadfile(luarocks_config_filename))
-      local rocks_config = {
-        luarocks_binary = nix_deps.luarocks_executable,
-        luarocks_config = luarocks_config_fn(),
-        rocks_path = vim.fn.stdpath("data") .. "/rocks",
-      }
-      vim.g.rocks_nvim = rocks_config
-    '';
     "nvim/ftplugin/dart.lua".text = /* lua */ ''
       vim.opt_local.shiftwidth = 2
     '';
@@ -606,6 +592,16 @@
             },
           },
         },
+      })
+    '';
+    "nvim/plugin/treesitter.lua".text = /* lua */ ''
+      vim.api.nvim_create_autocmd('FileType', {
+        callback = function(args)
+          local lang = vim.bo[args.buf].filetype
+          if lang and vim.treesitter.query.get(lang, "highlights") then
+            vim.treesitter.start(args.buf, lang)
+          end
+        end,
       })
     '';
     "nvim/plugin/lsp.lua".text = /* lua */ ''
