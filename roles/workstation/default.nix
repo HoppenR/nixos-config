@@ -1,5 +1,6 @@
 {
   lib,
+  pkgs,
   ...
 }:
 let
@@ -39,6 +40,16 @@ in
     };
   };
 
+  # P2425D config:
+  boot.kernelModules = [ "i2c-dev" ];
+  users = {
+    users = {
+      ${mainUser} = {
+        extraGroups = [ "i2c" ];
+      };
+    };
+  };
+
   lab = {
     greetd = {
       enable = true;
@@ -65,6 +76,9 @@ in
   };
 
   hardware = {
+    i2c = {
+      enable = true;
+    };
     bluetooth = {
       enable = true;
       settings = {

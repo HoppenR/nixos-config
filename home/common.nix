@@ -135,7 +135,7 @@
           cargo
           ;
       };
-      extraLuaConfig = /* lua */ ''
+      initLua = /* lua */ ''
         vim.cmd.filetype({ args = { 'plugin', 'indent', 'on' } })
         vim.cmd.syntax('on')
         vim.o.termguicolors = true

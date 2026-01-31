@@ -180,7 +180,9 @@ in
         cue = true;
       };
     };
-    polkit.enable = true;
+    polkit = {
+      enable = true;
+    };
     # run0-sudo-shim.enable = true;
     # sudo.enable = false;
   };
@@ -212,7 +214,7 @@ in
     serviceConfig.Type = "oneshot";
     script = ''
       ${pkgs.nix}/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations +5
-      ${pkgs.nix}/bin/nix-env --profile /etc/profiles/per-user/christoffer --delete-generations +5
+      ${pkgs.nix}/bin/nix-env --profile /etc/profiles/per-user/${mainUser} --delete-generations +5
       /run/current-system/bin/switch-to-configuration boot
     '';
     startAt = "weekly";

@@ -70,6 +70,13 @@ in
         "@" = ''
           root * /replicated/web
           file_server browse
+
+          handle_path /api/* {
+              reverse_proxy https://strims.gg {
+                  header_up Host strims.gg
+                  header_up X-Real-IP {remote_host}
+              }
+          }
         '';
         "streams" = "reverse_proxy localhost:${toString streamsPort}";
         "vaultwarden" = ''
@@ -98,7 +105,7 @@ in
         enable = true;
         package = pkgs.caddy.withPlugins {
           plugins = [ "github.com/caddy-dns/cloudflare@v0.2.2" ];
-          hash = "sha256-ea8PC/+SlPRdEVVF/I3c1CBprlVp1nrumKM5cMwJJ3U=";
+          hash = "sha256-dnhEjopeA0UiI+XVYHYpsjcEI6Y1Hacbi28hVKYQURg=";
         };
         virtualHosts = lib.mapAttrs' makeVirtualHost caddyEndpoints;
       };

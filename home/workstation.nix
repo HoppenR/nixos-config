@@ -15,6 +15,19 @@ let
       | ${pkgs.jq}/bin/jq --raw-output "$filter" \
       | less +G
   '';
+
+  monitors = [
+    rec {
+      sn = "DVH9D94";
+      desc = "Dell Inc. DELL P2425D ${sn}";
+      wallpaper = "${config.home.homeDirectory}/Pictures/backgrounds/bunny-pc-bg.png";
+    }
+    rec {
+      sn = "CVH9D94";
+      desc = "Dell Inc. DELL P2425D ${sn}";
+      wallpaper = "${config.home.homeDirectory}/Pictures/backgrounds/saabbackground.png";
+    }
+  ];
 in
 {
   home = {
@@ -24,6 +37,7 @@ in
         ;
 
       inherit (pkgs)
+        ddcutil
         discord
         koreader
         libnotify
@@ -47,11 +61,24 @@ in
         gaps_in = 10;
         gaps_out = "10, 25, 25, 25";
       };
+      misc = {
+        vrr = 2;
+      };
+      decoration = {
+        rounding = 10;
+        blur = {
+          enabled = true;
+          new_optimizations = true;
+          passes = 2;
+          size = 6;
+        };
+      };
       "$mod_apps" = "MOD3";
       "$mod_move" = "SUPER";
       "$mod_hypr" = "MOD5";
-      "$mon_dock" = "desc:Acer Technologies Acer XF270H 0x542079DA";
-      "$mon_bltn" = "desc:California Institute of Technology 0x1404";
+      "$mon_1" = "desc:Dell Inc. DELL P2425D DVH9D94";
+      "$mon_2" = "desc:Dell Inc. DELL P2425D CVH9D94";
+      "$mon_3" = "desc:California Institute of Technology 0x1404";
       "$menu_opts" = "--insensitive --match=multi-contains";
       "$run_menu" = "${lib.getExe pkgs.wofi} --show=run $menu_opts";
       "$drun_menu" = "${lib.getExe pkgs.wofi} --show=drun $menu_opts";
@@ -111,15 +138,15 @@ in
         "$mod_move, mouse:273, resizewindow"
       ];
       workspace = [
-        "1,monitor:$mon_dock,default:true"
-        "2,monitor:$mon_dock"
-        "3,monitor:$mon_dock"
-        "4,monitor:$mon_dock"
-        "5,monitor:$mon_dock"
-        "6,monitor:$mon_bltn,default:true"
-        "7,monitor:$mon_bltn"
-        "8,monitor:$mon_bltn"
-        "9,monitor:$mon_bltn"
+        "1,monitor:$mon_1,default:true"
+        "2,monitor:$mon_1"
+        "3,monitor:$mon_1"
+        "4,monitor:$mon_1"
+        "5,monitor:$mon_1"
+        "6,monitor:$mon_2,default:true"
+        "7,monitor:$mon_2"
+        "8,monitor:$mon_2"
+        "9,monitor:$mon_2"
       ];
       device = {
         name = "at-translated-set-2-keyboard";
@@ -147,8 +174,9 @@ in
         ''}";
       };
       monitor = [
-        "$mon_bltn, 1920x1200@60, 0x0, 1"
-        "$mon_dock, 1920x1080@144, -1920x0, 1"
+        "$mon_1, 2560x1440@100Hz, -2560x0, 1"
+        "$mon_2, 2560x1440@100Hz, 0x0, 1"
+        "$mon_3, 1920x1200@60, 2560x0, 1"
       ];
       # xwayland {
       #   force_zero_scaling = true
@@ -159,8 +187,11 @@ in
   };
 
   programs = {
+    direnv = {
+      enable = true;
+    };
     neovim = {
-      extraLuaConfig = ''
+      initLua = /* lua */ ''
         vim.env.nix = '/persist/nixos'
         vim.env.personal = '${config.home.homeDirectory}/projects/personal'
       '';
@@ -171,6 +202,12 @@ in
         "en-US"
         "sv-SE"
       ];
+      profiles.default = {
+        isDefault = true;
+        settings = {
+          "layout.css.devPixelsPerPx" = "1.25";
+        };
+      };
     };
     hyprlock = {
       enable = true;
@@ -218,7 +255,7 @@ in
       };
       settings = {
         font_family = "monospace";
-        font_size = 15;
+        font_size = 17;
         disable_ligatures = "cursor";
         scrollback_lines = 5000;
         enable_audio_bell = false;
@@ -232,7 +269,7 @@ in
         tab_bar_min_tabs = 1;
         tab_title_template = "{index}: {tab.active_exe}";
         background = "#1a1b26";
-        background_opacity = 0.95;
+        background_opacity = 0.9;
         "map ctrl+alt+1" = "first_window";
         "map ctrl+alt+2" = "second_window";
         "map ctrl+alt+3" = "third_window";
@@ -253,339 +290,422 @@ in
     waybar = {
       enable = true;
       systemd.enable = true;
-      settings = {
-        mainBar = {
-          layer = "top";
-          position = "top";
-          modules-left = [
-            "hyprland/workspaces"
-            "tray"
-            "hyprland/language"
-            "hyprland/submap"
-            "idle_inhibitor"
-            "cpu"
-            "custom/spacer"
-            "custom/timers"
-          ];
-          modules-center = [
-            "clock"
-          ];
-          modules-right = [
-            "bluetooth"
-            "custom/spacer"
-            "network#lan"
-            "custom/spacer"
-            "network#wifi"
-            "custom/spacer"
-            "pulseaudio"
-            "custom/spacer"
-            "backlight"
-            "custom/spacer"
-            "battery"
-            "custom/spacer"
-            "custom/power"
-          ];
-          backlight = {
-            format = "󰖨 {percent:>3}%";
+      settings =
+        let
+          makeModules = mon: {
+            modules-left = [
+              "hyprland/workspaces"
+              "tray"
+              "hyprland/language"
+              "hyprland/submap"
+              "idle_inhibitor"
+              "cpu"
+              "custom/spacer"
+              "custom/timers"
+            ];
+            modules-center = [
+              "clock"
+            ];
+            modules-right = [
+              "bluetooth"
+              "custom/spacer"
+              "network#lan"
+              "custom/spacer"
+              "network#wifi"
+              "custom/spacer"
+              "pulseaudio"
+              "custom/spacer"
+              "custom/ddc-brightness#${mon.sn}"
+              "custom/spacer"
+              "battery"
+              "custom/spacer"
+              "custom/power"
+            ];
           };
-          battery = {
-            format = "{icon} {capacity:>3}%";
-            format-icons = {
-              charging = [
-                "󰢜"
-                "󰂆"
-                "󰂇"
-                "󰂈"
-                "󰢝"
-                "󰂉"
-                "󰢞"
-                "󰂊"
-                "󰂋"
-                "󰂅"
-              ];
-              default = [
-                "󰁺"
-                "󰁻"
-                "󰁼"
-                "󰁽"
-                "󰁾"
-                "󰁿"
-                "󰂀"
-                "󰂁"
-                "󰂂"
-                "󰁹"
-              ];
+
+          commonMainBarConfig = {
+            battery = {
+              format = "{icon} {capacity:>3}%";
+              format-icons = {
+                charging = [
+                  "󰢜"
+                  "󰂆"
+                  "󰂇"
+                  "󰂈"
+                  "󰢝"
+                  "󰂉"
+                  "󰢞"
+                  "󰂊"
+                  "󰂋"
+                  "󰂅"
+                ];
+                default = [
+                  "󰁺"
+                  "󰁻"
+                  "󰁼"
+                  "󰁽"
+                  "󰁾"
+                  "󰁿"
+                  "󰂀"
+                  "󰂁"
+                  "󰂂"
+                  "󰁹"
+                ];
+              };
+              full-at = 70;
             };
-            full-at = 70;
-          };
-          bluetooth = {
-            format = "";
-            format-disabled = "󰂲";
-            format-connected = "󰂱 {num_connections}";
-            tooltip-format = " {device_alias}";
-            tooltip-format-connected = "{device_enumerate}";
-            tooltip-format-enumerate-connected = " {device_alias}";
-            on-click = "${lib.getExe pkgs.kitty} --execute bluetoothctl";
-            menu = "on-click-right";
-            menu-file = pkgs.writeText "waybar-bluetooth-menu.xml" /* xml */ ''
-              <?xml version="1.0" encoding="UTF-8"?>
-               <interface>
-                <object class="GtkMenu" id="menu">
-                  <child>
-                    <object class="GtkMenuItem" id="connect-script">
-                      <property name="label">Manage Connections</property>
-                    </object>
-                  </child>
-                </object>
-              </interface>
-            '';
-            menu-actions = {
-              "connect-script" = writeZsh "wofi-bluetooth-connect.zsh" /* zsh */ ''
-                setopt ERR_EXIT NO_UNSET PIPE_FAIL
-                typeset -a action_list
-                for line in "''${(@f)$(${pkgs.bluez}/bin/bluetoothctl devices)}"; do
-                  if [[ "$line" =~ '^Device ([0-9A-F:]+) (.+)$' ]]; then
-                    info="$(${pkgs.bluez}/bin/bluetoothctl info "$match[1]")"
-                    if [[ "$info" == *"Connected: yes"* ]]; then
-                      action_list+=("[x] Disconnect from $match[2] -- $match[1]")
-                    elif [[ "$info" == *"Connected: no"* ]]; then
-                      action_list+=("[ ] Connect to $match[2] -- $match[1]")
+            bluetooth = {
+              format = "";
+              format-disabled = "󰂲";
+              format-connected = "󰂱 {num_connections}";
+              tooltip-format = " {device_alias}";
+              tooltip-format-connected = "{device_enumerate}";
+              tooltip-format-enumerate-connected = " {device_alias}";
+              on-click = "${lib.getExe pkgs.kitty} --execute bluetoothctl";
+              menu = "on-click-right";
+              menu-file = pkgs.writeText "waybar-bluetooth-menu.xml" /* xml */ ''
+                <?xml version="1.0" encoding="UTF-8"?>
+                 <interface>
+                  <object class="GtkMenu" id="menu">
+                    <child>
+                      <object class="GtkMenuItem" id="connect-script">
+                        <property name="label">Manage Connections</property>
+                      </object>
+                    </child>
+                  </object>
+                </interface>
+              '';
+              menu-actions = {
+                "connect-script" = writeZsh "wofi-bluetooth-connect.zsh" /* zsh */ ''
+                  setopt ERR_EXIT NO_UNSET PIPE_FAIL
+                  typeset -a action_list
+                  for line in "''${(@f)$(${pkgs.bluez}/bin/bluetoothctl devices)}"; do
+                    if [[ "$line" =~ '^Device ([0-9A-F:]+) (.+)$' ]]; then
+                      info="$(${pkgs.bluez}/bin/bluetoothctl info "$match[1]")"
+                      if [[ "$info" == *"Connected: yes"* ]]; then
+                        action_list+=("[x] Disconnect from $match[2] -- $match[1]")
+                      elif [[ "$info" == *"Connected: no"* ]]; then
+                        action_list+=("[ ] Connect to $match[2] -- $match[1]")
+                      fi
+                    fi
+                  done
+                  if (( ''${#action_list} == 0 )); then
+                    exit 0
+                  fi
+                  wofi_opts=(
+                    --show dmenu
+                    --insensitive
+                    --match=multi-contains
+                    --prompt "Bluetooth Connect/Disconnect"
+                    --cache-file /dev/null
+                  )
+                  selection=$(print -rl -- $action_list | ${lib.getExe pkgs.wofi} $wofi_opts)
+                  if [[ "$selection" =~ '^\[(.)\] (Connect to|Disconnect from) (.*) -- (.*)$' ]]; then
+                    device_path="/org/bluez/hci0/dev_''${match[4]//:/_}"
+                    if [[ "$match[1]" == "x" ]]; then
+                      notify-send "Bluetooth" "Disconnecting from $match[3]"
+                      busctl call --timeout=15 org.bluez "$device_path" org.bluez.Device1 Disconnect
+                    elif [[ "$match[1]" == " " ]]; then
+                      notify-send "Bluetooth" "Connecting to $match[3]..."
+                      busctl call --timeout=15 org.bluez "$device_path" org.bluez.Device1 Connect
+                      notify-send "Bluetooth" "Connected to $match[3]."
                     fi
                   fi
-                done
-                if (( ''${#action_list} == 0 )); then
-                  exit 0
-                fi
-                wofi_opts=(
-                  --show dmenu
-                  --insensitive
-                  --match=multi-contains
-                  --prompt "Bluetooth Connect/Disconnect"
-                  --cache-file /dev/null
-                )
-                selection=$(print -rl -- $action_list | ${lib.getExe pkgs.wofi} $wofi_opts)
-                if [[ "$selection" =~ '^\[(.)\] (Connect to|Disconnect from) (.*) -- (.*)$' ]]; then
-                  device_path="/org/bluez/hci0/dev_''${match[4]//:/_}"
-                  if [[ "$match[1]" == "x" ]]; then
-                    notify-send "Bluetooth" "Disconnecting from $match[3]"
-                    busctl call --timeout=15 org.bluez "$device_path" org.bluez.Device1 Disconnect
-                  elif [[ "$match[1]" == " " ]]; then
-                    notify-send "Bluetooth" "Connecting to $match[3]..."
-                    busctl call --timeout=15 org.bluez "$device_path" org.bluez.Device1 Connect
-                    notify-send "Bluetooth" "Connected to $match[3]."
-                  fi
+                '';
+              };
+            };
+            clock = {
+              locale = "sv_SE.UTF-8";
+              tooltip-format = "{:L%A %F}";
+            };
+            cpu = {
+              format = "  ${lib.concatStrings (builtins.genList (n: "{icon${toString n}}") 16)}{usage:>3}%";
+              format-icons = [
+                "▁"
+                "▂"
+                "▃"
+                "▄"
+                "▅"
+                "▆"
+                "▇"
+                "█"
+              ];
+              on-click = "${lib.getExe pkgs.kitty} --execute ${lib.getExe pkgs.btop} --preset 1";
+            };
+            "custom/spacer" = {
+              format = "│";
+              interval = "once";
+              tooltip = false;
+            };
+            "custom/power" = {
+              format = "⏻";
+              tooltip = false;
+              menu = "on-click-right";
+              menu-file = pkgs.writeText "waybar-powermenu.xml" /* xml */ ''
+                <?xml version="1.0" encoding="UTF-8"?>
+                <interface>
+                  <object class="GtkMenu" id="menu">
+                    <child>
+                      <object class="GtkMenuItem" id="shutdown">
+                        <property name="label">Shutdown</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="reboot">
+                        <property name="label">Reboot</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="suspend">
+                        <property name="label">Suspend</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem" id="sep"/>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="logout">
+                        <property name="label">Exit Hyprland</property>
+                      </object>
+                    </child>
+                  </object>
+                </interface>
+              '';
+              menu-actions = {
+                shutdown = "${pkgs.systemd}/bin/systemctl poweroff";
+                reboot = "${pkgs.systemd}/bin/systemctl reboot";
+                suspend = "${pkgs.systemd}/bin/systemctl suspend";
+                logout = "${pkgs.hyprland}/bin/hyprctl dispatch exit";
+              };
+              on-click = writeZsh "hyprland-poweroff-dialog.zsh" /* zsh */ ''
+                ans="$(${pkgs.hyprland-qtutils}/bin/hyprland-dialog --title 'Exit Hyprland?' --text 'Are you sure?' --buttons 'Yes;No')"
+                if [[ "$ans" == Yes ]]; then
+                  ${pkgs.hyprland}/bin/hyprctl dispatch exit
                 fi
               '';
             };
-          };
-          clock = {
-            locale = "sv_SE.UTF-8";
-            tooltip-format = "{:L%A %F}";
-          };
-          cpu = {
-            format = "  ${lib.concatStrings (builtins.genList (n: "{icon${toString n}}") 16)}{usage:>3}%";
-            format-icons = [
-              "▁"
-              "▂"
-              "▃"
-              "▄"
-              "▅"
-              "▆"
-              "▇"
-              "█"
-            ];
-            on-click = "${lib.getExe pkgs.kitty} --execute ${lib.getExe pkgs.btop} --preset 1";
-          };
-          "custom/spacer" = {
-            format = "│";
-            interval = "once";
-            tooltip = false;
-          };
-          "custom/power" = {
-            format = "⏻";
-            tooltip = false;
-            menu = "on-click-right";
-            menu-file = pkgs.writeText "waybar-powermenu.xml" /* xml */ ''
-              <?xml version="1.0" encoding="UTF-8"?>
-              <interface>
-                <object class="GtkMenu" id="menu">
-                  <child>
-                    <object class="GtkMenuItem" id="shutdown">
-                      <property name="label">Shutdown</property>
-                    </object>
-                  </child>
-                  <child>
-                    <object class="GtkMenuItem" id="reboot">
-                      <property name="label">Reboot</property>
-                    </object>
-                  </child>
-                  <child>
-                    <object class="GtkMenuItem" id="suspend">
-                      <property name="label">Suspend</property>
-                    </object>
-                  </child>
-                  <child>
-                    <object class="GtkSeparatorMenuItem" id="sep"/>
-                  </child>
-                  <child>
-                    <object class="GtkMenuItem" id="logout">
-                      <property name="label">Exit Hyprland</property>
-                    </object>
-                  </child>
-                </object>
-              </interface>
-            '';
-            menu-actions = {
-              shutdown = "${pkgs.systemd}/bin/systemctl poweroff";
-              reboot = "${pkgs.systemd}/bin/systemctl reboot";
-              suspend = "${pkgs.systemd}/bin/systemctl suspend";
-              logout = "${pkgs.hyprland}/bin/hyprctl dispatch exit";
+            "custom/timers" = {
+              exec = pkgs.writers.writePerl "timers.pl" { } /* perl */ ''
+                use strict;
+                use warnings;
+
+                my @tooltip_lines;
+                my @system_timer_table = qx(systemctl --quiet list-timers);
+                die "list-timers system command exited with non-zero status: $?\n" if $? != 0;
+                my @user_timer_table = qx(systemctl --user --quiet list-timers);
+                die "list-timers user command exited with non-zero status: $?\n" if $? != 0;
+                my $first_timer;
+
+                if (scalar @system_timer_table != 0 or scalar @user_timer_table != 0) {
+                    my $re_date = qr/\w{3} [\d-]{10} [\d:]{8} \w{3,4}/;
+                    my $re_last = qr/-|$re_date/;
+                    my $re_unit = qr/years?|months?|weeks?|days?|h|min|s/;
+                    my $re_qnty = qr/\d{1,2} ?$re_unit/;
+                    my $re_time = qr/$re_qnty ?$re_qnty?/;
+                    my $re_pass = qr/-|$re_time ago/;
+                    my $re_main = qr/
+                        ^
+                        $re_date\s+            # NEXT
+                        (?<time>$re_time)\s    # LEFT
+                        $re_last\s+            # LAST
+                        $re_pass\s             # PASSED
+                        (?<name>\S+)\.timer\s+   # UNIT
+                        \k<name>\.service        # ACTIVATES
+                        $
+                    /x;
+                    push @tooltip_lines, "--- Timers ---";
+                    my @timers = (
+                        (map { /$re_main/ ? "$+{name}: $+{time}" : () } @system_timer_table),
+                        (map { /$re_main/ ? "$+{name} --user: $+{time}" : () } @user_timer_table)
+                    );
+                    $first_timer = $timers[0];
+                    push @tooltip_lines, @timers;
+                }
+
+                my @system_fail_table = qx(systemctl --quiet list-units --failed --plain);
+                die "list-units system command exited with non-zero status: $?\n" if $? != 0;
+                my @user_fail_table = qx(systemctl --user --quiet list-units --failed --plain);
+                die "list-units user command exited with non-zero status: $?\n" if $? != 0;
+                my @failed;
+
+                if (scalar @system_fail_table != 0 or scalar @user_fail_table != 0) {
+                    my $re_failed = qr/(?<name>\S+)\.service/;
+                    push @tooltip_lines, "--- Failed units ---";
+                    @failed = (
+                      (map { /$re_failed/ ? "$+{name}" : () } @system_fail_table),
+                      (map { /$re_failed/ ? "$+{name} --user" : () } @user_fail_table),
+                    );
+                    push @tooltip_lines, @failed;
+                }
+
+                my $class = (scalar @failed == 0) ? "" : 'warning';
+                my $text = (defined $failed[0]) ? "Failed: $failed[0]" : ($first_timer // "none");
+                my $tooltip = join('\n', @tooltip_lines);
+                printf '{"class":"%s","text":" %s","tooltip":"%s"}', $class, $text, $tooltip;
+              '';
+              interval = 60;
+              on-click = "${lib.getExe pkgs.kitty} --execute ${pkgs.systemd}/bin/systemctl --user status";
+              return-type = "json";
             };
-            on-click = writeZsh "hyprland-poweroff-dialog.zsh" /* zsh */ ''
-              ans="$(${pkgs.hyprland-qtutils}/bin/hyprland-dialog --title 'Exit Hyprland?' --text 'Are you sure?' --buttons 'Yes;No')"
-              if [[ "$ans" == Yes ]]; then
-                ${pkgs.hyprland}/bin/hyprctl dispatch exit
-              fi
-            '';
-          };
-          "custom/timers" = {
-            exec = pkgs.writers.writePerl "timers.pl" { } /* perl */ ''
-              use strict;
-              use warnings;
-
-              my @tooltip_lines;
-              my @system_timer_table = qx(systemctl --quiet list-timers);
-              die "list-timers system command exited with non-zero status: $?\n" if $? != 0;
-              my @user_timer_table = qx(systemctl --user --quiet list-timers);
-              die "list-timers user command exited with non-zero status: $?\n" if $? != 0;
-              my $first_timer;
-
-              if (scalar @system_timer_table != 0 or scalar @user_timer_table != 0) {
-                  my $re_date = qr/\w{3} [\d-]{10} [\d:]{8} \w{3,4}/;
-                  my $re_last = qr/-|$re_date/;
-                  my $re_unit = qr/years?|months?|weeks?|days?|h|min|s/;
-                  my $re_qnty = qr/\d{1,2} ?$re_unit/;
-                  my $re_time = qr/$re_qnty ?$re_qnty?/;
-                  my $re_pass = qr/-|$re_time ago/;
-                  my $re_main = qr/
-                      ^
-                      $re_date\s+            # NEXT
-                      (?<time>$re_time)\s    # LEFT
-                      $re_last\s+            # LAST
-                      $re_pass\s             # PASSED
-                      (?<name>\S+)\.timer\s+   # UNIT
-                      \k<name>\.service        # ACTIVATES
-                      $
-                  /x;
-                  push @tooltip_lines, "--- Timers ---";
-                  my @timers = (
-                      (map { /$re_main/ ? "$+{name}: $+{time}" : () } @system_timer_table),
-                      (map { /$re_main/ ? "$+{name} --user: $+{time}" : () } @user_timer_table)
-                  );
-                  $first_timer = $timers[0];
-                  push @tooltip_lines, @timers;
-              }
-
-              my @system_fail_table = qx(systemctl --quiet list-units --failed --plain);
-              die "list-units system command exited with non-zero status: $?\n" if $? != 0;
-              my @user_fail_table = qx(systemctl --user --quiet list-units --failed --plain);
-              die "list-units user command exited with non-zero status: $?\n" if $? != 0;
-              my @failed;
-
-              if (scalar @system_fail_table != 0 or scalar @user_fail_table != 0) {
-                  my $re_failed = qr/(?<name>\S+)\.service/;
-                  push @tooltip_lines, "--- Failed units ---";
-                  @failed = (
-                    (map { /$re_failed/ ? "$+{name}" : () } @system_fail_table),
-                    (map { /$re_failed/ ? "$+{name} --user" : () } @user_fail_table),
-                  );
-                  push @tooltip_lines, @failed;
-              }
-
-              my $class = (scalar @failed == 0) ? "" : 'warning';
-              my $text = (defined $failed[0]) ? "Failed: $failed[0]" : ($first_timer // "none");
-              my $tooltip = join('\n', @tooltip_lines);
-              printf '{"class":"%s","text":" %s","tooltip":"%s"}', $class, $text, $tooltip;
-            '';
-            interval = 60;
-            on-click = "${lib.getExe pkgs.kitty} --execute ${pkgs.systemd}/bin/systemctl --user status";
-            return-type = "json";
-          };
-          idle_inhibitor = {
-            format = "{icon}";
-            format-icons = {
-              activated = "󰒳 ";
-              deactivated = "󰒲 ";
+            idle_inhibitor = {
+              format = "{icon}";
+              format-icons = {
+                activated = "󰒳 ";
+                deactivated = "󰒲 ";
+              };
+              "timeout" = 60;
             };
-            "timeout" = 60;
-          };
-          "network#lan" = {
-            format-disconnected = "󱘖 no lan";
-            format-ethernet = "󰌘 {ifname}";
-            interface = "lan0";
-            on-click = "${lib.getExe pkgs.kitty} --execute ${lib.getExe pkgs.btop} --preset 3";
-            tooltip-format = ''
-              󰈀 {ifname} via {gwaddr}
-              IP: {ipaddr}/{cidr}'';
-          };
-          "network#wifi" = {
-            format-disconnected = "󰤮 no wifi";
-            format-wifi = "{icon} {essid}";
-            format-icons = [
-              "󰤟"
-              "󰤢"
-              "󰤥"
-              "󰤨"
-            ];
-            interface = "laptop-wifi";
-            on-click = "${lib.getExe pkgs.kitty} --execute ${pkgs.iwd}/bin/iwctl";
-            tooltip-format = ''
-               {essid} ({signalStrength}%)
-              IP: {ipaddr}/{cidr}
-              Freq: {frequency}MHz'';
-          };
-          pulseaudio = {
-            format = "{icon} {volume:>3}%";
-            format-muted = " {volume:>3}%";
-            format-icons = {
-              default = [
-                ""
-                ""
-                ""
+            "network#lan" = {
+              format-disconnected = "󱘖 no lan";
+              format-ethernet = "󰌘 {ifname}";
+              interface = "lan0";
+              on-click = "${lib.getExe pkgs.kitty} --execute ${lib.getExe pkgs.btop} --preset 3";
+              tooltip-format = ''
+                󰈀 {ifname} via {gwaddr}
+                IP: {ipaddr}/{cidr}'';
+            };
+            "network#wifi" = {
+              format-disconnected = "󰤮 no wifi";
+              format-wifi = "{icon} {essid}";
+              format-icons = [
+                "󰤟"
+                "󰤢"
+                "󰤥"
+                "󰤨"
               ];
+              interface = "laptop-wifi";
+              on-click = "${lib.getExe pkgs.kitty} --execute ${pkgs.iwd}/bin/iwctl";
+              tooltip-format = ''
+                 {essid} ({signalStrength}%)
+                IP: {ipaddr}/{cidr}
+                Freq: {frequency}MHz'';
             };
-            on-click = "${lib.getExe pkgs.pavucontrol}";
+            pulseaudio = {
+              format = "{icon} {volume:>3}%";
+              format-muted = " {volume:>3}%";
+              format-icons = {
+                default = [
+                  ""
+                  ""
+                  ""
+                ];
+              };
+              on-click = "${lib.getExe pkgs.pavucontrol}";
+            };
+            tray = {
+              icon-size = 32;
+              show-passive-items = true;
+              spacing = 4;
+            };
+            "hyprland/language" = {
+              format-ru = "🇷🇺";
+              format-sv = "🇸🇪";
+              on-click = "hyprctl switchxkblayout all next";
+            };
           };
-          tray = {
-            icon-size = 24;
-            show-passive-items = true;
-            spacing = 4;
+
+          titleBarModules = {
+            exclusive = false;
+            layer = "top";
+            height = 27;
+            margin-top = 10;
+            modules-center = [ "hyprland/window" ];
+            passthrough = true;
+            position = "top";
+            "hyprland/window" = {
+              format = "{}";
+              max-length = 120;
+              separate-outputs = true;
+            };
           };
-          "hyprland/language" = {
-            format-ru = "🇷🇺";
-            format-sv = "🇸🇪";
-            on-click = "hyprctl switchxkblayout all next";
+
+          makeDdcBrigtnessConfig = mon: num: {
+            "custom/ddc-brightness#${mon.sn}" = {
+              exec = ''
+                sleep ${toString num} \
+                  && ${lib.getExe pkgs.ddcutil} --sn ${mon.sn} getvcp 10 --brief \
+                  | awk '{print $4}'
+              '';
+              format = "󰖨 {text:>3}%";
+              interval = "once";
+              on-click = ''
+                ${lib.getExe pkgs.ddcutil} --sn ${mon.sn} setvcp 10 + 10 \
+                  && pkill -RTMIN+${toString (num + 8)} waybar
+              '';
+              on-click-right = ''
+                ${lib.getExe pkgs.ddcutil} --sn ${mon.sn} setvcp 10 - 10 \
+                  && pkill -RTMIN+${toString (num + 8)} waybar
+              '';
+              signal = num + 8;
+              tooltip-format = ''
+                Monitor: ${mon.desc}
+                Brightness 󰖨 {text}%'';
+            };
+          };
+
+          bars = (
+            builtins.listToAttrs (
+              lib.imap0 (i: mon: {
+                name = "mainBar-${mon.sn}";
+                value = {
+                  layer = "top";
+                  position = "top";
+                  output = mon.desc;
+                }
+                // (makeModules mon)
+                // commonMainBarConfig
+                // (makeDdcBrigtnessConfig mon i);
+              }) monitors
+            )
+          );
+        in
+        bars
+        // {
+          "titleBar" = titleBarModules;
+          "mainBar-laptop" = {
+            layer = "top";
+            position = "top";
+            output = "eDP-1";
+          }
+          // commonMainBarConfig
+          // {
+            modules-left = [
+              "hyprland/workspaces"
+              "tray"
+              "hyprland/language"
+              "hyprland/submap"
+              "idle_inhibitor"
+              "cpu"
+              "custom/spacer"
+              "custom/timers"
+            ];
+            modules-center = [
+              "clock"
+            ];
+            modules-right = [
+              "bluetooth"
+              "custom/spacer"
+              "network#lan"
+              "custom/spacer"
+              "network#wifi"
+              "custom/spacer"
+              "pulseaudio"
+              "custom/spacer"
+              "backlight"
+              "custom/spacer"
+              "battery"
+              "custom/spacer"
+              "custom/power"
+            ];
+            backlight = {
+              format = "󰖨 {percent:>3}%";
+            };
           };
         };
-        titleBar = {
-          exclusive = false;
-          layer = "top";
-          height = 27;
-          margin-top = 10;
-          modules-center = [ "hyprland/window" ];
-          passthrough = true;
-          position = "top";
-          "hyprland/window" = {
-            format = "{}";
-            max-length = 120;
-            separate-outputs = true;
-          };
-        };
-      };
       style = /* css */ ''
         window#waybar {
           background: none;
-          font-size: 14px;
+          font-size: 18px;
           font-family: "monospace";
           color: #c6d0f5;
         }
@@ -599,7 +719,7 @@ in
         window#waybar.solo #window {
           background-color: rgba(26, 27, 38, 0.5);
           color: rgba(198, 208, 245, 0.75);
-          padding: 0.3rem 0.7rem;
+          padding: 0.5rem 0.7rem;
           margin: 0;
           border-radius: 0 0 6px 6px;
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -608,8 +728,9 @@ in
         #clock,
         #workspaces {
           background-color: #1a1b26;
-          padding: 0.3rem 0.7rem;
-          margin: 5px 0;
+          opacity: 0.9;
+          padding: 0.5rem 0.7rem;
+          margin: 8px 0;
           border-radius: 6px;
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
           border: none;
@@ -618,12 +739,12 @@ in
         #workspaces {
           padding: 2px;
           margin-left: 7px;
-          margin-right: 5px;
+          margin-right: 8px;
         }
         #workspaces > button {
           color: #babbf1;
           border-radius: 5px;
-          padding: 0.3rem 0.7rem;
+          padding: 0.5rem 0.7rem;
           background: transparent;
           transition: all 0.2s ease-in-out;
           border: none;
@@ -638,17 +759,17 @@ in
           background-color: rgba(153, 209, 219, 0.1);
         }
         #idle_inhibitor.activated {
-          font-size: 18px;
+          font-size: 24px;
           color: #00f7e2;
         }
         #idle_inhibitor.deactivated {
-          font-size: 18px;
+          font-size: 24px;
           color: #005F60;
         }
         #idle_inhibitor,
         #language,
         #tray {
-          margin-right: 5px;
+          margin-right: 8px;
         }
         menu menuitem label,
         #tray window {
@@ -658,6 +779,10 @@ in
         tooltip label,
         #tray window:hover {
           color: white;
+        }
+        menu menuitem:hover,
+        #tray window:hover {
+          background-color: #005f60;
         }
         menu,
         tooltip,
@@ -671,14 +796,16 @@ in
         #battery,
         #bluetooth,
         #cpu,
+        #custom-ddc-brightness,
         #custom-power,
         #custom-spacer,
         #custom-timers,
         #network,
         #pulseaudio {
           background-color: #1a1b26;
-          padding: 0.3rem 0.6rem;
-          margin: 5px 0;
+          opacity: 0.9;
+          padding: 0.5rem 0.6rem;
+          margin: 8px 0;
           border-radius: 0;
           box-shadow: none;
           min-width: 0;
@@ -713,10 +840,6 @@ in
           color: #e78284;
         }
       '';
-    };
-    yazi = {
-      enable = true;
-      shellWrapperName = "y";
     };
     zsh = {
       dirHashes = {
@@ -764,12 +887,11 @@ in
       enable = true;
       settings = {
         splash = false;
-        wallpaper = [
-          {
-            monitor = "";
-            path = "${config.home.homeDirectory}/Pictures/backgrounds/saturn-rings.png";
-          }
-        ];
+        preload = lib.unique (map (m: m.wallpaper) monitors);
+        wallpaper = map (m: {
+          monitor = "desc:${m.desc}";
+          path = m.wallpaper;
+        }) monitors;
       };
     };
     hyprpolkitagent = {
@@ -809,12 +931,14 @@ in
                 body=$(read_dbus_string)
                 if [[ "$app_name" == discord ]]; then
                   local body_str=""
-                  if [[ "$body" =~ 'Reacted(.*)to your(.*)' ]]; then
+                  if [[ "$body" =~ '^Reacted(.*)to your(.*)' ]]; then
                     body_str=" $match[1] ($match[2])"
+                  elif [[ "$body" =~ '^Uploaded ([^ ]+)' ]]; then
+                    body_str=" sent $match[1]"
                   else
                     body_str=": $body"
                   fi
-                  if [[ "$summary" == Kitty ]]; then
+                  if [[ "$summary" == Kittykins ]]; then
                     print -r -- "<5>💜 $summary$body_str"
                   else
                     print -r -- " $summary$body_str"
