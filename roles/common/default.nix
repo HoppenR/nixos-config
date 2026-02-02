@@ -81,7 +81,7 @@ in
     backupFileExtension = "backup";
     extraSpecialArgs = { inherit inputs; };
     users = {
-      ${mainUser} = ../../home/common.nix;
+      ${mainUser} = ../../home/common;
     };
   };
 
