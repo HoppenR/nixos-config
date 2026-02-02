@@ -188,10 +188,6 @@ in
   };
 
   services = {
-    # dbus = {
-    #   enable = true;
-    #   packages = [ pkgs.gcr ];
-    # };
     pcscd.enable = true;
     resolved.enable = true;
     udev = {

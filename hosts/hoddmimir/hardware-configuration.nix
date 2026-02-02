@@ -33,7 +33,7 @@
       fsType = "zfs";
     };
 
-  fileSystems."/mnt/sftp/apps" =
+  fileSystems."/srv/sftp/apps" =
     { device = "holt/replicated/apps";
       fsType = "zfs";
     };

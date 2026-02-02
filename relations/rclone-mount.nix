@@ -62,7 +62,7 @@ in
       };
       services.openssh.extraConfig = ''
         Match User sftpuser
-          ChrootDirectory /mnt/sftp
+          ChrootDirectory /srv/sftp
           ForceCommand internal-sftp
           PasswordAuthentication no
           AllowTcpForwarding no

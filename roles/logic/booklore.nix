@@ -8,8 +8,6 @@
     enable = lib.mkEnableOption "enable booklore lab configuration";
   };
 
-  # NOTE:
-  # GRANT ALL PRIVILEGES ON booklore.* TO 'booklore'@'10.88.%' IDENTIFIED BY '111';FLUSH PRIVILEGES
   config = lib.mkIf config.lab.booklore.enable {
     virtualisation.oci-containers.containers."booklore" = {
       image = "booklore/booklore:latest";

@@ -39,6 +39,7 @@ in
       inherit (pkgs)
         ddcutil
         discord
+        hyprshutdown
         koreader
         libnotify
         scrcpy
@@ -89,7 +90,7 @@ in
         "$mod_apps, a, exec, ${lib.getExe pkgs.pavucontrol}"
         "$mod_apps, d, exec, $drun_menu"
         "$mod_apps, e, exec, $terminal --execute ${lib.getExe config.programs.neovim.finalPackage}"
-        "$mod_apps, f, exec, ${lib.getExe pkgs.hyprshot} --mode region --output-folder ${config.home.homeDirectory}/Pictures/screenshots"
+        "$mod_apps, f, exec, ${lib.getExe pkgs.grimblast} --notify save area ${config.home.homeDirectory}/Pictures/Screenshots/snapshot_$(date +%F_%H-%M-%S).png"
         "$mod_apps, q, exec, $run_menu"
         "$mod_apps, w, exec, ${lib.getExe config.programs.firefox.finalPackage}"
         "$mod_hypr+SHIFT, q, killactive"
@@ -178,10 +179,6 @@ in
         "$mon_2, 2560x1440@100Hz, 0x0, 1"
         "$mon_3, 1920x1200@60, 2560x0, 1"
       ];
-      # xwayland {
-      #   force_zero_scaling = true
-      # }
-      # exec-once = xprop -root -f _XWAYLAND_GLOBAL_OUTPUT_SCALE 32c -set _XWAYLAND_GLOBAL_OUTPUT_SCALE 1
     };
     xwayland.enable = true;
   };
@@ -193,7 +190,7 @@ in
     neovim = {
       initLua = /* lua */ ''
         vim.env.nix = '/persist/nixos'
-        vim.env.personal = '${config.home.homeDirectory}/projects/personal'
+        vim.env.personal = '${config.home.homeDirectory}/Projects/personal'
       '';
     };
     firefox = {
@@ -248,6 +245,18 @@ in
         ];
       };
     };
+    joplin-desktop = {
+      enable = true;
+      general.editor = "${lib.getExe pkgs.kitty} --execute ${lib.getExe config.programs.neovim.finalPackage}";
+      extraConfig = {
+        "sync.9.path" = "https://joplin.hoppenr.xyz";
+        "sync.9.username" = "christofferlundell@protonmail.com";
+      };
+      sync = {
+        interval = "5m";
+        target = "joplin-server";
+      };
+    };
     kitty = {
       enable = true;
       shellIntegration = {
@@ -300,6 +309,7 @@ in
               "hyprland/submap"
               "idle_inhibitor"
               "cpu"
+              "temperature"
               "custom/spacer"
               "custom/timers"
             ];
@@ -446,9 +456,12 @@ in
                 <interface>
                   <object class="GtkMenu" id="menu">
                     <child>
-                      <object class="GtkMenuItem" id="shutdown">
-                        <property name="label">Shutdown</property>
+                      <object class="GtkMenuItem" id="logout">
+                        <property name="label">Log out</property>
                       </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem" id="sep"/>
                     </child>
                     <child>
                       <object class="GtkMenuItem" id="reboot">
@@ -456,31 +469,28 @@ in
                       </object>
                     </child>
                     <child>
-                      <object class="GtkMenuItem" id="suspend">
-                        <property name="label">Suspend</property>
+                      <object class="GtkMenuItem" id="shutdown">
+                        <property name="label">Shutdown</property>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkSeparatorMenuItem" id="sep"/>
-                    </child>
-                    <child>
-                      <object class="GtkMenuItem" id="logout">
-                        <property name="label">Exit Hyprland</property>
+                      <object class="GtkMenuItem" id="suspend">
+                        <property name="label">Suspend</property>
                       </object>
                     </child>
                   </object>
                 </interface>
               '';
               menu-actions = {
-                shutdown = "${pkgs.systemd}/bin/systemctl poweroff";
-                reboot = "${pkgs.systemd}/bin/systemctl reboot";
+                logout = "${pkgs.systemd}/bin/systemd-run --user --scope --unit=manual-logout ${lib.getExe pkgs.hyprshutdown}";
+                reboot = "${pkgs.systemd}/bin/systemd-run --user --scope --unit=manual-reboot ${lib.getExe pkgs.hyprshutdown} --post-cmd '${pkgs.systemd}/bin/systemctl reboot'";
+                shutdown = "${pkgs.systemd}/bin/systemd-run --user --scope --unit=manual-shutdown ${lib.getExe pkgs.hyprshutdown} --post-cmd '${pkgs.systemd}/bin/systemctl poweroff'";
                 suspend = "${pkgs.systemd}/bin/systemctl suspend";
-                logout = "${pkgs.hyprland}/bin/hyprctl dispatch exit";
               };
-              on-click = writeZsh "hyprland-poweroff-dialog.zsh" /* zsh */ ''
+              on-click = writeZsh "hyprland-logout-dialog.zsh" /* zsh */ ''
                 ans="$(${pkgs.hyprland-qtutils}/bin/hyprland-dialog --title 'Exit Hyprland?' --text 'Are you sure?' --buttons 'Yes;No')"
                 if [[ "$ans" == Yes ]]; then
-                  ${pkgs.hyprland}/bin/hyprctl dispatch exit
+                  ${pkgs.systemd}/bin/systemd-run --user --scope --unit=manual-logout ${lib.getExe pkgs.hyprshutdown}
                 fi
               '';
             };
@@ -488,60 +498,44 @@ in
               exec = pkgs.writers.writePerl "timers.pl" { } /* perl */ ''
                 use strict;
                 use warnings;
-
-                my @tooltip_lines;
-                my @system_timer_table = qx(systemctl --quiet list-timers);
-                die "list-timers system command exited with non-zero status: $?\n" if $? != 0;
-                my @user_timer_table = qx(systemctl --user --quiet list-timers);
-                die "list-timers user command exited with non-zero status: $?\n" if $? != 0;
-                my $first_timer;
-
-                if (scalar @system_timer_table != 0 or scalar @user_timer_table != 0) {
-                    my $re_date = qr/\w{3} [\d-]{10} [\d:]{8} \w{3,4}/;
-                    my $re_last = qr/-|$re_date/;
-                    my $re_unit = qr/years?|months?|weeks?|days?|h|min|s/;
-                    my $re_qnty = qr/\d{1,2} ?$re_unit/;
-                    my $re_time = qr/$re_qnty ?$re_qnty?/;
-                    my $re_pass = qr/-|$re_time ago/;
-                    my $re_main = qr/
-                        ^
-                        $re_date\s+            # NEXT
-                        (?<time>$re_time)\s    # LEFT
-                        $re_last\s+            # LAST
-                        $re_pass\s             # PASSED
-                        (?<name>\S+)\.timer\s+   # UNIT
-                        \k<name>\.service        # ACTIVATES
-                        $
-                    /x;
-                    push @tooltip_lines, "--- Timers ---";
-                    my @timers = (
-                        (map { /$re_main/ ? "$+{name}: $+{time}" : () } @system_timer_table),
-                        (map { /$re_main/ ? "$+{name} --user: $+{time}" : () } @user_timer_table)
-                    );
-                    $first_timer = $timers[0];
-                    push @tooltip_lines, @timers;
+                use JSON::PP;
+                my $json = JSON::PP->new;
+                my $now  = time();
+                sub fmt_rel {
+                    my $sec = shift;
+                    return "0min" if $sec <= 60;
+                    my @res;
+                    my %units = (w => 604800, d => 86400, h => 3600, min => 60);
+                    for my $suffix (sort keys %units) {
+                        if (my $count = int($sec / $units{$suffix})) {
+                            push @res, "$count$suffix";
+                            last if @res == 2;
+                            $sec %= $units{$suffix};
+                        }
+                    }
+                    return join(" ", @res);
                 }
-
-                my @system_fail_table = qx(systemctl --quiet list-units --failed --plain);
-                die "list-units system command exited with non-zero status: $?\n" if $? != 0;
-                my @user_fail_table = qx(systemctl --user --quiet list-units --failed --plain);
-                die "list-units user command exited with non-zero status: $?\n" if $? != 0;
-                my @failed;
-
-                if (scalar @system_fail_table != 0 or scalar @user_fail_table != 0) {
-                    my $re_failed = qr/(?<name>\S+)\.service/;
-                    push @tooltip_lines, "--- Failed units ---";
-                    @failed = (
-                      (map { /$re_failed/ ? "$+{name}" : () } @system_fail_table),
-                      (map { /$re_failed/ ? "$+{name} --user" : () } @user_fail_table),
-                    );
-                    push @tooltip_lines, @failed;
+                sub get_sys {
+                    my ($subcmd, $is_user) = @_;
+                    my $out = qx(systemctl @{[ !$is_user ? "" : '--user' ]} $subcmd --output json) or return [];
+                    my $result = $json->decode($out);
+                    return [ map { {
+                        unit => $_->{unit} =~ s/\.(?:timer|service)$//r . (!$is_user ? "" : " --user"),
+                        left => $_->{left} / 1e6 - $now,
+                    } } @$result ]
                 }
-
-                my $class = (scalar @failed == 0) ? "" : 'warning';
-                my $text = (defined $failed[0]) ? "Failed: $failed[0]" : ($first_timer // "none");
-                my $tooltip = join('\n', @tooltip_lines);
-                printf '{"class":"%s","text":" %s","tooltip":"%s"}', $class, $text, $tooltip;
+                my @failed = map { @{ get_sys('list-units --failed', $_) } } (0, 1);
+                my @timers = sort { $a->{left} <=> $b->{left} } map { @{ get_sys('list-timers', $_) } } (0, 1);
+                my @tooltip = ("--- Timers ---", map { sprintf "%s: %s", $_->{unit}, fmt_rel($_->{left}) } @timers);
+                my ($text, $class) = ("none", "");
+                if (@failed) {
+                    $text = "Failed: " . $failed[0]{unit};
+                    $class = "warning";
+                    push @tooltip, "--- Failed ---", map { $_->{unit} } @failed;
+                } elsif (@timers) {
+                    $text = sprintf("%s: %s", $timers[0]{unit}, fmt_rel($timers[0]{left}));
+                }
+                print $json->encode({ text => " $text", class => $class, tooltip => join("\n", @tooltip) });
               '';
               interval = 60;
               on-click = "${lib.getExe pkgs.kitty} --execute ${pkgs.systemd}/bin/systemctl --user status";
@@ -592,6 +586,17 @@ in
               };
               on-click = "${lib.getExe pkgs.pavucontrol}";
             };
+            temperature = {
+              critical-threshold = 100;
+              format = "{icon} {temperatureC}°C";
+              format-icons = [
+                ""
+                ""
+                ""
+                ""
+                ""
+              ];
+            };
             tray = {
               icon-size = 32;
               show-passive-items = true;
@@ -622,7 +627,7 @@ in
           makeDdcBrigtnessConfig = mon: num: {
             "custom/ddc-brightness#${mon.sn}" = {
               exec = ''
-                sleep ${toString num} \
+                sleep ${toString (num + 1)} \
                   && ${lib.getExe pkgs.ddcutil} --sn ${mon.sn} getvcp 10 --brief \
                   | awk '{print $4}'
               '';
@@ -708,6 +713,10 @@ in
           font-size: 18px;
           font-family: "monospace";
           color: #c6d0f5;
+        }
+        tooltip label {
+          font-family: "monospace";
+          font-size: 16px;
         }
         #window,
         window#waybar.empty #window,
@@ -801,7 +810,8 @@ in
         #custom-spacer,
         #custom-timers,
         #network,
-        #pulseaudio {
+        #pulseaudio,
+        #temperature {
           background-color: #1a1b26;
           opacity: 0.9;
           padding: 0.5rem 0.6rem;
@@ -844,13 +854,13 @@ in
     zsh = {
       dirHashes = {
         nix = "/persist/nixos";
-        personal = "${config.home.homeDirectory}/projects/personal";
+        personal = "${config.home.homeDirectory}/Projects/personal";
       };
       shellAliases = rec {
         run0 = "${pkgs.systemd}/bin/run0 --background='48;2;0;95;96' --setenv=TERM=xterm-256color --via-shell";
         ssh = "${pkgs.kitty}/bin/kitten ssh";
         scrcpy-Pixel = "${lib.getExe pkgs.scrcpy} --render-driver=vulkan --video-codec=h265 --keyboard=uhid --mouse=uhid --video-bit-rate=16M --stay-awake";
-        scrcpy-virt-Pixel = "${scrcpy-Pixel} --new-display=1880x992/140";
+        scrcpy-virt-Pixel = "${scrcpy-Pixel} --new-display=2508x1344/100";
       };
     };
   };
@@ -897,12 +907,27 @@ in
     hyprpolkitagent = {
       enable = true;
     };
+    hyprsunset = {
+      enable = true;
+      settings = {
+        max-gamma = 150;
+
+        profile = [
+          {
+            time = "6:00";
+            identity = true;
+          }
+          {
+            time = "21:00";
+            temperature = 5000;
+            gamma = 0.8;
+          }
+        ];
+      };
+    };
   };
 
   systemd.user = {
-    tmpfiles.rules = [
-      # "d ${config.xdg.stateHome}/pulse 0700 ${config.home.username} users -"
-    ];
     services = {
       notification-logger = {
         Install = {
@@ -931,14 +956,12 @@ in
                 body=$(read_dbus_string)
                 if [[ "$app_name" == discord ]]; then
                   local body_str=""
-                  if [[ "$body" =~ '^Reacted(.*)to your(.*)' ]]; then
+                  if [[ "$body" =~ 'Reacted(.*)to your(.*)' ]]; then
                     body_str=" $match[1] ($match[2])"
-                  elif [[ "$body" =~ '^Uploaded ([^ ]+)' ]]; then
-                    body_str=" sent $match[1]"
                   else
                     body_str=": $body"
                   fi
-                  if [[ "$summary" == Kittykins ]]; then
+                  if [[ "$summary" == Kitty ]]; then
                     print -r -- "<5>💜 $summary$body_str"
                   else
                     print -r -- " $summary$body_str"
@@ -958,7 +981,6 @@ in
           ConditionEnvironment = "WAYLAND_DISPLAY";
           Description = "dbus notification logging service";
           PartOf = "graphical-session.target";
-          X-Restart-Triggers = [ "" ];
         };
       };
       hyprnotify = {
@@ -968,7 +990,6 @@ in
         Service = {
           ExecStart = "${pkgs.hyprnotify}/bin/hyprnotify";
           Restart = "always";
-          RestartSec = 10;
         };
         Unit = {
           After = [ "graphical-session.target" ];
@@ -981,9 +1002,6 @@ in
   };
 
   xdg = {
-    configFile = {
-      "nvim/rocks.toml".source = config.lib.file.mkOutOfStoreSymlink "/persist/nixos/res/rocks.toml";
-    };
     mimeApps = {
       enable = true;
       defaultApplications = {

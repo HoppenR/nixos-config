@@ -17,6 +17,7 @@ in
   imports = [
     ../common
     ./booklore.nix
+    ./joplin.nix
   ];
 
   console.colors = lib.attrValues {
@@ -56,6 +57,9 @@ in
     booklore = {
       enable = true;
     };
+    joplin = {
+      enable = true;
+    };
     greetd = {
       enable = true;
       theme = "container=blue;window=black;border=magenta;greet=magenta;prompt=magenta;input=magenta;action=blue";
@@ -84,6 +88,7 @@ in
         '';
         "www" = "redir https://${domainName}{uri}";
         "booklore" = "reverse_proxy localhost:6060";
+        "joplin" = "reverse_proxy localhost:22300";
       };
       makeVirtualHost =
         hostname: extraConfig:
@@ -141,7 +146,12 @@ in
       postfix = {
         enable = true;
         settings.main = {
-          inet_interfaces = "loopback-only";
+          inet_interfaces = "127.0.0.1, 10.88.0.1";
+          mynetworks = [
+            "127.0.0.0/8"
+            "10.88.0.0/16"
+          ];
+
           relayhost = [ "[smtp.protonmail.ch]:587" ];
           smtp_generic_maps = "inline:{ { root@${config.networking.hostName} = contact@hoppenr.xyz } }";
           smtp_sasl_auth_enable = "yes";
@@ -159,7 +169,7 @@ in
         initdbArgs = [ "--data-checksums" ];
         settings = {
           full_page_writes = "off";
-          listen_addresses = lib.mkForce "";
+          listen_addresses = lib.mkForce "*";
         };
       };
       mysql = {
@@ -250,11 +260,15 @@ in
     };
   };
 
-  # TODO: move to module for mysql ?
+  # TODO: move to module for mysql/postgresql ?
   #       still needed after moving to nftables?
+  #       3306 = mysql
+  #       5432 = postgresql
   networking = {
     firewall.extraInputRules = ''
       iifname "podman0" tcp dport 3306 accept
+      iifname "podman0" tcp dport 5432 accept
+      iifname "podman0" tcp dport 25 accept
     '';
   };
 }

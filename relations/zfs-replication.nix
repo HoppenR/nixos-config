@@ -21,22 +21,25 @@ in
         sanoid = {
           enable = true;
           datasets."tank/replicated/db" = {
-            daily = 4;
-            recursive = true;
-            autosnap = true;
             autoprune = true;
+            autosnap = true;
+            recursive = true;
+            hourly = 2;
+            daily = 2;
+            weekly = 2;
+            weekly_wday = 0;
+            monthly = 2;
+            yearly = 2;
           };
         };
         syncoid = {
           enable = true;
+          sshKey = "${config.sops.secrets."zfs-replicate-syncoid-ssh-key".path}";
           commands."push-to-${sink}" = {
             source = "tank/replicated/db";
-            target = "root@${sink}:holt/replicated/db";
+            target = "syncoid@${sink}:holt/replicated/db";
             recursive = true;
-            extraArgs = [
-              "--sendoptions=p"
-              "--sshkey=${config.sops.secrets."zfs-replicate-syncoid-ssh-key".path}"
-            ];
+            sendOptions = "p";
           };
         };
       };
@@ -48,18 +51,46 @@ in
         pkgs.mbuffer
       ];
       services.openssh.enable = true;
-      users.users.root.openssh.authorizedKeys.keyFiles = [ ../keys/id_syncoid_replicate.pub ];
+      users.users.syncoid = {
+        description = "ZFS Replication User";
+        group = "syncoid";
+        isSystemUser = true;
+        openssh.authorizedKeys.keyFiles = [ ../keys/id_syncoid_replicate.pub ];
+        shell = pkgs.bashInteractive;
+      };
+      users.groups.syncoid = { };
+      system.activationScripts.zfs-allow-syncoid = {
+        text = ''
+          ${lib.getExe pkgs.zfs} allow syncoid \
+            canmount,compression,create,destroy,hold,mount,mountpoint,receive,release,recordsize,rollback,userprop \
+            holt/replicated/db
+        '';
+      };
       services.sanoid = {
         enable = true;
-        datasets."holt/replicated/db" = {
-          hourly = 24;
-          daily = 6;
-          weekly = 3;
-          monthly = 3;
+        datasets = {
+          "holt/replicated/db" = {
+            autosnap = false;
+            autoprune = true;
+            recursive = true;
 
-          autosnap = false;
-          autoprune = true;
-          recursive = true;
+            hourly = 24;
+            daily = 7;
+            weekly = 4;
+            monthly = 3;
+            yearly = 1;
+          };
+
+          "holt/replicated/apps" = {
+            autosnap = true;
+            autoprune = true;
+            recursive = true;
+            hourly = 0;
+            daily = 30;
+            weekly = 4;
+            monthly = 6;
+            yearly = 0;
+          };
         };
       };
     })

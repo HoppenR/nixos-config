@@ -143,7 +143,19 @@
         vim.api.nvim_set_hl(0, "WinBarNC", { fg = "#707070", bg = "none" })
         vim.g.loaded_netrw = 1
         vim.g.loaded_netrwPlugin = 1
-        vim.g.mapleader = ' '
+        if not os.getenv("WAYLAND_DISPLAY") then
+          vim.g.clipboard = {
+            name = 'OSC 52',
+            copy = {
+              ['+'] = require('vim.ui.clipboard.osc52').copy('+'),
+              ['*'] = require('vim.ui.clipboard.osc52').copy('*'),
+            },
+            paste = {
+              ['+'] = require('vim.ui.clipboard.osc52').paste('+'),
+              ['*'] = require('vim.ui.clipboard.osc52').paste('*'),
+            },
+          }
+        end
 
         vim.o.autochdir = true
         vim.o.cursorline = true

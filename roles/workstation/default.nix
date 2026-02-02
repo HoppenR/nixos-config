@@ -36,7 +36,7 @@ in
 
   home-manager = {
     users = {
-      ${mainUser} = import ../../home/workstation.nix;
+      ${mainUser} = import ../../home/workstation;
     };
   };
 
