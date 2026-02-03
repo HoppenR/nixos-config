@@ -9,6 +9,7 @@ let
   writeZshBin = name: text: pkgs.writeScriptBin name ("#!${lib.getExe pkgs.zsh}\n" + text);
 
   vlog = writeZshBin "vlog" /* zsh */ ''
+    setopt ERR_EXIT NO_UNSET PIPE_FAIL
     local filter='. | "[\(.__REALTIME_TIMESTAMP | tonumber / 1000000 | strflocaltime("%H:%M:%S"))] \(.MESSAGE)"'
 
     ${pkgs.systemd}/bin/journalctl --user --unit=notification-logger "$@" --output=json \
@@ -52,135 +53,6 @@ in
       TERMINAL = "kitty";
     };
     stateVersion = "25.11";
-  };
-
-  wayland.windowManager.hyprland = {
-    enable = true;
-    systemd.enable = true;
-    settings = {
-      general = {
-        gaps_in = 10;
-        gaps_out = "10, 25, 25, 25";
-      };
-      misc = {
-        vrr = 2;
-      };
-      decoration = {
-        rounding = 10;
-        blur = {
-          enabled = true;
-          new_optimizations = true;
-          passes = 2;
-          size = 6;
-        };
-      };
-      "$mod_apps" = "MOD3";
-      "$mod_move" = "SUPER";
-      "$mod_hypr" = "MOD5";
-      "$mon_1" = "desc:Dell Inc. DELL P2425D DVH9D94";
-      "$mon_2" = "desc:Dell Inc. DELL P2425D CVH9D94";
-      "$mon_3" = "desc:California Institute of Technology 0x1404";
-      "$menu_opts" = "--insensitive --match=multi-contains";
-      "$run_menu" = "${lib.getExe pkgs.wofi} --show=run $menu_opts";
-      "$drun_menu" = "${lib.getExe pkgs.wofi} --show=drun $menu_opts";
-      "$terminal" = "${lib.getExe pkgs.kitty}";
-      "$quickterm" = "${pkgs.kitty}/bin/kitten quick-access-terminal";
-      bind = [
-        "$mod_apps, RETURN, exec, $terminal"
-        "$mod_apps, a, exec, ${lib.getExe pkgs.pavucontrol}"
-        "$mod_apps, d, exec, $drun_menu"
-        "$mod_apps, e, exec, $terminal --execute ${lib.getExe config.programs.neovim.finalPackage}"
-        "$mod_apps, f, exec, ${lib.getExe pkgs.grimblast} --notify save area ${config.home.homeDirectory}/Pictures/Screenshots/snapshot_$(date +%F_%H-%M-%S).png"
-        "$mod_apps, q, exec, $run_menu"
-        "$mod_apps, w, exec, ${lib.getExe config.programs.firefox.finalPackage}"
-        "$mod_hypr+SHIFT, q, killactive"
-        "$mod_hypr, Space, togglefloating"
-        "$mod_hypr, f, fullscreen"
-        "$mod_move, h, movefocus, l"
-        "$mod_move, j, movefocus, d"
-        "$mod_move, k, movefocus, u"
-        "$mod_move, l, movefocus, r"
-        "$mod_move, q, workspace, 1"
-        "$mod_move, w, workspace, 2"
-        "$mod_move, e, workspace, 3"
-        "$mod_move, r, workspace, 4"
-        "$mod_move, t, workspace, 5"
-        "$mod_move, y, workspace, 6"
-        "$mod_move, u, workspace, 7"
-        "$mod_move, i, workspace, 8"
-        "$mod_move, o, workspace, 9"
-        "$mod_move+SHIFT, q, movetoworkspacesilent, 1"
-        "$mod_move+SHIFT, w, movetoworkspacesilent, 2"
-        "$mod_move+SHIFT, e, movetoworkspacesilent, 3"
-        "$mod_move+SHIFT, r, movetoworkspacesilent, 4"
-        "$mod_move+SHIFT, t, movetoworkspacesilent, 5"
-        "$mod_move+SHIFT, y, movetoworkspacesilent, 6"
-        "$mod_move+SHIFT, u, movetoworkspacesilent, 7"
-        "$mod_move+SHIFT, i, movetoworkspacesilent, 8"
-        "$mod_move+SHIFT, o, movetoworkspacesilent, 9"
-        "$mod_move+SHIFT, h, movewindow, l"
-        "$mod_move+SHIFT, j, movewindow, d"
-        "$mod_move+SHIFT, k, movewindow, u"
-        "$mod_move+SHIFT, l, movewindow, r"
-      ];
-      binde = [
-        ", XF86AudioRaiseVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"
-        ", XF86AudioLowerVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%-"
-        ", XF86AudioMute, exec, ${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
-        ", XF86MonBrightnessUp, exec, ${lib.getExe pkgs.brightnessctl} --class=backlight set +20%"
-        ", XF86MonBrightnessDown, exec, ${lib.getExe pkgs.brightnessctl} --class=backlight set 20%-"
-        "$mod_hypr, l, resizeactive, 50 0"
-        "$mod_hypr, h, resizeactive, -50 0"
-        "$mod_hypr, k, resizeactive, 0 -50"
-        "$mod_hypr, j, resizeactive, 0 50"
-      ];
-      bindm = [
-        "$mod_move, mouse:272, movewindow"
-        "$mod_move, mouse:273, resizewindow"
-      ];
-      workspace = [
-        "1,monitor:$mon_1,default:true"
-        "2,monitor:$mon_1"
-        "3,monitor:$mon_1"
-        "4,monitor:$mon_1"
-        "5,monitor:$mon_1"
-        "6,monitor:$mon_2,default:true"
-        "7,monitor:$mon_2"
-        "8,monitor:$mon_2"
-        "9,monitor:$mon_2"
-      ];
-      device = {
-        name = "at-translated-set-2-keyboard";
-        repeat_delay = 200;
-        repeat_rate = 25;
-      };
-      input = {
-        kb_layout = "se";
-        repeat_delay = 200;
-        repeat_rate = 25;
-        kb_file = "${pkgs.writeText "hyprland.xkb" /* xkb */ ''
-          xkb_keymap {
-            xkb_keycodes { include "evdev+aliases(qwerty)" };
-            xkb_types { include "complete" };
-            xkb_compat { include "complete" };
-            xkb_symbols {
-              include "pc+se+ru:2+inet(evdev)"
-              replace key <PRSC> { [ ISO_Level5_Shift ] };
-              replace key <CAPS> {
-                type = "TWO_LEVEL",
-                symbols[Group1] = [ ISO_Next_Group, Caps_Lock ]
-              };
-            };
-          };
-        ''}";
-      };
-      monitor = [
-        "$mon_1, 2560x1440@100Hz, -2560x0, 1"
-        "$mon_2, 2560x1440@100Hz, 0x0, 1"
-        "$mon_3, 1920x1200@60, 2560x0, 1"
-      ];
-    };
-    xwayland.enable = true;
   };
 
   programs = {
@@ -310,6 +182,7 @@ in
               "idle_inhibitor"
               "cpu"
               "temperature"
+              "memory"
               "custom/spacer"
               "custom/timers"
             ];
@@ -488,6 +361,7 @@ in
                 suspend = "${pkgs.systemd}/bin/systemctl suspend";
               };
               on-click = writeZsh "hyprland-logout-dialog.zsh" /* zsh */ ''
+                setopt ERR_EXIT NO_UNSET PIPE_FAIL
                 ans="$(${pkgs.hyprland-qtutils}/bin/hyprland-dialog --title 'Exit Hyprland?' --text 'Are you sure?' --buttons 'Yes;No')"
                 if [[ "$ans" == Yes ]]; then
                   ${pkgs.systemd}/bin/systemd-run --user --scope --unit=manual-logout ${lib.getExe pkgs.hyprshutdown}
@@ -548,6 +422,9 @@ in
                 deactivated = "󰒲 ";
               };
               "timeout" = 60;
+            };
+            memory = {
+              format = " {percentage}%";
             };
             "network#lan" = {
               format-disconnected = "󱘖 no lan";
@@ -626,10 +503,17 @@ in
 
           makeDdcBrigtnessConfig = mon: num: {
             "custom/ddc-brightness#${mon.sn}" = {
-              exec = ''
-                sleep ${toString (num + 1)} \
-                  && ${lib.getExe pkgs.ddcutil} --sn ${mon.sn} getvcp 10 --brief \
-                  | awk '{print $4}'
+              exec = writeZsh "get-ddc-${mon.sn}.zsh" /* zsh */ ''
+                setopt ERR_EXIT NO_UNSET PIPE_FAIL
+                repeat 5 do
+                  local raw_output=$(${lib.getExe pkgs.ddcutil} --sn ${mon.sn} getvcp 10 --brief)
+                  if [[ "$raw_output" =~ '^VCP 10 C ([0-9]+) 100$' ]]; then
+                    print -r -- "$match[1]"
+                    exit 0
+                  fi
+                  sleep 0.2
+                done
+                print -r -- "??"
               '';
               format = "󰖨 {text:>3}%";
               interval = "once";
@@ -809,6 +693,7 @@ in
         #custom-power,
         #custom-spacer,
         #custom-timers,
+        #memory,
         #network,
         #pulseaudio,
         #temperature {
@@ -935,40 +820,29 @@ in
         };
         Service = {
           ExecStart = writeZsh "notification-logger.zsh" /* zsh */ ''
-            read_dbus_string() {
-              local input
-              read -r input
-              print -r -- "''${(Q)input#string }"
-            }
-            declare -a session_args
-            session_args=(
-                type='method_call'
-                interface='org.freedesktop.Notifications'
-                member='Notify'
+            setopt ERR_EXIT NO_UNSET PIPE_FAIL
+            busctl_match=(
+                interface=org.freedesktop.Notifications
+                member=Notify
+                type=method_call
             )
-            ${pkgs.coreutils}/bin/stdbuf --output=L \
-                ${pkgs.dbus}/bin/dbus-monitor "''${(j:,:)session_args}" \
-                | while read -r line; do
-              if [[ "$line" =~ member=Notify ]]; then
-                app_name=$(read_dbus_string)
-                repeat 2 read -r _
-                summary=$(read_dbus_string)
-                body=$(read_dbus_string)
-                if [[ "$app_name" == discord ]]; then
-                  local body_str=""
-                  if [[ "$body" =~ 'Reacted(.*)to your(.*)' ]]; then
-                    body_str=" $match[1] ($match[2])"
-                  else
-                    body_str=": $body"
-                  fi
-                  if [[ "$summary" == Kitty ]]; then
-                    print -r -- "<5>💜 $summary$body_str"
-                  else
-                    print -r -- " $summary$body_str"
-                  fi
+            ${pkgs.systemd}/bin/busctl --user --json=short --match="''${(j:,:)busctl_match[@]}" monitor \
+                | ${lib.getExe pkgs.jq} --unbuffered --compact-output --raw-output \
+                  '.payload.data | [.[0], .[3], .[4]] | @tsv' \
+                | while IFS=$'\t' read -r app_name summary body; do
+              if [[ "$app_name" == discord ]]; then
+                if [[ "$body" =~ 'Reacted (.*) to your (.*)' ]]; then
+                  body_str=" $match[1] ($match[2])"
                 else
-                  print -r -- "($app_name)🔔 $summary - $body"
+                  body_str=": $body"
                 fi
+                if [[ "$summary" == Kittykins ]]; then
+                  print -r -- "<5>💜 $summary$body_str"
+                else
+                  print -r -- " $summary$body_str"
+                fi
+              else
+                print -r -- "($app_name)🔔 $summary - $body"
               fi
             done
           '';
@@ -999,6 +873,138 @@ in
         };
       };
     };
+  };
+
+  wayland.windowManager.hyprland = {
+    enable = true;
+    systemd.enable = true;
+    settings = {
+      general = {
+        gaps_in = 10;
+        gaps_out = "10, 25, 25, 25";
+      };
+      misc = {
+        vrr = 2;
+      };
+      decoration = {
+        rounding = 10;
+        blur = {
+          enabled = true;
+          new_optimizations = true;
+          passes = 2;
+          size = 6;
+        };
+      };
+      "$mod_apps" = "MOD3";
+      "$mod_move" = "SUPER";
+      "$mod_hypr" = "MOD5";
+      "$mon_1" = "desc:Dell Inc. DELL P2425D DVH9D94";
+      "$mon_2" = "desc:Dell Inc. DELL P2425D CVH9D94";
+      "$mon_3" = "desc:California Institute of Technology 0x1404";
+      "$menu_opts" = "--insensitive --match=multi-contains";
+      "$run_menu" = "${lib.getExe pkgs.wofi} --show=run $menu_opts";
+      "$drun_menu" = "${lib.getExe pkgs.wofi} --show=drun $menu_opts";
+      "$terminal" = "${lib.getExe pkgs.kitty}";
+      "$quickterm" = "${pkgs.kitty}/bin/kitten quick-access-terminal";
+      bind = [
+        "$mod_apps, RETURN, exec, $terminal"
+        "$mod_apps, a, exec, ${lib.getExe pkgs.pavucontrol}"
+        "$mod_apps, d, exec, $drun_menu"
+        "$mod_apps, e, exec, $terminal --execute ${lib.getExe config.programs.neovim.finalPackage}"
+        "$mod_apps, f, exec, ${lib.getExe pkgs.grimblast} --notify save area ${config.home.homeDirectory}/Pictures/Screenshots/snapshot_$(date +%F_%H-%M-%S).png"
+        "$mod_apps, q, exec, $run_menu"
+        "$mod_apps, w, exec, ${lib.getExe config.programs.firefox.finalPackage}"
+        "$mod_hypr+SHIFT, q, killactive"
+        "$mod_hypr, Space, togglefloating"
+        "$mod_hypr, f, fullscreen"
+        "$mod_move, h, movefocus, l"
+        "$mod_move, j, movefocus, d"
+        "$mod_move, k, movefocus, u"
+        "$mod_move, l, movefocus, r"
+        "$mod_move, q, workspace, 1"
+        "$mod_move, w, workspace, 2"
+        "$mod_move, e, workspace, 3"
+        "$mod_move, r, workspace, 4"
+        "$mod_move, t, workspace, 5"
+        "$mod_move, y, workspace, 6"
+        "$mod_move, u, workspace, 7"
+        "$mod_move, i, workspace, 8"
+        "$mod_move, o, workspace, 9"
+        "$mod_move+SHIFT, q, movetoworkspacesilent, 1"
+        "$mod_move+SHIFT, w, movetoworkspacesilent, 2"
+        "$mod_move+SHIFT, e, movetoworkspacesilent, 3"
+        "$mod_move+SHIFT, r, movetoworkspacesilent, 4"
+        "$mod_move+SHIFT, t, movetoworkspacesilent, 5"
+        "$mod_move+SHIFT, y, movetoworkspacesilent, 6"
+        "$mod_move+SHIFT, u, movetoworkspacesilent, 7"
+        "$mod_move+SHIFT, i, movetoworkspacesilent, 8"
+        "$mod_move+SHIFT, o, movetoworkspacesilent, 9"
+        "$mod_move+SHIFT, h, movewindow, l"
+        "$mod_move+SHIFT, j, movewindow, d"
+        "$mod_move+SHIFT, k, movewindow, u"
+        "$mod_move+SHIFT, l, movewindow, r"
+      ];
+      binde = [
+        ", XF86AudioRaiseVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"
+        ", XF86AudioLowerVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%-"
+        ", XF86AudioMute, exec, ${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+        ", XF86MonBrightnessUp, exec, ${lib.getExe pkgs.brightnessctl} --class=backlight set +20%"
+        ", XF86MonBrightnessDown, exec, ${lib.getExe pkgs.brightnessctl} --class=backlight set 20%-"
+        "$mod_hypr, l, resizeactive, 50 0"
+        "$mod_hypr, h, resizeactive, -50 0"
+        "$mod_hypr, k, resizeactive, 0 -50"
+        "$mod_hypr, j, resizeactive, 0 50"
+      ];
+      bindm = [
+        "$mod_move, mouse:272, movewindow"
+        "$mod_move, mouse:273, resizewindow"
+      ];
+      env = [
+        "NIXOS_OZONE_WL,1"
+      ];
+      workspace = [
+        "1,monitor:$mon_1,default:true"
+        "2,monitor:$mon_1"
+        "3,monitor:$mon_1"
+        "4,monitor:$mon_1"
+        "5,monitor:$mon_1"
+        "6,monitor:$mon_2,default:true"
+        "7,monitor:$mon_2"
+        "8,monitor:$mon_2"
+        "9,monitor:$mon_2"
+      ];
+      device = {
+        name = "at-translated-set-2-keyboard";
+        repeat_delay = 200;
+        repeat_rate = 25;
+      };
+      input = {
+        kb_layout = "se";
+        repeat_delay = 200;
+        repeat_rate = 25;
+        kb_file = "${pkgs.writeText "hyprland.xkb" /* xkb */ ''
+          xkb_keymap {
+            xkb_keycodes { include "evdev+aliases(qwerty)" };
+            xkb_types { include "complete" };
+            xkb_compat { include "complete" };
+            xkb_symbols {
+              include "pc+se+ru:2+inet(evdev)"
+              replace key <PRSC> { [ ISO_Level5_Shift ] };
+              replace key <CAPS> {
+                type = "TWO_LEVEL",
+                symbols[Group1] = [ ISO_Next_Group, Caps_Lock ]
+              };
+            };
+          };
+        ''}";
+      };
+      monitor = [
+        "$mon_1, 2560x1440@100Hz, -2560x0, 1"
+        "$mon_2, 2560x1440@100Hz, 0x0, 1"
+        "$mon_3, 1920x1200@60, 2560x0, 1"
+      ];
+    };
+    xwayland.enable = true;
   };
 
   xdg = {
