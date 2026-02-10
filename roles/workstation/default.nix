@@ -15,6 +15,9 @@ in
     ../common
   ];
 
+  # P2425D config:
+  boot.kernelModules = [ "i2c-dev" ];
+
   console.colors = lib.attrValues {
     c01_black = "1d1f21";
     c02_red = "dc322f";
@@ -34,6 +37,12 @@ in
     c16_whiteFg = "fdf6e3";
   };
 
+  environment.systemPackages = builtins.attrValues {
+    inherit (pkgs)
+      android-tools
+      ;
+  };
+
   home-manager = {
     users = {
       ${mainUser} = import ../../home/workstation;
@@ -41,7 +50,6 @@ in
   };
 
   # P2425D config:
-  boot.kernelModules = [ "i2c-dev" ];
   users = {
     users = {
       ${mainUser} = {
@@ -73,6 +81,13 @@ in
   programs = {
     hyprland.enable = true;
     steam.enable = true;
+    ssh = {
+      extraConfig = ''
+        Host ssh.hoppenr.xyz
+          User mainuser
+          ProxyCommand ${lib.getExe pkgs.cloudflared} access ssh --hostname %h
+      '';
+    };
   };
 
   hardware = {

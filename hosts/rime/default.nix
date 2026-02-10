@@ -54,18 +54,32 @@
     useDHCP = false;
   };
 
-  systemd.network.links = {
-    "20-dock-lan" = {
-      matchConfig.MACAddress = "84:ba:59:74:c0:bc";
-      linkConfig.Name = "dock-lan";
+  systemd.network = {
+    enable = true;
+    wait-online.enable = false;
+    links = {
+      "20-dock-lan" = {
+        matchConfig.MACAddress = "84:ba:59:74:c0:bc";
+        linkConfig.Name = "dock-lan";
+      };
+      "20-laptop-lan" = {
+        matchConfig.MACAddress = "74:5d:22:39:03:cf";
+        linkConfig.Name = "laptop-lan";
+      };
+      "20-laptop-wifi" = {
+        matchConfig.MACAddress = "04:7b:cb:c1:96:22";
+        linkConfig.Name = "laptop-wifi";
+      };
     };
-    "20-laptop-lan" = {
-      matchConfig.MACAddress = "74:5d:22:39:03:cf";
-      linkConfig.Name = "laptop-lan";
-    };
-    "20-laptop-wifi" = {
-      matchConfig.MACAddress = "04:7b:cb:c1:96:22";
-      linkConfig.Name = "laptop-wifi";
+    networks = {
+      "30-laptop-wifi" = {
+        matchConfig.Name = "laptop-wifi";
+        networkConfig = {
+          DHCP = "no";
+          IPv6AcceptRA = "no";
+          KeepConfiguration = "static";
+        };
+      };
     };
   };
   system.stateVersion = "25.11";
