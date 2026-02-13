@@ -76,9 +76,4 @@ in
       };
     };
   };
-
-  # users.users.${mainUser}.extraGroups = [
-  #   "dialout"
-  #   "tty"
-  # ];
 }

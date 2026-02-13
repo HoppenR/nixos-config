@@ -11,12 +11,31 @@
   };
 
   config = lib.mkIf config.lab.joplin.enable {
+    sops = {
+      secrets = {
+        "postgresql-joplin-password" = {
+          key = "postgresql/joplin-password";
+          owner = config.users.users.postgres.name;
+          inherit (config.users.users.postgres) group;
+        };
+      };
+      templates = {
+        "joplin-server-env" = {
+          content = ''
+            POSTGRES_PASSWORD=${config.sops.placeholder."postgresql-joplin-password"}
+          '';
+        };
+      };
+    };
     virtualisation.oci-containers.containers."joplin-server" = {
       image = "joplin/server:latest";
       volumes = [
         "/replicated/apps/joplin:/app/storage"
       ];
       ports = [ "127.0.0.1:22300:22300" ];
+      environmentFiles = [
+        config.sops.templates."joplin-server-env".path
+      ];
       environment = {
         APP_PORT = "22300";
         APP_BASE_URL = "https://joplin.hoppenr.xyz";
@@ -40,7 +59,6 @@
       };
     };
 
-    # 2. Setup the existing Postgres service
     services.postgresql = {
       ensureDatabases = [ "joplin" ];
       ensureUsers = [
@@ -50,20 +68,30 @@
         }
       ];
       authentication = lib.mkAfter ''
-        # TYPE  DATABASE    USER      ADDRESS         METHOD
-        host    joplin      joplin    10.88.0.0/16    trust
+        # TYPE  DATABASE  USER        ADDRESS         METHOD
+        host    joplin    joplin 10.88.0.0/16    scram-sha-256
       '';
     };
 
-    systemd.services."podman-joplin-server" = {
-      after = [
-        "rclone-replicated-apps.service"
-        "postgresql.service"
-      ];
-      requires = [
-        "rclone-replicated-apps.service"
-        "postgresql.service"
-      ];
+    systemd.services = {
+      postgresql-setup = {
+        restartTriggers = [
+          config.sops.secrets."postgresql-joplin-password".path
+        ];
+        script = lib.mkAfter ''
+          psql -tAc "ALTER USER joplin WITH PASSWORD '$(cat ${config.sops.secrets.postgresql-joplin-password.path})';"
+        '';
+      };
+      "podman-joplin-server" = {
+        after = [
+          "rclone-replicated-apps.service"
+          "postgresql.service"
+        ];
+        requires = [
+          "rclone-replicated-apps.service"
+          "postgresql.service"
+        ];
+      };
     };
   };
 }

@@ -11,13 +11,17 @@ let
 in
 {
   _module.args = {
-    inherit mainUser;
+    inherit
+      mainUser
+      domainName
+      ;
   };
 
   imports = [
     ../common
     ./booklore.nix
     ./joplin.nix
+    ./vaultwarden.nix
   ];
 
   console.colors = lib.attrValues {
@@ -54,12 +58,9 @@ in
   };
 
   lab = {
-    booklore = {
-      enable = true;
-    };
-    joplin = {
-      enable = true;
-    };
+    booklore.enable = true;
+    joplin.enable = true;
+    vaultwarden.enable = true;
     greetd = {
       enable = true;
       theme = "container=blue;window=black;border=magenta;greet=magenta;prompt=magenta;input=magenta;action=blue";
@@ -169,7 +170,7 @@ in
         initdbArgs = [ "--data-checksums" ];
         settings = {
           full_page_writes = "off";
-          listen_addresses = lib.mkForce "*";
+          listen_addresses = lib.mkForce "127.0.0.1,10.88.0.1";
         };
       };
       mysql = {
@@ -184,22 +185,6 @@ in
           innodb_use_atomic_writes = 0;
           innodb_use_native_aio = 0;
           bind-address = "10.88.0.1";
-        };
-      };
-      vaultwarden = {
-        enable = true;
-        dbBackend = "postgresql";
-        configurePostgres = true;
-        domain = "vaultwarden.${domainName}";
-        config = {
-          ROCKET_ADDRESS = "::1";
-          ROCKET_PORT = 8222;
-          SIGNUPS_ALLOWED = false;
-          SMTP_FROM = "contact@hoppenr.xyz";
-          SMTP_FROM_NAME = "Vaultwarden Service";
-          SMTP_HOST = "127.0.0.1";
-          SMTP_PORT = 25;
-          SMTP_SSL = false;
         };
       };
     };
@@ -241,13 +226,6 @@ in
     };
   };
 
-  systemd.services = {
-    vaultwarden = {
-      after = [ "postgresql.service" ];
-      requires = [ "postgresql.service" ];
-    };
-  };
-
   # users.users.${mainUser}.extraGroups = [
   #   "dialout"
   #   "tty"
@@ -264,6 +242,7 @@ in
   #       still needed after moving to nftables?
   #       3306 = mysql
   #       5432 = postgresql
+  #       25   = smtp (by joplin)
   networking = {
     firewall.extraInputRules = ''
       iifname "podman0" tcp dport 3306 accept

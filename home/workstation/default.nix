@@ -189,9 +189,10 @@ in
       };
       shellAliases = rec {
         run0 = "${pkgs.systemd}/bin/run0 --background='48;2;0;95;96' --setenv=TERM=xterm-256color --via-shell";
+        scrcpy-Pixel = "${lib.getExe pkgs.scrcpy} --render-driver=vulkan --video-codec=h265 --keyboard=uhid --video-bit-rate=16M --stay-awake";
+        scrcpy-virt-Pixel = "${scrcpy-Pixel} --new-display=2508x1344/250";
         ssh = "${pkgs.kitty}/bin/kitten ssh";
-        scrcpy-Pixel = "${lib.getExe pkgs.scrcpy} --render-driver=vulkan --video-codec=h265 --keyboard=uhid --mouse=uhid --video-bit-rate=16M --stay-awake";
-        scrcpy-virt-Pixel = "${scrcpy-Pixel} --new-display=2508x1344/100";
+        units = "${lib.getExe pkgs.units} --history ${config.xdg.stateHome}/units/history";
       };
     };
   };
