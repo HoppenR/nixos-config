@@ -249,7 +249,7 @@ in
             identity = true;
           }
           {
-            time = "21:00";
+            time = "21:30";
             temperature = 5000;
             gamma = 0.8;
           }
@@ -445,6 +445,8 @@ in
             xkb_symbols {
               include "pc+se+ru:2+inet(evdev)"
               replace key <PRSC> { [ ISO_Level5_Shift ] };
+              replace key <AD12> { type = "EIGHT_LEVEL", [ diaeresis, asciicircum, asciitilde, caron, dead_diaeresis, dead_circumflex, dead_tilde, dead_caron ] };
+              replace key <AE12> { type = "EIGHT_LEVEL", [ acute, grave, plusminus, notsign, dead_acute, dead_grave, plusminus, notsign ] };
               replace key <CAPS> {
                 type = "TWO_LEVEL",
                 symbols[Group1] = [ ISO_Next_Group, Caps_Lock ]

@@ -5,6 +5,7 @@
 }:
 
 {
+  # TODO: should file be a relationship joplin-server and joplin-desktop?
   options.lab.joplin = {
     enable = lib.mkEnableOption "enable joplin lab configuration";
   };

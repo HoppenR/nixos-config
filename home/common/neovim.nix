@@ -326,7 +326,7 @@
 
           vim.api.nvim_create_autocmd('LspAttach', {
             callback = function(args)
-              local client = vim.lsp.get_client_by_id(args.data.client_id)
+              local client = assert(vim.lsp.get_client_by_id(args.data.client_id))
               if client.server_capabilities.inlayHintProvider then
                 vim.lsp.inlay_hint.enable(true, { bufnr = args.buf })
               end
@@ -354,13 +354,12 @@
               end
             end
           })
-
           local function default_lsp_binds(event)
             vim.keymap.set('i', '<C-Space>', vim.lsp.completion.get, { buffer = event.buf })
             vim.keymap.set('n', '<F2>', vim.lsp.buf.rename, { buffer = event.buf })
             vim.keymap.set('n', '<F3>', vim.lsp.buf.format, { buffer = event.buf })
             vim.keymap.set('n', '<F4>', function()
-              local client = vim.lsp.get_client_by_id(event.data.client_id)
+              local client = assert(vim.lsp.get_client_by_id(event.data.client_id))
               if client.server_capabilities.inlayHintProvider then
                 vim.lsp.inlay_hint.enable(
                   not vim.lsp.inlay_hint.is_enabled({ bufnr = event.buf }),
