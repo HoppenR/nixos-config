@@ -35,9 +35,6 @@
         noto-fonts
         ;
     };
-    sessionVariables = {
-      CARGO_HOME = "${config.xdg.dataHome}/cargo";
-    };
   };
 
   programs = {

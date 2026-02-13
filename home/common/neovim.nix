@@ -8,11 +8,6 @@
     programs = {
       neovim = {
         enable = true;
-        extraPackages = builtins.attrValues {
-          inherit (pkgs)
-            cargo
-            ;
-        };
         initLua = /* lua */ ''
           vim.cmd.filetype({ args = { 'plugin', 'indent', 'on' } })
           vim.cmd.syntax('on')
