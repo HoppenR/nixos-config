@@ -9,6 +9,10 @@
   };
 
   config = lib.mkIf config.lab.vaultwarden.enable {
+    lab = {
+      postfix.enable = true;
+      postgres.enable = true;
+    };
     sops = {
       secrets = {
         "vaultwarden-admin-token" = {
@@ -40,7 +44,7 @@
           SMTP_FROM_NAME = "Vaultwarden Service";
           SMTP_HOST = "127.0.0.1";
           SMTP_PORT = 25;
-          SMTP_SSL = false;
+          SMTP_SECURITY = "off";
         };
       };
     };

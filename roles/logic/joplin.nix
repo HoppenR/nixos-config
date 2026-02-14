@@ -10,6 +10,16 @@
   };
 
   config = lib.mkIf config.lab.joplin.enable {
+    lab = {
+      postfix = {
+        enable = true;
+        bridgePodman = true;
+      };
+      postgres = {
+        enable = true;
+        bridgePodman = true;
+      };
+    };
     sops = {
       secrets = {
         "postgresql-joplin-password" = {

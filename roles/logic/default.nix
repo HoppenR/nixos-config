@@ -10,6 +10,9 @@
     ./booklore.nix
     ./endpoints
     ./joplin.nix
+    ./mysql.nix
+    ./postfix.nix
+    ./postgres.nix
     ./vaultwarden.nix
   ];
 
@@ -59,15 +62,15 @@
           root * /replicated/web
           file_server browse
         '';
-        "booklore".caddy.extraConfig = "reverse_proxy localhost:6060";
-        "joplin".caddy.extraConfig = "reverse_proxy localhost:22300";
+        "booklore".caddy.extraConfig = "reverse_proxy 127.0.0.1:6060";
+        "joplin".caddy.extraConfig = "reverse_proxy 127.0.0.1:22300";
         "ssh" = {
           caddy.enable = false;
-          ingress = "ssh://localhost:22";
+          ingress = "ssh://127.0.0.1:22";
         };
-        "streams".caddy.extraConfig = "reverse_proxy localhost:${toString config.lab.streamsPort}";
+        "streams".caddy.extraConfig = "reverse_proxy 127.0.0.1:${toString config.lab.streamsPort}";
         "vaultwarden".caddy.extraConfig = ''
-          reverse_proxy localhost:${toString config.services.vaultwarden.config.ROCKET_PORT}
+          reverse_proxy [::1]:${toString config.services.vaultwarden.config.ROCKET_PORT}
         '';
         "www".caddy.extraConfig = "redir https://${config.lab.domainName}{uri}";
       };
@@ -82,64 +85,6 @@
 
   services = {
     pipewire.enable = false;
-    postfix = {
-      enable = true;
-      settings.main = {
-        inet_interfaces = "127.0.0.1, 10.88.0.1";
-        mynetworks = [
-          "127.0.0.0/8"
-          "10.88.0.0/16"
-        ];
-
-        relayhost = [ "[smtp.protonmail.ch]:587" ];
-        smtp_generic_maps = "inline:{ { root@${config.networking.hostName} = contact@${config.lab.domainName} } }";
-        smtp_sasl_auth_enable = "yes";
-        smtp_sasl_password_maps = "texthash:${config.sops.templates.postfix-password-map.path}";
-        smtp_sasl_security_options = "noanonymous";
-        smtp_tls_loglevel = "1";
-        smtp_tls_note_starttls_offer = "yes";
-        smtp_tls_security_level = "encrypt";
-        smtp_tls_wrappermode = "no";
-      };
-    };
-    postgresql = {
-      enable = true;
-      dataDir = "/replicated/db/postgres";
-      initdbArgs = [ "--data-checksums" ];
-      settings = {
-        full_page_writes = "off";
-        listen_addresses = lib.mkForce "127.0.0.1,10.88.0.1";
-      };
-    };
-    mysql = {
-      enable = true;
-      package = pkgs.mariadb;
-      dataDir = "/replicated/db/mariadb";
-      settings.mysqld = {
-        innodb_checksum_algorithm = "crc32";
-        innodb_doublewrite = 0;
-        innodb_flush_method = "O_DIRECT";
-        innodb_page_size = "16k";
-        innodb_use_atomic_writes = 0;
-        innodb_use_native_aio = 0;
-        bind-address = "10.88.0.1";
-      };
-    };
-  };
-
-  sops = {
-    secrets = {
-      "postfix-token".key = "postfix/token";
-    };
-    templates = {
-      "postfix-password-map" = {
-        owner = config.services.postfix.user;
-        inherit (config.services.postfix) group;
-        content = ''
-          [smtp.protonmail.ch]:587 contact@${config.lab.domainName}:${config.sops.placeholder."postfix-token"}
-        '';
-      };
-    };
   };
 
   # users.users.${config.lab.mainUser}.extraGroups = [
@@ -152,18 +97,5 @@
       enable = true;
       dates = "weekly";
     };
-  };
-
-  # TODO: move to module for mysql/postgresql ?
-  #       still needed after moving to nftables?
-  #       3306 = mysql
-  #       5432 = postgresql
-  #       25   = smtp (by joplin)
-  networking = {
-    firewall.extraInputRules = ''
-      iifname "podman0" tcp dport 3306 accept
-      iifname "podman0" tcp dport 5432 accept
-      iifname "podman0" tcp dport 25 accept
-    '';
   };
 }

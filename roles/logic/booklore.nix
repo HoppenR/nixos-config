@@ -9,6 +9,10 @@
   };
 
   config = lib.mkIf config.lab.booklore.enable {
+    lab.mysql = {
+      enable = true;
+      bridgePodman = true;
+    };
     sops = {
       secrets = {
         "mysql-booklore-password" = {

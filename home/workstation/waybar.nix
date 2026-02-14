@@ -36,7 +36,7 @@
             "custom/spacer"
             "pulseaudio"
             "custom/spacer"
-            "custom/ddc-brightness#${mon.sn}"
+            "custom/ddc-brightness#${mon.serial}"
             "custom/spacer"
             "battery"
             "custom/spacer"
@@ -340,11 +340,11 @@
         };
 
         makeDdcBrigtnessConfig = mon: num: {
-          "custom/ddc-brightness#${mon.sn}" = {
-            exec = writeZsh "get-ddc-${mon.sn}.zsh" /* zsh */ ''
+          "custom/ddc-brightness#${mon.serial}" = {
+            exec = writeZsh "get-ddc-${mon.serial}.zsh" /* zsh */ ''
               setopt ERR_EXIT NO_UNSET PIPE_FAIL
               repeat 5 do
-                local raw_output=$(${lib.getExe pkgs.ddcutil} --sn ${mon.sn} getvcp 10 --brief)
+                local raw_output=$(${lib.getExe pkgs.ddcutil} --sn ${mon.serial} getvcp 10 --brief)
                 if [[ "$raw_output" =~ '^VCP 10 C ([0-9]+) 100$' ]]; then
                   print -r -- "$match[1]"
                   exit 0
@@ -355,14 +355,14 @@
             '';
             format = "󰖨 {text:>3}%";
             interval = "once";
-            on-click = writeZsh "get-ddc-${mon.sn}.zsh" /* zsh */ ''
+            on-click = writeZsh "get-ddc-${mon.serial}.zsh" /* zsh */ ''
               setopt ERR_EXIT NO_UNSET PIPE_FAIL
-              ${lib.getExe pkgs.ddcutil} --sn ${mon.sn} setvcp 10 + 10
+              ${lib.getExe pkgs.ddcutil} --sn ${mon.serial} setvcp 10 + 10
               pkill -RTMIN+${toString (num + 8)} waybar
             '';
-            on-click-right = writeZsh "get-ddc-${mon.sn}.zsh" /* zsh */ ''
+            on-click-right = writeZsh "get-ddc-${mon.serial}.zsh" /* zsh */ ''
               setopt ERR_EXIT NO_UNSET PIPE_FAIL
-              ${lib.getExe pkgs.ddcutil} --sn ${mon.sn} setvcp 10 - 10
+              ${lib.getExe pkgs.ddcutil} --sn ${mon.serial} setvcp 10 - 10
               pkill -RTMIN+${toString (num + 8)} waybar
             '';
             signal = num + 8;
@@ -375,7 +375,7 @@
         bars = (
           builtins.listToAttrs (
             lib.imap0 (i: mon: {
-              name = "mainBar-${mon.sn}";
+              name = "mainBar-${mon.serial}";
               value = {
                 layer = "top";
                 position = "top";
@@ -390,6 +390,7 @@
       in
       bars
       // {
+        # NOTE: special bar for laptop, should be removed in the future
         "titleBar" = titleBarModules;
         "mainBar-laptop" = {
           layer = "top";

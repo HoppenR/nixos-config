@@ -20,18 +20,27 @@ let
 
   monitors = [
     rec {
-      sn = "DVH9D94";
-      desc = "Dell Inc. DELL P2425D ${sn}";
+      desc = "Dell Inc. DELL P2425D ${serial}";
+      mode = "2560x1440@100Hz";
+      pos = "-2560x0";
+      scale = 1;
+      serial = "DVH9D94";
       wallpaper = "${config.home.homeDirectory}/Pictures/backgrounds/bunny-pc-bg.png";
     }
     rec {
-      sn = "CVH9D94";
-      desc = "Dell Inc. DELL P2425D ${sn}";
+      desc = "Dell Inc. DELL P2425D ${serial}";
+      mode = "2560x1440@100Hz";
+      pos = "0x0";
+      scale = 1;
+      serial = "CVH9D94";
       wallpaper = "${config.home.homeDirectory}/Pictures/backgrounds/saabbackground.png";
     }
     rec {
-      sn = "0x1404";
-      desc = "California Institute of Technology ${sn}";
+      desc = "California Institute of Technology ${serial}";
+      mode = "1920x1200@60";
+      pos = "2560x0";
+      scale = 1;
+      serial = "0x1404";
       wallpaper = "${config.home.homeDirectory}/Pictures/backgrounds/hyprland-islands.png";
     }
   ];
@@ -354,10 +363,6 @@ in
       "$mod_apps" = "MOD3";
       "$mod_move" = "SUPER";
       "$mod_hypr" = "MOD5";
-      # TODO: create `mon_${n} = "desc:${mon.desc}"` from ${monitors} ?
-      "$mon_1" = "desc:Dell Inc. DELL P2425D DVH9D94";
-      "$mon_2" = "desc:Dell Inc. DELL P2425D CVH9D94";
-      "$mon_3" = "desc:California Institute of Technology 0x1404";
       "$menu_opts" = "--insensitive --match=multi-contains";
       "$run_menu" = "${lib.getExe pkgs.wofi} --show=run $menu_opts";
       "$drun_menu" = "${lib.getExe pkgs.wofi} --show=drun $menu_opts";
@@ -457,11 +462,15 @@ in
           };
         ''}";
       };
-      monitor = [
-        "$mon_1, 2560x1440@100Hz, -2560x0, 1"
-        "$mon_2, 2560x1440@100Hz, 0x0, 1"
-        "$mon_3, 1920x1200@60, 2560x0, 1"
-      ];
+    }
+    // (lib.listToAttrs (
+      lib.imap1 (i: mon: {
+        name = "$mon_${toString i}";
+        value = "desc:${mon.desc}";
+      }) monitors
+    ))
+    // {
+      monitor = map (m: "desc:${m.desc}, ${m.mode}, ${m.pos}, ${toString m.scale}") monitors;
     };
     xwayland.enable = true;
   };
