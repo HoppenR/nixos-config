@@ -4,16 +4,7 @@
   pkgs,
   ...
 }:
-let
-  mainUser = "mainuser";
-in
 {
-  _module.args = {
-    inherit
-      mainUser
-      ;
-  };
-
   imports = [
     ../common
     ./booklore.nix
@@ -51,12 +42,15 @@ in
 
   home-manager = {
     users = {
-      ${mainUser} = import ../../home/logic.nix;
+      ${config.lab.mainUser} = import ../../home/logic.nix;
     };
   };
 
   lab = {
     booklore.enable = true;
+    joplin.enable = true;
+    openssh.enable = true;
+    vaultwarden.enable = true;
     endpoints = {
       caddy.enable = true;
       cloudflared.enable = true;
@@ -78,8 +72,6 @@ in
         "www".caddy.extraConfig = "redir https://${config.lab.domainName}{uri}";
       };
     };
-    joplin.enable = true;
-    vaultwarden.enable = true;
     greetd = {
       enable = true;
       theme = "container=blue;window=black;border=magenta;greet=magenta;prompt=magenta;input=magenta;action=blue";
@@ -90,22 +82,6 @@ in
 
   services = {
     pipewire.enable = false;
-    openssh = {
-      # TODO: make into common and enable only when lab.sshd.enable
-      enable = true;
-      hostKeys = [
-        {
-          path = "/persist/etc/ssh/ssh_host_ed25519_key";
-          type = "ed25519";
-        }
-      ];
-      settings = {
-        AuthenticationMethods = "publickey";
-        KbdInteractiveAuthentication = false;
-        PasswordAuthentication = false;
-        PermitRootLogin = "no";
-      };
-    };
     postfix = {
       enable = true;
       settings.main = {
@@ -166,7 +142,7 @@ in
     };
   };
 
-  # users.users.${mainUser}.extraGroups = [
+  # users.users.${config.lab.mainUser}.extraGroups = [
   #   "dialout"
   #   "tty"
   # ];

@@ -49,8 +49,7 @@ in
 
   config = lib.mkMerge [
     (lib.mkIf (lib.elem config.networking.hostName clients) {
-      # TODO: get user from an argument?
-      home-manager.users.christoffer = {
+      home-manager.users.${config.lab.mainUser} = {
         wayland.windowManager.hyprland = {
           settings = {
             bind = [

@@ -3,7 +3,6 @@
   identities,
   inputs,
   lib,
-  mainUser,
   pkgs,
   topology,
   ...
@@ -15,6 +14,7 @@ in
 
   imports = [
     ./greetd.nix
+    ./openssh.nix
     ./options.nix
 
     inputs.home-manager.nixosModules.home-manager
@@ -82,7 +82,7 @@ in
     backupFileExtension = "backup";
     extraSpecialArgs = { inherit inputs; };
     users = {
-      ${mainUser} = ../../home/common;
+      ${config.lab.mainUser} = ../../home/common;
     };
   };
 
@@ -96,8 +96,6 @@ in
       LC_NUMERIC = "sv_SE.UTF-8";
     };
   };
-
-  lab.domainName = "hoppenr.xyz";
 
   networking = {
     defaultGateway = {
@@ -155,10 +153,10 @@ in
       }) (lib.filterAttrs (hostName: hostData: hostData ? publicKey) topology);
       extraConfig =
         let
-          mainuserHome = config.home-manager.users.${mainUser};
+          mainuserHome = config.home-manager.users.${config.lab.mainUser};
         in
         ''
-          Match localuser ${mainUser}
+          Match localuser ${config.lab.mainUser}
             AddKeysToAgent yes
             IdentityFile ${mainuserHome.xdg.stateHome}/ssh/id_ed25519
             UserKnownHostsFile ${mainuserHome.xdg.stateHome}/ssh/known_hosts.d/%k
@@ -214,7 +212,7 @@ in
   users = {
     mutableUsers = false;
     users = {
-      ${mainUser} = {
+      ${config.lab.mainUser} = {
         extraGroups = [
           "video"
           "input"

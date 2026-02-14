@@ -1,15 +1,9 @@
 {
+  config,
   lib,
   ...
 }:
-let
-  mainUser = "mainuser";
-in
 {
-  _module.args = {
-    inherit mainUser;
-  };
-
   imports = [
     ./common
   ];
@@ -45,7 +39,7 @@ in
 
   home-manager = {
     users = {
-      ${mainUser} = import ../home/storage.nix;
+      ${config.lab.mainUser} = import ../home/storage.nix;
     };
   };
 
@@ -55,25 +49,10 @@ in
       theme = "container=blue;action=yellow;button=yellow;window=black";
       useZshLogin = true;
     };
+    openssh.enable = true;
   };
 
   services = {
     pipewire.enable = false;
-    openssh = {
-      # TODO: make into common and enable only when lab.sshd.enable
-      enable = true;
-      hostKeys = [
-        {
-          path = "/persist/etc/ssh/ssh_host_ed25519_key";
-          type = "ed25519";
-        }
-      ];
-      settings = {
-        AuthenticationMethods = "publickey";
-        KbdInteractiveAuthentication = false;
-        PasswordAuthentication = false;
-        PermitRootLogin = "prohibit-password";
-      };
-    };
   };
 }

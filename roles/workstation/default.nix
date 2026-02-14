@@ -4,14 +4,7 @@
   pkgs,
   ...
 }:
-let
-  mainUser = "christoffer";
-in
 {
-  _module.args = {
-    inherit mainUser;
-  };
-
   imports = [
     ../common
   ];
@@ -46,23 +39,22 @@ in
 
   home-manager = {
     users = {
-      ${mainUser} = import ../../home/workstation;
+      ${config.lab.mainUser} = import ../../home/workstation;
     };
   };
 
   # P2425D config:
   users = {
     users = {
-      ${mainUser} = {
+      ${config.lab.mainUser} = {
         extraGroups = [ "i2c" ];
       };
     };
   };
 
   lab = {
-    greetd = {
-      enable = true;
-    };
+    greetd.enable = true;
+    mainUser = "christoffer";
   };
 
   networking = {
