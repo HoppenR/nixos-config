@@ -2,6 +2,7 @@
   lib,
   config,
   topology,
+  mainUser,
   ...
 }:
 let
@@ -11,7 +12,7 @@ in
 {
   config = lib.mkMerge [
     (lib.mkIf (lib.elem config.networking.hostName clients) {
-      home-manager.users.christoffer = {
+      home-manager.users.${mainUser} = {
         services.syncthing.enable = true;
       };
       services.syncthing = {

@@ -1,4 +1,5 @@
 {
+  config,
   lib,
   pkgs,
   ...
@@ -83,7 +84,7 @@ in
     steam.enable = true;
     ssh = {
       extraConfig = ''
-        Host ssh.hoppenr.xyz
+        Host ssh.${config.lab.domainName}
           User mainuser
           ProxyCommand ${lib.getExe pkgs.cloudflared} access ssh --hostname %h
       '';

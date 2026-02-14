@@ -44,21 +44,30 @@ in
         };
       };
     })
-
     (lib.mkIf (config.networking.hostName == sink) {
       environment.systemPackages = [
         pkgs.lzop
         pkgs.mbuffer
       ];
-      services.openssh.enable = true;
-      users.users.syncoid = {
-        description = "ZFS Replication User";
-        group = "syncoid";
-        isSystemUser = true;
-        openssh.authorizedKeys.keyFiles = [ ../keys/id_syncoid_replicate.pub ];
-        shell = pkgs.bashInteractive;
+      services = {
+        openssh.enable = true;
+        sanoid = {
+          enable = true;
+          datasets = {
+            "holt/replicated/db" = {
+              autosnap = false;
+              autoprune = true;
+              recursive = true;
+
+              hourly = 24;
+              daily = 7;
+              weekly = 4;
+              monthly = 3;
+              yearly = 1;
+            };
+          };
+        };
       };
-      users.groups.syncoid = { };
       system.activationScripts.zfs-allow-syncoid = {
         text = ''
           ${lib.getExe pkgs.zfs} allow syncoid \
@@ -66,31 +75,14 @@ in
             holt/replicated/db
         '';
       };
-      services.sanoid = {
-        enable = true;
-        datasets = {
-          "holt/replicated/db" = {
-            autosnap = false;
-            autoprune = true;
-            recursive = true;
-
-            hourly = 24;
-            daily = 7;
-            weekly = 4;
-            monthly = 3;
-            yearly = 1;
-          };
-
-          "holt/replicated/apps" = {
-            autosnap = true;
-            autoprune = true;
-            recursive = true;
-            hourly = 0;
-            daily = 30;
-            weekly = 4;
-            monthly = 6;
-            yearly = 0;
-          };
+      users = {
+        groups.syncoid = { };
+        users.syncoid = {
+          description = "ZFS Replication User";
+          group = "syncoid";
+          isSystemUser = true;
+          openssh.authorizedKeys.keyFiles = [ ../keys/id_syncoid_replicate.pub ];
+          shell = pkgs.bashInteractive;
         };
       };
     })

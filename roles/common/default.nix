@@ -15,6 +15,7 @@ in
 
   imports = [
     ./greetd.nix
+    ./options.nix
 
     inputs.home-manager.nixosModules.home-manager
     # inputs.run0-sudo-shim.nixosModules.default
@@ -95,6 +96,8 @@ in
       LC_NUMERIC = "sv_SE.UTF-8";
     };
   };
+
+  lab.domainName = "hoppenr.xyz";
 
   networking = {
     defaultGateway = {

@@ -60,14 +60,32 @@ in
           openssh.authorizedKeys.keys = [ rcloneMountNode.publicKey ];
         };
       };
-      services.openssh.extraConfig = ''
-        Match User sftpuser
-          ChrootDirectory /srv/sftp
-          ForceCommand internal-sftp
-          PasswordAuthentication no
-          AllowTcpForwarding no
-          X11Forwarding no
-      '';
+      services = {
+        openssh.extraConfig = ''
+          Match User sftpuser
+            ChrootDirectory /srv/sftp
+            ForceCommand internal-sftp
+            PasswordAuthentication no
+            AllowTcpForwarding no
+            X11Forwarding no
+        '';
+        sanoid = {
+          enable = true;
+          datasets = {
+            "holt/replicated/apps" = {
+              autosnap = true;
+              autoprune = true;
+              recursive = true;
+
+              hourly = 0;
+              daily = 30;
+              weekly = 4;
+              monthly = 6;
+              yearly = 0;
+            };
+          };
+        };
+      };
     })
   ];
 }

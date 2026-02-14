@@ -1,7 +1,6 @@
 {
   lib,
   config,
-  domainName,
   ...
 }:
 {
@@ -31,13 +30,13 @@
         enable = true;
         dbBackend = "postgresql";
         configurePostgres = true;
-        domain = "vaultwarden.${domainName}";
+        domain = "vaultwarden.${config.lab.domainName}";
         environmentFile = config.sops.templates."vaultwarden-env".path;
         config = {
           ROCKET_ADDRESS = "::1";
           ROCKET_PORT = 8222;
           SIGNUPS_ALLOWED = false;
-          SMTP_FROM = "contact@hoppenr.xyz";
+          SMTP_FROM = "contact@${config.lab.domainName}";
           SMTP_FROM_NAME = "Vaultwarden Service";
           SMTP_HOST = "127.0.0.1";
           SMTP_PORT = 25;

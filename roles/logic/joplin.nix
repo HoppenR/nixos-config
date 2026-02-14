@@ -5,7 +5,6 @@
 }:
 
 {
-  # TODO: should file be a relationship joplin-server and joplin-desktop?
   options.lab.joplin = {
     enable = lib.mkEnableOption "enable joplin lab configuration";
   };
@@ -38,7 +37,7 @@
       ];
       environment = {
         APP_PORT = "22300";
-        APP_BASE_URL = "https://joplin.hoppenr.xyz";
+        APP_BASE_URL = "https://joplin.${config.lab.domainName}";
 
         DB_CLIENT = "pg";
         POSTGRES_HOST = "10.88.0.1";
@@ -50,7 +49,7 @@
 
         MAILER_ENABLED = "1";
         MAILER_HOST = "10.88.0.1";
-        MAILER_NOREPLY_EMAIL = "contact@hoppenr.xyz";
+        MAILER_NOREPLY_EMAIL = "contact@${config.lab.domainName}";
         MAILER_NOREPLY_NAME = "Joplin Service";
         MAILER_PORT = "25";
         MAILER_SECURITY = "none";
@@ -69,7 +68,7 @@
       ];
       authentication = lib.mkAfter ''
         # TYPE  DATABASE  USER        ADDRESS         METHOD
-        host    joplin    joplin 10.88.0.0/16    scram-sha-256
+        host    joplin    joplin      10.88.0.0/16    scram-sha-256
       '';
     };
 
@@ -78,7 +77,7 @@
         restartTriggers = [
           config.sops.secrets."postgresql-joplin-password".path
         ];
-        script = lib.mkAfter ''
+        script = lib.mkAfter /* bash */ ''
           psql -tAc "ALTER USER joplin WITH PASSWORD '$(cat ${config.sops.secrets.postgresql-joplin-password.path})';"
         '';
       };

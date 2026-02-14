@@ -5,21 +5,19 @@
   ...
 }:
 let
-  domainName = "hoppenr.xyz";
   mainUser = "mainuser";
-  streamsPort = 8181;
 in
 {
   _module.args = {
     inherit
       mainUser
-      domainName
       ;
   };
 
   imports = [
     ../common
     ./booklore.nix
+    ./endpoints
     ./joplin.nix
     ./vaultwarden.nix
   ];
@@ -59,6 +57,27 @@ in
 
   lab = {
     booklore.enable = true;
+    endpoints = {
+      caddy.enable = true;
+      cloudflared.enable = true;
+      hosts = {
+        "@".caddy.extraConfig = ''
+          root * /replicated/web
+          file_server browse
+        '';
+        "booklore".caddy.extraConfig = "reverse_proxy localhost:6060";
+        "joplin".caddy.extraConfig = "reverse_proxy localhost:22300";
+        "ssh" = {
+          caddy.enable = false;
+          ingress = "ssh://localhost:22";
+        };
+        "streams".caddy.extraConfig = "reverse_proxy localhost:${toString config.lab.streamsPort}";
+        "vaultwarden".caddy.extraConfig = ''
+          reverse_proxy localhost:${toString config.services.vaultwarden.config.ROCKET_PORT}
+        '';
+        "www".caddy.extraConfig = "redir https://${config.lab.domainName}{uri}";
+      };
+    };
     joplin.enable = true;
     vaultwarden.enable = true;
     greetd = {
@@ -66,135 +85,74 @@ in
       theme = "container=blue;window=black;border=magenta;greet=magenta;prompt=magenta;input=magenta;action=blue";
       useZshLogin = true;
     };
+    streamsPort = 8181;
   };
 
-  services =
-    let
-      getFqdn = name: if name == "@" then domainName else "${name}.${domainName}";
-      caddyEndpoints = lib.mapAttrs' (n: v: lib.nameValuePair (getFqdn n) v) {
-        "@" = ''
-          root * /replicated/web
-          file_server browse
-
-          handle_path /api/* {
-              reverse_proxy https://strims.gg {
-                  header_up Host strims.gg
-                  header_up X-Real-IP {remote_host}
-              }
-          }
-        '';
-        "streams" = "reverse_proxy localhost:${toString streamsPort}";
-        "vaultwarden" = ''
-          reverse_proxy localhost:${toString config.services.vaultwarden.config.ROCKET_PORT}
-        '';
-        "www" = "redir https://${domainName}{uri}";
-        "booklore" = "reverse_proxy localhost:6060";
-        "joplin" = "reverse_proxy localhost:22300";
-      };
-      makeVirtualHost =
-        hostname: extraConfig:
-        lib.nameValuePair hostname {
-          extraConfig = ''
-            import ${config.sops.templates."caddy-dns-config".path}
-            ${extraConfig}
-          '';
-        };
-      makeCaddyIngress =
-        hostname: _:
-        lib.nameValuePair hostname {
-          service = "https://localhost:443";
-          originRequest.originServerName = hostname;
-        };
-    in
-    {
-      caddy = {
-        enable = true;
-        package = pkgs.caddy.withPlugins {
-          plugins = [ "github.com/caddy-dns/cloudflare@v0.2.2" ];
-          hash = "sha256-dnhEjopeA0UiI+XVYHYpsjcEI6Y1Hacbi28hVKYQURg=";
-        };
-        virtualHosts = lib.mapAttrs' makeVirtualHost caddyEndpoints;
-      };
-      cloudflared = {
-        enable = true;
-        tunnels = {
-          "${domainName}" = {
-            credentialsFile = config.sops.templates."cloudflare-tunnel-config".path;
-            ingress = (lib.mapAttrs' makeCaddyIngress caddyEndpoints) // {
-              "${getFqdn "ssh"}" = "ssh://localhost:22";
-            };
-            default = "http_status:503";
-          };
-        };
-      };
-      pipewire.enable = false;
-      openssh = {
-        # TODO: make into common and enable only when lab.sshd.enable
-        enable = true;
-        hostKeys = [
-          {
-            path = "/persist/etc/ssh/ssh_host_ed25519_key";
-            type = "ed25519";
-          }
-        ];
-        settings = {
-          AuthenticationMethods = "publickey";
-          KbdInteractiveAuthentication = false;
-          PasswordAuthentication = false;
-          PermitRootLogin = "no";
-        };
-      };
-      postfix = {
-        enable = true;
-        settings.main = {
-          inet_interfaces = "127.0.0.1, 10.88.0.1";
-          mynetworks = [
-            "127.0.0.0/8"
-            "10.88.0.0/16"
-          ];
-
-          relayhost = [ "[smtp.protonmail.ch]:587" ];
-          smtp_generic_maps = "inline:{ { root@${config.networking.hostName} = contact@hoppenr.xyz } }";
-          smtp_sasl_auth_enable = "yes";
-          smtp_sasl_password_maps = "texthash:${config.sops.templates.postfix-password-map.path}";
-          smtp_sasl_security_options = "noanonymous";
-          smtp_tls_loglevel = "1";
-          smtp_tls_note_starttls_offer = "yes";
-          smtp_tls_security_level = "encrypt";
-          smtp_tls_wrappermode = "no";
-        };
-      };
-      postgresql = {
-        enable = true;
-        dataDir = "/replicated/db/postgres";
-        initdbArgs = [ "--data-checksums" ];
-        settings = {
-          full_page_writes = "off";
-          listen_addresses = lib.mkForce "127.0.0.1,10.88.0.1";
-        };
-      };
-      mysql = {
-        enable = true;
-        package = pkgs.mariadb;
-        dataDir = "/replicated/db/mariadb";
-        settings.mysqld = {
-          innodb_checksum_algorithm = "crc32";
-          innodb_doublewrite = 0;
-          innodb_flush_method = "O_DIRECT";
-          innodb_page_size = "16k";
-          innodb_use_atomic_writes = 0;
-          innodb_use_native_aio = 0;
-          bind-address = "10.88.0.1";
-        };
+  services = {
+    pipewire.enable = false;
+    openssh = {
+      # TODO: make into common and enable only when lab.sshd.enable
+      enable = true;
+      hostKeys = [
+        {
+          path = "/persist/etc/ssh/ssh_host_ed25519_key";
+          type = "ed25519";
+        }
+      ];
+      settings = {
+        AuthenticationMethods = "publickey";
+        KbdInteractiveAuthentication = false;
+        PasswordAuthentication = false;
+        PermitRootLogin = "no";
       };
     };
+    postfix = {
+      enable = true;
+      settings.main = {
+        inet_interfaces = "127.0.0.1, 10.88.0.1";
+        mynetworks = [
+          "127.0.0.0/8"
+          "10.88.0.0/16"
+        ];
+
+        relayhost = [ "[smtp.protonmail.ch]:587" ];
+        smtp_generic_maps = "inline:{ { root@${config.networking.hostName} = contact@${config.lab.domainName} } }";
+        smtp_sasl_auth_enable = "yes";
+        smtp_sasl_password_maps = "texthash:${config.sops.templates.postfix-password-map.path}";
+        smtp_sasl_security_options = "noanonymous";
+        smtp_tls_loglevel = "1";
+        smtp_tls_note_starttls_offer = "yes";
+        smtp_tls_security_level = "encrypt";
+        smtp_tls_wrappermode = "no";
+      };
+    };
+    postgresql = {
+      enable = true;
+      dataDir = "/replicated/db/postgres";
+      initdbArgs = [ "--data-checksums" ];
+      settings = {
+        full_page_writes = "off";
+        listen_addresses = lib.mkForce "127.0.0.1,10.88.0.1";
+      };
+    };
+    mysql = {
+      enable = true;
+      package = pkgs.mariadb;
+      dataDir = "/replicated/db/mariadb";
+      settings.mysqld = {
+        innodb_checksum_algorithm = "crc32";
+        innodb_doublewrite = 0;
+        innodb_flush_method = "O_DIRECT";
+        innodb_page_size = "16k";
+        innodb_use_atomic_writes = 0;
+        innodb_use_native_aio = 0;
+        bind-address = "10.88.0.1";
+      };
+    };
+  };
 
   sops = {
     secrets = {
-      "cloudflare-account-tag".key = "cloudflare/account-tag";
-      "cloudflare-api-token".key = "cloudflare/api-token";
-      "cloudflare-tunnel-id".key = "cloudflare/tunnel-id";
-      "cloudflare-tunnel-secret".key = "cloudflare/tunnel-secret";
       "postfix-token".key = "postfix/token";
     };
     templates = {
@@ -202,25 +160,7 @@ in
         owner = config.services.postfix.user;
         inherit (config.services.postfix) group;
         content = ''
-          [smtp.protonmail.ch]:587 contact@${domainName}:${config.sops.placeholder."postfix-token"}
-        '';
-      };
-      "cloudflare-tunnel-config" = {
-        content = ''
-          {
-            "AccountTag": "${config.sops.placeholder."cloudflare-account-tag"}",
-            "TunnelSecret": "${config.sops.placeholder."cloudflare-tunnel-secret"}",
-            "TunnelID": "${config.sops.placeholder."cloudflare-tunnel-id"}"
-          }
-        '';
-      };
-      "caddy-dns-config" = {
-        owner = config.users.users.caddy.name;
-        inherit (config.users.users.caddy) group;
-        content = ''
-          tls {
-            dns cloudflare ${config.sops.placeholder.cloudflare-api-token}
-          }
+          [smtp.protonmail.ch]:587 contact@${config.lab.domainName}:${config.sops.placeholder."postfix-token"}
         '';
       };
     };

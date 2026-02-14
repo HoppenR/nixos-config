@@ -8,10 +8,7 @@ let
   server = "skadi";
   clients = [ "rime" ];
 
-  # TODO: recv domain name from arguments (_module.args?)
   # TODO: these pkgs should be moved into flakes into respective repository
-  # TODO: move caddy/clooudflared config in here, alternatively collect into
-  #       attrs for those?
   streamshower-pkg = pkgs.buildGoModule {
     name = "streamshower";
     pname = "streamshower";
@@ -44,13 +41,20 @@ let
   };
 in
 {
+  options.lab = {
+    streamsPort = lib.mkOption {
+      type = lib.types.port;
+    };
+  };
+
   config = lib.mkMerge [
     (lib.mkIf (lib.elem config.networking.hostName clients) {
+      # TODO: get user from an argument?
       home-manager.users.christoffer = {
         wayland.windowManager.hyprland = {
           settings = {
             bind = [
-              "$mod_apps, s, exec, $quickterm ${lib.getExe streamshower-pkg} -a https://streams.hoppenr.xyz/stream-data"
+              "$mod_apps, s, exec, $quickterm ${lib.getExe streamshower-pkg} -a https://streams.${config.lab.domainName}/stream-data"
             ];
           };
         };
@@ -83,7 +87,11 @@ in
           EnvironmentFile = config.sops.templates."streamserver-env".path;
 
           DynamicUser = true;
-          ExecStart = "${lib.getExe streamserver-pkg} -a 127.0.0.1:8181 -e https://streams.hoppenr.xyz/oauth-callback";
+          ExecStart = ''
+            ${lib.getExe streamserver-pkg} \
+              -a 127.0.0.1:${toString config.lab.streamsPort} \
+              -e https://streams.${config.lab.domainName}/oauth-callback
+          '';
           MemoryDenyWriteExecute = true;
           NoNewPrivileges = true;
           PrivateTmp = true;
