@@ -17,7 +17,9 @@
         initdbArgs = [ "--data-checksums" ];
         settings = {
           full_page_writes = "off";
-          listen_addresses = lib.mkForce "*";
+          listen_addresses = lib.mkForce (
+            if config.lab.postgres.bridgePodman then "127.0.0.1, 10.88.0.1" else "127.0.0.1"
+          );
         };
       };
     };
