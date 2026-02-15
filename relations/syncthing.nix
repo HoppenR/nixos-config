@@ -14,8 +14,12 @@ in
       home-manager.users.${config.lab.mainUser} = {
         services.syncthing.enable = true;
       };
-      services.syncthing = {
-        openDefaultPorts = true;
+      networking.firewall = {
+        allowedTCPPorts = [ 22000 ];
+        allowedUDPPorts = [
+          21027
+          22000
+        ];
       };
     })
     (lib.mkIf (config.networking.hostName == server) {
