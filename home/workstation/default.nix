@@ -59,8 +59,8 @@ in
         hyprshutdown
         koreader
         libnotify
+        mpv
         scrcpy
-        units
         wl-clipboard
         ;
     };
@@ -197,12 +197,9 @@ in
         nix = "/persist/nixos";
         personal = "${config.home.homeDirectory}/Projects/personal";
       };
-      shellAliases = rec {
+      shellAliases = {
         run0 = "${pkgs.systemd}/bin/run0 --background='48;2;0;95;96' --setenv=TERM=xterm-256color --via-shell";
-        scrcpy-Pixel = "${lib.getExe pkgs.scrcpy} --render-driver=vulkan --video-codec=h265 --keyboard=uhid --video-bit-rate=16M --stay-awake";
-        scrcpy-virt-Pixel = "${scrcpy-Pixel} --new-display=2508x1344/250";
         ssh = "${pkgs.kitty}/bin/kitten ssh";
-        units = "${lib.getExe pkgs.units} --history ${config.xdg.stateHome}/units/history";
       };
     };
   };
@@ -233,6 +230,17 @@ in
             on-timeout = "${pkgs.systemd}/bin/systemctl suspend";
           }
         ];
+      };
+    };
+    hyprlauncher = {
+      enable = true;
+      settings = {
+        finders = {
+          desktop_icons = false;
+        };
+        ui = {
+          window_size = "800 520";
+        };
       };
     };
     hyprpaper = {
@@ -363,18 +371,14 @@ in
       "$mod_apps" = "MOD3";
       "$mod_move" = "SUPER";
       "$mod_hypr" = "MOD5";
-      "$menu_opts" = "--insensitive --match=multi-contains";
-      "$run_menu" = "${lib.getExe pkgs.wofi} --show=run $menu_opts";
-      "$drun_menu" = "${lib.getExe pkgs.wofi} --show=drun $menu_opts";
       "$terminal" = "${lib.getExe pkgs.kitty}";
       "$quickterm" = "${pkgs.kitty}/bin/kitten quick-access-terminal";
       bind = [
         "$mod_apps, RETURN, exec, $terminal"
         "$mod_apps, a, exec, ${lib.getExe pkgs.pavucontrol}"
-        "$mod_apps, d, exec, $drun_menu"
+        "$mod_apps, d, exec, ${lib.getExe pkgs.hyprlauncher}"
         "$mod_apps, e, exec, $terminal --execute ${lib.getExe config.programs.neovim.finalPackage}"
         "$mod_apps, f, exec, ${lib.getExe pkgs.grimblast} --notify save area ${config.home.homeDirectory}/Pictures/Screenshots/snapshot_$(date +%F_%H-%M-%S).png"
-        "$mod_apps, q, exec, $run_menu"
         "$mod_apps, w, exec, ${lib.getExe config.programs.firefox.finalPackage}"
         "$mod_hypr+SHIFT, q, killactive"
         "$mod_hypr, Space, togglefloating"
@@ -476,6 +480,43 @@ in
   };
 
   xdg = {
+    desktopEntries = rec {
+      "scrcpy-pixel" = {
+        name = "Scrcpy Pixel";
+        genericName = "Android Mirror";
+        exec = "${lib.getExe pkgs.scrcpy} --render-driver=vulkan --video-codec=h265 --keyboard=uhid --video-bit-rate=16M --stay-awake";
+        icon = "phone";
+        terminal = false;
+        categories = [ "Utility" ];
+      };
+      "scrcpy-virt-pixel" = {
+        name = "Scrcpy Pixel (Virtual)";
+        genericName = "Android Virtual Display";
+        exec = "${scrcpy-pixel.exec} --new-display=2508x1344/250";
+        icon = "phone";
+        terminal = false;
+        categories = [ "Utility" ];
+      };
+    };
+    configFile = {
+      "hypr/hyprtoolkit.conf".text = ''
+        background = 0xFF1B1C21
+        base = 0xFF1E1F20
+        alternate_base = 0xFF005F60
+        text = 0xFF26BDBD
+        bright_text = 0xFF52FFFF
+        accent = 0xFF52FFFF
+        accent_secondary = 0xFF0D4747
+        font_family_monospace = monospace
+        h1_size = 19
+        h2_size = 18
+        h3_size = 16
+        font_size = 15
+        small_font_size = 12
+        rounding_large = 10
+        rounding_small = 5
+      '';
+    };
     mimeApps = {
       enable = true;
       defaultApplications = {

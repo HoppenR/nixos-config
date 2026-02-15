@@ -17,6 +17,8 @@ in
     ./openssh.nix
     ./options.nix
 
+    inputs.streamserver.nixosModules.default
+
     inputs.home-manager.nixosModules.home-manager
     # inputs.run0-sudo-shim.nixosModules.default
     inputs.sops-nix.nixosModules.sops

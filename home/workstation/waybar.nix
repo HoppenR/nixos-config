@@ -97,7 +97,7 @@
               </interface>
             '';
             menu-actions = {
-              "connect-script" = writeZsh "wofi-bluetooth-connect.zsh" /* zsh */ ''
+              "connect-script" = writeZsh "hyprlauncher-bluetooth-connect.zsh" /* zsh */ ''
                 setopt ERR_EXIT NO_UNSET PIPE_FAIL
                 typeset -a action_list
                 for line in "''${(@f)$(${pkgs.bluez}/bin/bluetoothctl devices)}"; do
@@ -113,14 +113,7 @@
                 if (( ''${#action_list} == 0 )); then
                   exit 0
                 fi
-                wofi_opts=(
-                  --show dmenu
-                  --insensitive
-                  --match=multi-contains
-                  --prompt "Bluetooth Connect/Disconnect"
-                  --cache-file /dev/null
-                )
-                selection=$(print -rl -- $action_list | ${lib.getExe pkgs.wofi} $wofi_opts)
+                selection=$(print -rl -- $action_list | ${lib.getExe pkgs.hyprlauncher} --dmenu)
                 if [[ "$selection" =~ '^\[(.)\] (Connect to|Disconnect from) (.*) -- (.*)$' ]]; then
                   device_path="/org/bluez/hci0/dev_''${match[4]//:/_}"
                   if [[ "$match[1]" == "x" ]]; then

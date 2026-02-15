@@ -74,7 +74,9 @@
           caddy.enable = false;
           ingress = "ssh://127.0.0.1:22";
         };
-        "streams".caddy.extraConfig = "reverse_proxy 127.0.0.1:${toString config.lab.streamsPort}";
+        "streams".caddy.extraConfig = ''
+          reverse_proxy 127.0.0.1:${toString config.services.streamserver.port}
+        '';
         "vaultwarden".caddy.extraConfig = ''
           reverse_proxy [::1]:${toString config.services.vaultwarden.config.ROCKET_PORT}
         '';
@@ -86,7 +88,6 @@
       theme = "container=blue;window=black;border=magenta;greet=magenta;prompt=magenta;input=magenta;action=blue";
       useZshLogin = true;
     };
-    streamsPort = 8181;
   };
 
   services = {

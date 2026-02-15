@@ -1,5 +1,23 @@
 {
   "nodes": {
+    "flake-utils": {
+      "inputs": {
+        "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -58,10 +76,13 @@
     },
     "root": {
       "inputs": {
+        "flake-utils": "flake-utils",
         "home-manager": "home-manager",
         "nix-index-database": "nix-index-database",
         "nixpkgs": "nixpkgs",
-        "sops-nix": "sops-nix"
+        "sops-nix": "sops-nix",
+        "streamserver": "streamserver",
+        "streamshower": "streamshower"
       }
     },
     "sops-nix": {
@@ -81,6 +102,67 @@
       "original": {
         "owner": "Mic92",
         "repo": "sops-nix",
+        "type": "github"
+      }
+    },
+    "streamserver": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1771160165,
+        "narHash": "sha256-wqXvKYsGi5BEQP9Eq0YySfxSRTgevGi9qxGWgqLDTvs=",
+        "owner": "HoppenR",
+        "repo": "streamserver",
+        "rev": "437545f5ef9ec0d57622547d9ef2c6cd30077060",
+        "type": "github"
+      },
+      "original": {
+        "owner": "HoppenR",
+        "repo": "streamserver",
+        "type": "github"
+      }
+    },
+    "streamshower": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1771159605,
+        "narHash": "sha256-s6CdXFW8h47T+esez5DJ81zImqNoOeOSfh2PiMCujn8=",
+        "owner": "HoppenR",
+        "repo": "streamshower",
+        "rev": "a86c2a0e743e9578c808709b4d213674ad798a22",
+        "type": "github"
+      },
+      "original": {
+        "owner": "HoppenR",
+        "repo": "streamshower",
+        "type": "github"
+      }
+    },
+    "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
         "type": "github"
       }
     }

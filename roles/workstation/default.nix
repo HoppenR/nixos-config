@@ -1,5 +1,6 @@
 {
   config,
+  inputs,
   lib,
   pkgs,
   ...
@@ -108,6 +109,7 @@
     );
     overlays = [
       (import ../../overlays/kitty-single.nix)
+      inputs.streamshower.overlays.default
     ];
   };
 

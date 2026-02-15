@@ -1,9 +1,14 @@
 {
+  config,
   lib,
   pkgs,
   ...
 }:
 {
+  options.lab.neovim = {
+    useOsc52 = lib.mkEnableOption "enable osc52 ssh copy/paste";
+  };
+
   config = {
     programs = {
       neovim = {
@@ -92,7 +97,19 @@
             group = AutoSetIndentChars,
             callback = set_lead_indent_chars,
           })
-        '';
+          ${lib.optionalString config.lab.neovim.useOsc52 /* lua */ ''
+            vim.g.clipboard = {
+              name = 'OSC 52',
+              copy = {
+                ['+'] = require('vim.ui.clipboard.osc52').copy('+'),
+                ['*'] = require('vim.ui.clipboard.osc52').copy('*'),
+              },
+              paste = {
+                ['+'] = require('vim.ui.clipboard.osc52').paste('+'),
+                ['*'] = require('vim.ui.clipboard.osc52').paste('*'),
+              },
+            }
+          ''}'';
         defaultEditor = true;
         plugins = [
           {

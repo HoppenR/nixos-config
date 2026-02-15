@@ -9,7 +9,7 @@
   ];
 
   boot = {
-    # TODO: look into kernel params for ZFS ARC
+    # TODO: look into kernel params for ZFS ARC when I have a better machine
     # kernelParams = [
     #   # 4GiB = 4 * 1024 * 1024 * 1024 = 4294967296 byte
     #   "zfs.zfs_arc_max=4294967296"
