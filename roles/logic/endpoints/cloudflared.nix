@@ -13,13 +13,11 @@
       };
       templates = {
         "cloudflare-tunnel-config" = {
-          content = ''
-            {
-              "AccountTag": "${config.sops.placeholder."cloudflare-account-tag"}",
-              "TunnelSecret": "${config.sops.placeholder."cloudflare-tunnel-secret"}",
-              "TunnelID": "${config.sops.placeholder."cloudflare-tunnel-id"}"
-            }
-          '';
+          content = builtins.toJSON {
+            AccountTag = config.sops.placeholder."cloudflare-account-tag";
+            TunnelSecret = config.sops.placeholder."cloudflare-tunnel-secret";
+            TunnelID = config.sops.placeholder."cloudflare-tunnel-id";
+          };
         };
       };
     };

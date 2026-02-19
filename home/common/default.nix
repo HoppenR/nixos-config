@@ -59,7 +59,6 @@
       enable = true;
       enableZshIntegration = true;
       changeDirWidgetCommand = "fd --type directory";
-      changeDirWidgetOptions = [ "--strip-cwd-prefix" ];
       colors = {
         "bg" = "#1a1b26";
         "bg+" = "#005f60";
@@ -71,7 +70,6 @@
       };
       defaultCommand = "fd --type file";
       fileWidgetCommand = "fd --type file";
-      fileWidgetOptions = [ "--strip-cwd-prefix" ];
       historyWidgetOptions = [ "--border=rounded" ];
     };
     git = {

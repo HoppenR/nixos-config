@@ -16,12 +16,6 @@
     ./vaultwarden.nix
   ];
 
-  boot.kernel.sysctl = {
-    # postgres/mysql/postfix cannot bind to podman0 before its created without
-    # this
-    "net.ipv4.ip_nonlocal_bind" = 1;
-  };
-
   console.colors = lib.attrValues {
     c01_black = "2e3440";
     c02_red = "bf616a";

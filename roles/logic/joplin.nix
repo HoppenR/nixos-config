@@ -17,41 +17,36 @@
       };
       postgres = {
         enable = true;
-        bridgePodman = true;
       };
     };
-    sops = {
-      secrets = {
-        "postgresql-joplin-password" = {
-          key = "postgresql/joplin-password";
-          owner = config.users.users.postgres.name;
-          inherit (config.users.users.postgres) group;
-        };
-      };
-      templates = {
-        "joplin-server-env" = {
-          content = ''
-            POSTGRES_PASSWORD=${config.sops.placeholder."postgresql-joplin-password"}
-          '';
-        };
-      };
+    users.users.joplin = {
+      group = "joplin";
+      isSystemUser = true;
+      uid = 992;
     };
+    users.groups.joplin.gid = 989;
+
     virtualisation.oci-containers.containers."joplin-server" = {
       image = "joplin/server:latest";
       volumes = [
+        "/run/postgresql:/run/postgresql"
         "/replicated/apps/joplin:/app/storage"
       ];
       ports = [ "127.0.0.1:22300:22300" ];
-      environmentFiles = [
-        config.sops.templates."joplin-server-env".path
+      extraOptions = [
+        "--user=1001:1001"
+        "--uidmap=0:100000:1"
+        "--gidmap=0:100000:1"
+        "--uidmap=1001:${toString config.users.users.joplin.uid}:1"
+        "--gidmap=1001:${toString config.users.groups.joplin.gid}:1"
       ];
+
       environment = {
         APP_PORT = "22300";
         APP_BASE_URL = "https://joplin.${config.lab.domainName}";
 
         DB_CLIENT = "pg";
-        POSTGRES_HOST = "10.88.0.1";
-        POSTGRES_PORT = "5432";
+        POSTGRES_HOST = "/run/postgresql";
         POSTGRES_DATABASE = "joplin";
         POSTGRES_USER = "joplin";
 
@@ -76,21 +71,9 @@
           ensureDBOwnership = true;
         }
       ];
-      authentication = lib.mkAfter ''
-        # TYPE  DATABASE  USER        ADDRESS         METHOD
-        host    joplin    joplin      10.88.0.0/16    scram-sha-256
-      '';
     };
 
     systemd.services = {
-      postgresql-setup = {
-        restartTriggers = [
-          config.sops.secrets."postgresql-joplin-password".path
-        ];
-        script = lib.mkAfter /* bash */ ''
-          psql -tAc "ALTER USER joplin WITH PASSWORD '$(cat ${config.sops.secrets.postgresql-joplin-password.path})';"
-        '';
-      };
       "podman-joplin-server" = {
         after = [
           "rclone-replicated-apps.service"

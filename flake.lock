@@ -115,11 +115,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1771160165,
-        "narHash": "sha256-wqXvKYsGi5BEQP9Eq0YySfxSRTgevGi9qxGWgqLDTvs=",
+        "lastModified": 1771181599,
+        "narHash": "sha256-PXW2VYJww1OnlxWDkjAgo98qlDpnDBlMiF4MD1zDNpk=",
         "owner": "HoppenR",
         "repo": "streamserver",
-        "rev": "437545f5ef9ec0d57622547d9ef2c6cd30077060",
+        "rev": "a4059c3df9b9fb73b3a757a2a4be8b385c5d10de",
         "type": "github"
       },
       "original": {

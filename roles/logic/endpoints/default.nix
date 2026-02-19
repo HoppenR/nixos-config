@@ -29,7 +29,7 @@
                       options = {
                         service = lib.mkOption {
                           type = lib.types.str;
-                          description = "e.g. https://localhost:443 or ssh://localhost:22";
+                          description = "e.g. https://localhost:443";
                         };
                         originRequest = {
                           originServerName = lib.mkOption {
