@@ -26,18 +26,21 @@ in
       services.syncthing = {
         enable = true;
         configDir = "/var/lib/syncthing";
-        dataDir = "/replicated/apps/syncthing";
+        dataDir = "/replicated/apps/syncthing/remote";
         guiAddress = "${topology.skadi.ipv4}:8384";
         openDefaultPorts = true;
       };
       systemd.services = {
         syncthing = {
-          after = [ "rclone-replicated-apps.service" ];
-          requires = [ "rclone-replicated-apps.service" ];
+          after = [ "rclone-syncthing.service" ];
+          requires = [ "rclone-syncthing.service" ];
           serviceConfig.StateDirectory = "syncthing";
         };
       };
-      users.users.syncthing.createHome = lib.mkForce false;
+      users.users.syncthing = {
+        createHome = lib.mkForce false;
+        extraGroups = [ "sftpusers" ];
+      };
       networking.firewall.allowedTCPPorts = [ 8384 ];
     })
   ];

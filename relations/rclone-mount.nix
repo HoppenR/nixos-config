@@ -9,46 +9,59 @@ let
   rcloneMount = "skadi";
   sftpHost = "hoddmimir";
 
-  rcloneMountNode = topology.${rcloneMount};
   sftpHostNode = topology.${sftpHost};
 in
 {
   config = lib.mkMerge [
     (lib.mkIf (config.networking.hostName == rcloneMount) {
-      systemd.services."rclone-replicated-apps" = {
-        description = "Remote App VFS Cache Mount";
-        after = [ "network-online.target" ];
-        wants = [ "network-online.target" ];
-        wantedBy = [ "multi-user.target" ];
-        stopIfChanged = false;
-        serviceConfig = {
-          Type = "notify";
-          CacheDirectory = "rclone";
-          ExecStart = ''
-            ${lib.getExe pkgs.rclone} mount \
-              ":sftp,host=${sftpHostNode.ipv4},user=sftpuser,key_file=/persist/etc/ssh/ssh_host_ed25519_key:/apps" \
-              /replicated/apps \
-              --allow-non-empty \
-              --config /dev/null \
-              --allow-other \
-              --vfs-cache-mode full \
-              --vfs-cache-max-size 8Gi \
-              --vfs-write-back 5m \
-              --dir-cache-time 336h \
-              --attr-timeout 336h \
-              --cache-dir /var/cache/rclone \
-              --vfs-cache-max-age 48h \
-              --rc
-          '';
-          ExecStartPost = ''
-            ${lib.getExe pkgs.rclone} rc vfs/refresh recursive=true --url localhost:5572
-          '';
-          ExecStop = "${pkgs.fuse}/bin/fusermount -u -z /replicated/apps";
-          Restart = "on-failure";
-          RestartSec = "10s";
-          User = "root";
-        };
+      sops.secrets."rclone-sftpuser-ssh-key" = {
+        key = "rclone/sftpuser-ssh-key";
+        group = "sftpusers";
+        mode = "0660";
       };
+      users.groups.sftpusers = { };
+      systemd.services =
+        let
+          mkRcloneMount = userName: {
+            description = "Rclone mount for ${userName}";
+            after = [ "network-online.target" ];
+            wants = [ "network-online.target" ];
+            wantedBy = [ "multi-user.target" ];
+            path = [ "/run/wrappers" ];
+            serviceConfig = {
+              Type = "notify";
+              CacheDirectory = "rclone-${userName}";
+              ExecStart = ''
+                ${lib.getExe pkgs.rclone} mount \
+                  ":sftp,host=${sftpHostNode.ipv4},user=sftpuser,key_file=${
+                    config.sops.secrets."rclone-sftpuser-ssh-key".path
+                  }:/apps/${userName}" \
+                  /replicated/apps/${userName}/remote \
+                  --config /dev/null \
+                  --vfs-cache-mode full \
+                  --vfs-cache-max-size 4Gi \
+                  --vfs-write-back 5m \
+                  --cache-dir %C/rclone-${userName} \
+                  --uid ${toString config.users.users.${userName}.uid} \
+                  --gid ${toString config.users.groups.${userName}.gid} \
+                  --dir-cache-time 48h \
+                  --attr-timeout 48h \
+                  --vfs-cache-max-age 48h \
+                  --allow-other
+              '';
+              ExecStop = "${pkgs.fuse}/bin/fusermount3 -u -z /replicated/apps/${userName}/remote";
+              Restart = "on-failure";
+              User = userName;
+              Group = userName;
+            };
+          };
+        in
+        {
+          # TODO:
+          # "rclone-booklore" = mkRcloneMount "booklore";
+          "rclone-joplin" = mkRcloneMount "joplin";
+          "rclone-syncthing" = mkRcloneMount "syncthing";
+        };
     })
     (lib.mkIf (config.networking.hostName == sftpHost) {
       users = {
@@ -57,7 +70,7 @@ in
           isSystemUser = true;
           home = "/"; # Note that this is relative to the ChrootDirectory
           group = "sftpuser";
-          openssh.authorizedKeys.keys = [ rcloneMountNode.publicKey ];
+          openssh.authorizedKeys.keyFiles = [ ../keys/id_rclone_sftpuser.pub ];
         };
       };
       services = {

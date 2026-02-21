@@ -34,13 +34,13 @@
         enable = true;
         dbBackend = "postgresql";
         configurePostgres = true;
-        domain = "vaultwarden.${config.lab.domainName}";
+        domain = "vaultwarden.${config.networking.domain}";
         environmentFile = config.sops.templates."vaultwarden-env".path;
         config = {
           ROCKET_ADDRESS = "::1";
           ROCKET_PORT = 8222;
           SIGNUPS_ALLOWED = false;
-          SMTP_FROM = "contact@${config.lab.domainName}";
+          SMTP_FROM = "contact@${config.networking.domain}";
           SMTP_FROM_NAME = "Vaultwarden Service";
           SMTP_HOST = "127.0.0.1";
           SMTP_PORT = 25;

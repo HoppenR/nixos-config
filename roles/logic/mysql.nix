@@ -27,8 +27,12 @@
         };
       };
     };
+    # TODO:
+    # Move to pasta
+    # - OR -
+    # networking.firewall.interfaces."podman0".allowedTCPPorts = [ config.services.mysql.settings.mysqld.port ];
     networking.firewall.extraInputRules = lib.mkIf config.lab.mysql.bridgePodman ''
-      iifname "podman0" tcp dport 3306 accept
+      iifname "podman0" tcp dport ${toString config.services.mysql.settings.mysqld.port} accept
     '';
   };
 }

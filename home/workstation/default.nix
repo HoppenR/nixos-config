@@ -145,7 +145,7 @@ in
       enable = true;
       general.editor = "${lib.getExe pkgs.kitty} --execute ${lib.getExe config.programs.neovim.finalPackage}";
       extraConfig = {
-        "sync.9.path" = "https://joplin.${osConfig.lab.domainName}";
+        "sync.9.path" = "https://joplin.${osConfig.networking.domain}";
         "sync.9.username" = "christofferlundell@protonmail.com";
       };
       sync = {

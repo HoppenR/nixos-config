@@ -77,7 +77,7 @@
     steam.enable = true;
     ssh = {
       extraConfig = ''
-        Host ssh.${config.lab.domainName}
+        Host ssh.${config.networking.domain}
           User mainuser
           ProxyCommand ${lib.getExe pkgs.cloudflared} access ssh --hostname %h
       '';

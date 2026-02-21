@@ -63,7 +63,9 @@
           file_server browse
         '';
         "booklore".caddy.extraConfig = "reverse_proxy 127.0.0.1:6060";
-        "joplin".caddy.extraConfig = "reverse_proxy 127.0.0.1:22300";
+        "joplin".caddy.extraConfig = "reverse_proxy 127.0.0.1:${
+          config.virtualisation.oci-containers.containers."joplin-server".environment.APP_PORT
+        }";
         "ssh" = {
           caddy.enable = false;
           ingress = "ssh://127.0.0.1:22";
@@ -74,7 +76,7 @@
         "vaultwarden".caddy.extraConfig = ''
           reverse_proxy [::1]:${toString config.services.vaultwarden.config.ROCKET_PORT}
         '';
-        "www".caddy.extraConfig = "redir https://${config.lab.domainName}{uri}";
+        "www".caddy.extraConfig = "redir https://${config.networking.domain}{uri}";
       };
     };
     greetd = {
@@ -93,10 +95,38 @@
   #   "tty"
   # ];
 
+  programs.fuse.userAllowOther = true;
+
   virtualisation = {
-    podman.autoPrune = {
+    containers = {
       enable = true;
-      dates = "weekly";
+      # TODO: remove
+      # storage.settings = {
+      #   storage = {
+      #     options = {
+      #       overlay = {
+      #         mount_program = lib.getExe pkgs.fuse-overlayfs;
+      #         mountopt = "nodev,metacopy=on";
+      #       };
+      #     };
+      #   };
+      # };
+      containersConf.settings = {
+        containers = {
+          newuidmap = "/run/wrappers/bin/newuidmap";
+          newgidmap = "/run/wrappers/bin/newgidmap";
+        };
+      };
+    };
+    podman = {
+      enable = true;
+      extraPackages = [
+        pkgs.passt
+      ];
+      autoPrune = {
+        enable = true;
+        dates = "weekly";
+      };
     };
   };
 }

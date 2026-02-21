@@ -6,7 +6,11 @@
 {
   options.lab.postfix = {
     enable = lib.mkEnableOption "enable postfix lab configuration";
-    bridgePodman = lib.mkEnableOption "access from podman0 bridge";
+    port = lib.mkOption {
+      type = lib.types.port;
+      default = 25;
+      readOnly = true;
+    };
   };
 
   config = lib.mkIf config.lab.postfix.enable {
@@ -19,7 +23,9 @@
           owner = config.services.postfix.user;
           inherit (config.services.postfix) group;
           content = ''
-            [smtp.protonmail.ch]:587 contact@${config.lab.domainName}:${config.sops.placeholder."postfix-token"}
+            [smtp.protonmail.ch]:587 contact@${config.networking.domain}:${
+              config.sops.placeholder."postfix-token"
+            }
           '';
         };
       };
@@ -28,11 +34,11 @@
       postfix = {
         enable = true;
         settings.main = {
-          inet_interfaces = "all";
-          mynetworks = [ "127.0.0.0/8" ] ++ (lib.optional config.lab.postfix.bridgePodman "10.88.0.0/16");
+          inet_interfaces = "loopback-only";
+          mynetworks = [ "127.0.0.0/8" ];
 
           relayhost = [ "[smtp.protonmail.ch]:587" ];
-          smtp_generic_maps = "inline:{ { root@${config.networking.hostName} = contact@${config.lab.domainName} } }";
+          smtp_generic_maps = "inline:{ { root@${config.networking.hostName} = contact@${config.networking.domain} } }";
           smtp_sasl_auth_enable = "yes";
           smtp_sasl_password_maps = "texthash:${config.sops.templates.postfix-password-map.path}";
           smtp_sasl_security_options = "noanonymous";
@@ -50,8 +56,5 @@
         ];
       };
     };
-    networking.firewall.extraInputRules = lib.mkIf config.lab.postfix.bridgePodman ''
-      iifname "podman0" tcp dport 25 accept
-    '';
   };
 }

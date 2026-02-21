@@ -21,7 +21,7 @@
               options = {
                 hostname = lib.mkOption {
                   type = lib.types.str;
-                  default = if name == "@" then config.lab.domainName else "${name}.${config.lab.domainName}";
+                  default = if name == "@" then config.networking.domain else "${name}.${config.networking.domain}";
                 };
                 ingress = lib.mkOption {
                   type = lib.types.either lib.types.str (

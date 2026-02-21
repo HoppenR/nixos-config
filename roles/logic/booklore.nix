@@ -32,16 +32,16 @@
     virtualisation.oci-containers.containers."booklore" = {
       image = "booklore/booklore:latest";
       volumes = [
-        "/replicated/apps/booklore/bookdrop:/bookdrop"
-        "/replicated/apps/booklore/books:/books"
-        "/replicated/apps/booklore/data:/app/data"
+        "/replicated/apps/booklore/remote/bookdrop:/bookdrop"
+        "/replicated/apps/booklore/remote/books:/books"
+        "/replicated/apps/booklore/remote/data:/app/data"
       ];
       ports = [ "127.0.0.1:6060:6060" ];
       environmentFiles = [
         config.sops.templates."booklore-env".path
       ];
       environment = {
-        DATABASE_URL = "jdbc:mariadb://10.88.0.1:3306/booklore";
+        DATABASE_URL = "jdbc:mariadb://host.containers.internal:${toString config.services.mysql.settings.mysqld.port}/booklore";
         DATABASE_USERNAME = "booklore";
         BOOKLORE_PORT = "6060";
         SWAGGER_ENABLED = "false";
@@ -68,11 +68,11 @@
       };
       "podman-booklore" = {
         after = [
-          "rclone-replicated-apps.service"
+          "rclone-booklore.service"
           "mysql.service"
         ];
         requires = [
-          "rclone-replicated-apps.service"
+          "rclone-booklore.service"
           "mysql.service"
         ];
       };

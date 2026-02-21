@@ -24,7 +24,7 @@
     services.cloudflared = {
       enable = true;
       tunnels = {
-        "${config.lab.domainName}" = {
+        "${config.networking.domain}" = {
           credentialsFile = config.sops.templates."cloudflare-tunnel-config".path;
           ingress = lib.listToAttrs (
             map (v: lib.nameValuePair v.hostname v.ingress) (lib.attrValues config.lab.endpoints.hosts)

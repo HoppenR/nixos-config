@@ -1,6 +1,7 @@
 {
   lib,
   config,
+  pkgs,
   ...
 }:
 
@@ -13,7 +14,6 @@
     lab = {
       postfix = {
         enable = true;
-        bridgePodman = true;
       };
       postgres = {
         enable = true;
@@ -21,29 +21,47 @@
     };
     users.users.joplin = {
       group = "joplin";
+      extraGroups = [ "sftpusers" ];
       isSystemUser = true;
       uid = 992;
+      linger = true;
+      createHome = true;
+      home = "/var/lib/containers/joplin";
+      shell = pkgs.bashInteractive;
+      subUidRanges = [
+        {
+          startUid = 200000;
+          count = 65536;
+        }
+      ];
+      subGidRanges = [
+        {
+          startGid = 200000;
+          count = 65536;
+        }
+      ];
     };
     users.groups.joplin.gid = 989;
 
-    virtualisation.oci-containers.containers."joplin-server" = {
+    virtualisation.oci-containers.containers."joplin-server" = rec {
+      podman = {
+        user = "joplin";
+      };
       image = "joplin/server:latest";
       volumes = [
         "/run/postgresql:/run/postgresql"
-        "/replicated/apps/joplin:/app/storage"
+        "/replicated/apps/joplin/remote:/app/storage"
       ];
-      ports = [ "127.0.0.1:22300:22300" ];
       extraOptions = [
-        "--user=1001:1001"
-        "--uidmap=0:100000:1"
-        "--gidmap=0:100000:1"
-        "--uidmap=1001:${toString config.users.users.joplin.uid}:1"
-        "--gidmap=1001:${toString config.users.groups.joplin.gid}:1"
+        "--network=pasta:--tcp-ports,${environment.APP_PORT},--tcp-ns,${toString config.lab.postfix.port}"
+        "--storage-opt=overlay.mount_program=${pkgs.fuse-overlayfs}/bin/fuse-overlayfs"
+        "--storage-opt=overlay.mountopt=nodev,metacopy=on"
+        "--userns=keep-id:uid=1001,gid=1001"
       ];
 
       environment = {
         APP_PORT = "22300";
-        APP_BASE_URL = "https://joplin.${config.lab.domainName}";
+        APP_BASE_URL = "https://joplin.${config.networking.domain}";
 
         DB_CLIENT = "pg";
         POSTGRES_HOST = "/run/postgresql";
@@ -53,10 +71,10 @@
         STORAGE_DRIVER = "Type=Filesystem; Path=/app/storage";
 
         MAILER_ENABLED = "1";
-        MAILER_HOST = "10.88.0.1";
-        MAILER_NOREPLY_EMAIL = "contact@${config.lab.domainName}";
+        MAILER_HOST = "127.0.0.1";
+        MAILER_NOREPLY_EMAIL = "contact@${config.networking.domain}";
         MAILER_NOREPLY_NAME = "Joplin Service";
-        MAILER_PORT = "25";
+        MAILER_PORT = toString config.lab.postfix.port;
         MAILER_SECURITY = "none";
         MAILER_AUTH_USER = "";
         MAILER_AUTH_PASSWORD = "";
@@ -76,11 +94,11 @@
     systemd.services = {
       "podman-joplin-server" = {
         after = [
-          "rclone-replicated-apps.service"
+          "rclone-joplin.service"
           "postgresql.service"
         ];
         requires = [
-          "rclone-replicated-apps.service"
+          "rclone-joplin.service"
           "postgresql.service"
         ];
       };

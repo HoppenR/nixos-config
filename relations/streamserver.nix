@@ -15,7 +15,7 @@ in
         wayland.windowManager.hyprland = {
           settings = {
             bind = [
-              "$mod_apps, s, exec, $quickterm ${lib.getExe pkgs.streamshower} -a https://streams.${config.lab.domainName}/stream-data"
+              "$mod_apps, s, exec, $quickterm ${lib.getExe pkgs.streamshower} -a https://streams.${config.networking.domain}/stream-data"
             ];
           };
         };
@@ -40,7 +40,7 @@ in
       services.streamserver = {
         enable = true;
         port = 8181;
-        domain = config.lab.domainName;
+        domain = config.networking.domain;
         environmentFile = config.sops.templates."streamserver-env".path;
       };
     })
