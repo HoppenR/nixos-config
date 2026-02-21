@@ -57,18 +57,22 @@
     endpoints = {
       caddy.enable = true;
       cloudflared.enable = true;
+      # TODO: make this into options.lab.endpoints and let modules add to it
+      #       themselves
       hosts = {
         "@".caddy.extraConfig = ''
           root * /replicated/web
           file_server browse
         '';
-        "booklore".caddy.extraConfig = "reverse_proxy 127.0.0.1:6060";
+        "booklore".caddy.extraConfig = "reverse_proxy 127.0.0.1:${
+          config.virtualisation.oci-containers.containers."booklore".environment.BOOKLORE_PORT
+        }";
         "joplin".caddy.extraConfig = "reverse_proxy 127.0.0.1:${
           config.virtualisation.oci-containers.containers."joplin-server".environment.APP_PORT
         }";
         "ssh" = {
           caddy.enable = false;
-          ingress = "ssh://127.0.0.1:22";
+          ingress = "ssh://127.0.0.1:${toString (builtins.head config.services.openssh.ports)}";
         };
         "streams".caddy.extraConfig = ''
           reverse_proxy 127.0.0.1:${toString config.services.streamserver.port}
@@ -90,27 +94,11 @@
     pipewire.enable = false;
   };
 
-  # users.users.${config.lab.mainUser}.extraGroups = [
-  #   "dialout"
-  #   "tty"
-  # ];
-
   programs.fuse.userAllowOther = true;
 
   virtualisation = {
     containers = {
       enable = true;
-      # TODO: remove
-      # storage.settings = {
-      #   storage = {
-      #     options = {
-      #       overlay = {
-      #         mount_program = lib.getExe pkgs.fuse-overlayfs;
-      #         mountopt = "nodev,metacopy=on";
-      #       };
-      #     };
-      #   };
-      # };
       containersConf.settings = {
         containers = {
           newuidmap = "/run/wrappers/bin/newuidmap";
@@ -120,9 +108,7 @@
     };
     podman = {
       enable = true;
-      extraPackages = [
-        pkgs.passt
-      ];
+      extraPackages = [ pkgs.passt ];
       autoPrune = {
         enable = true;
         dates = "weekly";

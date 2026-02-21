@@ -16,6 +16,7 @@
         initdbArgs = [ "--data-checksums" ];
         settings = {
           full_page_writes = "off";
+          port = 5432;
         };
       };
     };

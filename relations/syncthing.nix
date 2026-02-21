@@ -39,7 +39,6 @@ in
       };
       users.users.syncthing = {
         createHome = lib.mkForce false;
-        extraGroups = [ "sftpusers" ];
       };
       networking.firewall.allowedTCPPorts = [ 8384 ];
     })

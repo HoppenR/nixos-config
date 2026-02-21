@@ -7,7 +7,6 @@
 {
   options.lab.mysql = {
     enable = lib.mkEnableOption "enable mysql lab configuration";
-    bridgePodman = lib.mkEnableOption "access from podman0 bridge";
   };
 
   config = lib.mkIf config.lab.mysql.enable {
@@ -23,16 +22,10 @@
           innodb_page_size = "16k";
           innodb_use_atomic_writes = 0;
           innodb_use_native_aio = 0;
-          bind-address = if config.lab.mysql.bridgePodman then "127.0.0.1,10.88.0.1" else "127.0.0.1";
+          bind-address = "127.0.0.1";
+          port = 3306;
         };
       };
     };
-    # TODO:
-    # Move to pasta
-    # - OR -
-    # networking.firewall.interfaces."podman0".allowedTCPPorts = [ config.services.mysql.settings.mysqld.port ];
-    networking.firewall.extraInputRules = lib.mkIf config.lab.mysql.bridgePodman ''
-      iifname "podman0" tcp dport ${toString config.services.mysql.settings.mysqld.port} accept
-    '';
   };
 }

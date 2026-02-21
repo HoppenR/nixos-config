@@ -21,13 +21,11 @@
     };
     users.users.joplin = {
       group = "joplin";
-      extraGroups = [ "sftpusers" ];
       isSystemUser = true;
       uid = 992;
       linger = true;
       createHome = true;
       home = "/var/lib/containers/joplin";
-      shell = pkgs.bashInteractive;
       subUidRanges = [
         {
           startUid = 200000;
@@ -52,10 +50,12 @@
         "/run/postgresql:/run/postgresql"
         "/replicated/apps/joplin/remote:/app/storage"
       ];
+      pull = "newer";
       extraOptions = [
         "--network=pasta:--tcp-ports,${environment.APP_PORT},--tcp-ns,${toString config.lab.postfix.port}"
         "--storage-opt=overlay.mount_program=${pkgs.fuse-overlayfs}/bin/fuse-overlayfs"
         "--storage-opt=overlay.mountopt=nodev,metacopy=on"
+        "--user=1001:1001"
         "--userns=keep-id:uid=1001,gid=1001"
       ];
 
