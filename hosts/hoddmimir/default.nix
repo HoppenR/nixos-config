@@ -2,7 +2,6 @@
 {
   imports = [
     ../../roles/storage.nix
-    ../../relations
     ./hardware-configuration.nix
   ];
 

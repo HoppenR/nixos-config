@@ -10,6 +10,11 @@
 
   config = lib.mkIf config.lab.vaultwarden.enable {
     lab = {
+      endpoints.hosts = {
+        "vaultwarden".caddy.extraConfig = ''
+          reverse_proxy [::1]:${toString config.services.vaultwarden.config.ROCKET_PORT}
+        '';
+      };
       postfix.enable = true;
       postgres.enable = true;
     };

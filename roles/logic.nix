@@ -6,14 +6,7 @@
 }:
 {
   imports = [
-    ../common
-    ./booklore.nix
-    ./endpoints
-    ./joplin.nix
-    ./mysql.nix
-    ./postfix.nix
-    ./postgres.nix
-    ./vaultwarden.nix
+    ./common.nix
   ];
 
   console.colors = lib.attrValues {
@@ -45,7 +38,7 @@
 
   home-manager = {
     users = {
-      ${config.lab.mainUser} = import ../../home/logic.nix;
+      ${config.lab.mainUser} = import ../home/logic.nix;
     };
   };
 
@@ -57,29 +50,15 @@
     endpoints = {
       caddy.enable = true;
       cloudflared.enable = true;
-      # TODO: make this into options.lab.endpoints and let modules add to it
-      #       themselves
       hosts = {
         "@".caddy.extraConfig = ''
           root * /replicated/web
           file_server browse
         '';
-        "booklore".caddy.extraConfig = "reverse_proxy 127.0.0.1:${
-          config.virtualisation.oci-containers.containers."booklore".environment.BOOKLORE_PORT
-        }";
-        "joplin".caddy.extraConfig = "reverse_proxy 127.0.0.1:${
-          config.virtualisation.oci-containers.containers."joplin-server".environment.APP_PORT
-        }";
         "ssh" = {
           caddy.enable = false;
           ingress = "ssh://127.0.0.1:${toString (builtins.head config.services.openssh.ports)}";
         };
-        "streams".caddy.extraConfig = ''
-          reverse_proxy 127.0.0.1:${toString config.services.streamserver.port}
-        '';
-        "vaultwarden".caddy.extraConfig = ''
-          reverse_proxy [::1]:${toString config.services.vaultwarden.config.ROCKET_PORT}
-        '';
         "www".caddy.extraConfig = "redir https://${config.networking.domain}{uri}";
       };
     };

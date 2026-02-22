@@ -9,26 +9,14 @@ let
   rcloneMount = "skadi";
   sftpHost = "hoddmimir";
   sftpHostNode = topology.${sftpHost};
-  # TODO: make this list into an option.lab.apps so that each service
-  #       can add to this in a respective file
-  # Requires ssh key:
-  #   public:  ../keys/id_sftp_${name}.pub
-  #   private: sftp/${name}-ssh-key (sops)
-  # Provides for rcloneMount:
-  #   service-private remote storage at /replicated/apps/${name}/remote
-  apps = {
-    "booklore" = { };
-    "joplin" = { };
-    "syncthing" = {
-      allowOther = false;
-    };
-  };
 
   mkRcloneMount =
     {
       name,
       group ? name,
       allowOther ? true,
+      sshKeySecret,
+      ...
     }:
     {
       description = "Rclone mount for ${name}";
@@ -41,9 +29,8 @@ let
         CacheDirectory = "rclone-${name}";
         ExecStart =
           let
-            ssh-key-path = config.sops.secrets."sftp-${name}-ssh-key".path;
             args = [
-              ":sftp,host=${sftpHostNode.ipv4},user=sftpuser-${name},key_file=${ssh-key-path}:/files"
+              ":sftp,host=${sftpHostNode.ipv4},user=sftpuser-${name},key_file=${sshKeySecret}:/files"
               "/replicated/apps/${name}/remote"
               "--config=/dev/null"
               "--vfs-cache-mode=full"
@@ -84,26 +71,63 @@ let
       openssh.authorizedKeys.keyFiles = [ ../keys/id_sftp_${name}.pub ];
     };
   };
+
+  enabledMountpoints = lib.filterAttrs (_: v: v.enable) config.lab.rcloneMounts.services;
 in
 {
+  options.lab.rcloneMounts = {
+    isMountHost = lib.mkOption {
+      type = lib.types.bool;
+      default = config.networking.hostName == sftpHost;
+      description = "convenience value to conditionally pass ssh public key";
+      readOnly = true;
+    };
+    services = lib.mkOption {
+      default = { };
+      description = "attribute set of applications requiring clone mounts.";
+      type = lib.types.attrsOf (
+        lib.types.submodule (
+          { name, ... }:
+          {
+            options = {
+              enable = lib.mkEnableOption "enable this mount relationship";
+              allowOther = lib.mkOption {
+                type = lib.types.bool;
+                default = false;
+                description = "whether to allow other users or namespaces access to the mount";
+              };
+              group = lib.mkOption {
+                type = lib.types.str;
+                default = name;
+                description = "the group that owns the mount.";
+              };
+              sshKeySecret = lib.mkOption {
+                type = lib.types.nullOr lib.types.str;
+                default = null;
+              };
+              sshKeyPublic = lib.mkOption {
+                type = lib.types.nullOr lib.types.str;
+                default = null;
+              };
+            };
+          }
+        )
+      );
+    };
+  };
+
   config = lib.mkMerge [
     (lib.mkIf (config.networking.hostName == rcloneMount) {
-      sops.secrets = lib.mapAttrs' (
-        name: _:
-        lib.nameValuePair "sftp-${name}-ssh-key" {
-          key = "sftp/${name}-ssh-key";
-          owner = config.users.users.${name}.name;
-          inherit (config.users.users.${name}) group;
-        }
-      ) apps;
       systemd.services = lib.mapAttrs' (
         name: cfg: lib.nameValuePair "rclone-${name}" (mkRcloneMount ({ inherit name; } // cfg))
-      ) apps;
+      ) enabledMountpoints;
     })
     (lib.mkIf (config.networking.hostName == sftpHost) {
-      users = lib.mkMerge (map makeSftpUser (lib.attrNames apps));
+      users = lib.mkMerge (map makeSftpUser (lib.attrNames enabledMountpoints));
       services = {
-        openssh.extraConfig = lib.concatStringsSep "\n" (map makeSftpMatchBlock (lib.attrNames apps));
+        openssh.extraConfig = lib.concatStringsSep "\n" (
+          map makeSftpMatchBlock (lib.attrNames enabledMountpoints)
+        );
 
         sanoid = {
           enable = true;
@@ -127,7 +151,7 @@ in
           map (name: [
             "d /srv/sftp/apps/${name} 0755 root root - -"
             "d /srv/sftp/apps/${name}/files 0700 sftpuser-${name} sftpuser-${name} - -"
-          ]) (lib.attrNames apps)
+          ]) (lib.attrNames enabledMountpoints)
         )
       );
     })

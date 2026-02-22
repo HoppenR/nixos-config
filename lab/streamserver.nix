@@ -22,6 +22,11 @@ in
       };
     })
     (lib.mkIf (config.networking.hostName == server) {
+      lab.endpoints.hosts = {
+        "streams".caddy.extraConfig = ''
+          reverse_proxy 127.0.0.1:${toString config.services.streamserver.port}
+        '';
+      };
       sops = {
         secrets = {
           "streamserver-client-id".key = "streamserver/client-id";

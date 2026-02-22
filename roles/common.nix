@@ -13,10 +13,7 @@ in
 {
 
   imports = [
-    ./greetd.nix
-    ./openssh.nix
-    ./options.nix
-
+    ../lab
     inputs.streamserver.nixosModules.default
 
     inputs.home-manager.nixosModules.home-manager
@@ -84,7 +81,7 @@ in
     backupFileExtension = "backup";
     extraSpecialArgs = { inherit inputs; };
     users = {
-      ${config.lab.mainUser} = ../../home/common;
+      ${config.lab.mainUser} = ../home/common;
     };
   };
 
@@ -169,7 +166,7 @@ in
   };
 
   sops = {
-    defaultSopsFile = ../../secrets/secrets.yaml;
+    defaultSopsFile = ../secrets/secrets.yaml;
     # created by services.openssh.hostKeys
     age.sshKeyPaths = [ "/persist/etc/ssh/ssh_host_ed25519_key" ];
     secrets.user-password.neededForUsers = true;

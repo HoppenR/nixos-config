@@ -7,10 +7,19 @@
 let
   server = "skadi";
   clients = [ "rime" ];
+  isServer = config.networking.hostName == server;
+  isClient = lib.elem config.networking.hostName clients;
 in
 {
   config = lib.mkMerge [
-    (lib.mkIf (lib.elem config.networking.hostName clients) {
+    {
+      lab.rcloneMounts.services."syncthing" = {
+        enable = true;
+        sshKeyPublic = lib.mkIf config.lab.rcloneMounts.isMountHost ../keys/id_sftp_syncthing.pub;
+        sshKeySecret = lib.mkIf isServer config.sops.secrets."sftp-syncthing-ssh-key".path;
+      };
+    }
+    (lib.mkIf isClient {
       home-manager.users.${config.lab.mainUser} = {
         services.syncthing.enable = true;
       };
@@ -22,13 +31,21 @@ in
         ];
       };
     })
-    (lib.mkIf (config.networking.hostName == server) {
+    (lib.mkIf isServer {
+      networking.firewall.allowedTCPPorts = [ 8384 ];
       services.syncthing = {
         enable = true;
         configDir = "/var/lib/syncthing";
         dataDir = "/replicated/apps/syncthing/remote";
         guiAddress = "${topology.skadi.ipv4}:8384";
         openDefaultPorts = true;
+      };
+      sops.secrets = {
+        "sftp-syncthing-ssh-key" = {
+          key = "sftp/syncthing-ssh-key";
+          owner = config.users.users.syncthing.name;
+          inherit (config.users.users.syncthing) group;
+        };
       };
       systemd.services = {
         syncthing = {
@@ -40,7 +57,6 @@ in
       users.users.syncthing = {
         createHome = lib.mkForce false;
       };
-      networking.firewall.allowedTCPPorts = [ 8384 ];
     })
   ];
 }

@@ -22,6 +22,7 @@
                 hostname = lib.mkOption {
                   type = lib.types.str;
                   default = if name == "@" then config.networking.domain else "${name}.${config.networking.domain}";
+                  readOnly = true;
                 };
                 ingress = lib.mkOption {
                   type = lib.types.either lib.types.str (
@@ -51,7 +52,8 @@
                     default = true;
                   };
                   extraConfig = lib.mkOption {
-                    type = lib.types.str;
+                    type = lib.types.nullOr lib.types.str;
+                    default = null;
                   };
                 };
               };

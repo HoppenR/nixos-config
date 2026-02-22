@@ -7,7 +7,7 @@
 }:
 {
   imports = [
-    ../common
+    ./common.nix
   ];
 
   # P2425D config:
@@ -40,7 +40,7 @@
 
   home-manager = {
     users = {
-      ${config.lab.mainUser} = import ../../home/workstation;
+      ${config.lab.mainUser} = import ../home/workstation;
     };
   };
 
@@ -108,7 +108,7 @@
       ]
     );
     overlays = [
-      (import ../../overlays/kitty-single.nix)
+      (import ../overlays/kitty-single.nix)
       inputs.streamshower.overlays.default
     ];
   };

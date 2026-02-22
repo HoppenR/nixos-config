@@ -1,8 +1,7 @@
 { ... }:
 {
   imports = [
-    ../../roles/logic
-    ../../relations
+    ../../roles/logic.nix
     ./hardware-configuration.nix
   ];
 
