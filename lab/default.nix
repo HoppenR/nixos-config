@@ -5,8 +5,9 @@
     ./greetd.nix
     ./openssh.nix
     # Relations
+    ./relations.nix
     ./rclone-mount.nix
-    ./streamserver.nix
+    ./streams.nix
     ./syncthing.nix
     ./zfs-replication.nix
     # Specialized

@@ -2,23 +2,26 @@
   lib,
   config,
   pkgs,
+  relations,
   ...
 }:
-
+let
+  rel = relations.rcloneMounts;
+in
 {
   options.lab.joplin = {
     enable = lib.mkEnableOption "enable joplin lab configuration";
   };
 
   config = lib.mkMerge [
-    {
+    (lib.mkIf rel.isActive {
       lab.rcloneMounts.services."joplin" = {
         enable = true;
         allowOther = true;
-        sshKeyPublic = lib.mkIf config.lab.rcloneMounts.isMountHost ../keys/id_sftp_joplin.pub;
-        sshKeySecret = lib.mkIf config.lab.joplin.enable config.sops.secrets."sftp-joplin-ssh-key".path;
+        sshKeyPublic = lib.mkIf rel.isHost ../keys/id_sftp_joplin.pub;
+        sshKeySecret = lib.mkIf rel.isClient config.sops.secrets."sftp-joplin-ssh-key".path;
       };
-    }
+    })
     (lib.mkIf config.lab.joplin.enable {
       lab = {
         endpoints.hosts = {
@@ -121,6 +124,9 @@
           requires = [
             "rclone-joplin.service"
             "postgresql.service"
+          ];
+          bindsTo = [
+            "rclone-joplin.service"
           ];
         };
       };

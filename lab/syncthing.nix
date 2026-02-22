@@ -1,25 +1,24 @@
 {
   lib,
   config,
-  topology,
+  inventory,
+  relations,
   ...
 }:
 let
-  server = "skadi";
-  clients = [ "rime" ];
-  isServer = config.networking.hostName == server;
-  isClient = lib.elem config.networking.hostName clients;
+  relSync = relations.syncthing;
+  relMount = relations.rcloneMounts;
 in
 {
   config = lib.mkMerge [
-    {
+    (lib.mkIf relMount.isActive {
       lab.rcloneMounts.services."syncthing" = {
         enable = true;
-        sshKeyPublic = lib.mkIf config.lab.rcloneMounts.isMountHost ../keys/id_sftp_syncthing.pub;
-        sshKeySecret = lib.mkIf isServer config.sops.secrets."sftp-syncthing-ssh-key".path;
+        sshKeyPublic = lib.mkIf relMount.isHost ../keys/id_sftp_syncthing.pub;
+        sshKeySecret = lib.mkIf relMount.isClient config.sops.secrets."sftp-syncthing-ssh-key".path;
       };
-    }
-    (lib.mkIf isClient {
+    })
+    (lib.mkIf (relSync.isActive && relSync.isClient) {
       home-manager.users.${config.lab.mainUser} = {
         services.syncthing.enable = true;
       };
@@ -31,13 +30,13 @@ in
         ];
       };
     })
-    (lib.mkIf isServer {
+    (lib.mkIf (relSync.isActive && relSync.isHost) {
       networking.firewall.allowedTCPPorts = [ 8384 ];
       services.syncthing = {
         enable = true;
         configDir = "/var/lib/syncthing";
         dataDir = "/replicated/apps/syncthing/remote";
-        guiAddress = "${topology.skadi.ipv4}:8384";
+        guiAddress = "${inventory.${relSync.host}.ipv4}:8384";
         openDefaultPorts = true;
       };
       sops.secrets = {
@@ -51,6 +50,7 @@ in
         syncthing = {
           after = [ "rclone-syncthing.service" ];
           requires = [ "rclone-syncthing.service" ];
+          bindsTo = [ "rclone-syncthing.service" ];
           serviceConfig.StateDirectory = "syncthing";
         };
       };

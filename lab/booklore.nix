@@ -2,8 +2,12 @@
   lib,
   config,
   pkgs,
+  relations,
   ...
 }:
+let
+  rel = relations.rcloneMounts;
+in
 {
   options.lab.booklore = {
     enable = lib.mkEnableOption "enable booklore lab configuration";
@@ -15,14 +19,14 @@
   };
 
   config = lib.mkMerge [
-    {
+    (lib.mkIf rel.isActive {
       lab.rcloneMounts.services."booklore" = {
         enable = true;
         allowOther = true;
-        sshKeyPublic = lib.mkIf config.lab.rcloneMounts.isMountHost ../keys/id_sftp_booklore.pub;
-        sshKeySecret = lib.mkIf config.lab.booklore.enable config.sops.secrets."sftp-booklore-ssh-key".path;
+        sshKeyPublic = lib.mkIf rel.isHost ../keys/id_sftp_booklore.pub;
+        sshKeySecret = lib.mkIf rel.isClient config.sops.secrets."sftp-booklore-ssh-key".path;
       };
-    }
+    })
     (lib.mkIf config.lab.booklore.enable {
       lab = {
         endpoints.hosts = {
@@ -133,6 +137,9 @@
           requires = [
             "rclone-booklore.service"
             "mysql.service"
+          ];
+          bindsTo = [
+            "rclone-booklore.service"
           ];
         };
       };

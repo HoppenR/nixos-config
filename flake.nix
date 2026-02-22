@@ -36,13 +36,13 @@
     let
       identities = import ./identities.nix;
       system = "x86_64-linux";
-      topology = import ./topology.nix;
+      inventory = import ./inventory.nix;
       specialArgs = {
         inherit
           identities
           inputs
           system
-          topology
+          inventory
           ;
       };
     in

@@ -4,11 +4,11 @@
   inputs,
   lib,
   pkgs,
-  topology,
+  inventory,
   ...
 }:
 let
-  machine = topology.${config.networking.hostName};
+  machine = inventory.${config.networking.hostName};
 in
 {
 
@@ -103,7 +103,9 @@ in
       interface = "lan0";
     };
     nftables.enable = true;
-    hosts = (lib.mapAttrs' (hostName: hostData: lib.nameValuePair hostData.ipv4 [ hostName ]) topology);
+    hosts = (
+      lib.mapAttrs' (hostName: hostData: lib.nameValuePair hostData.ipv4 [ hostName ]) inventory
+    );
     interfaces.lan0 = {
       ipv4.addresses = [
         {
@@ -148,7 +150,7 @@ in
           hostData.ipv4
         ];
         publicKey = hostData.publicKey;
-      }) (lib.filterAttrs (hostName: hostData: hostData ? publicKey) topology);
+      }) (lib.filterAttrs (hostName: hostData: hostData ? publicKey) inventory);
       extraConfig =
         let
           mainuserHome = config.home-manager.users.${config.lab.mainUser};

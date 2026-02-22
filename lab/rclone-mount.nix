@@ -2,13 +2,15 @@
   pkgs,
   lib,
   config,
-  topology,
+  inventory,
+  relations,
   ...
 }:
 let
-  rcloneMount = "skadi";
-  sftpHost = "hoddmimir";
-  sftpHostNode = topology.${sftpHost};
+  rel = relations.rcloneMounts;
+  # NOTE: filesystem expectations
+  # Expects on mountHost:   /replicated/apps/ | {name}/remote owned by {name}
+  # Expects on mountClient: /srv/sftp/apps/{name} | /files owned by sftp-{name}
 
   mkRcloneMount =
     {
@@ -30,7 +32,7 @@ let
         ExecStart =
           let
             args = [
-              ":sftp,host=${sftpHostNode.ipv4},user=sftpuser-${name},key_file=${sshKeySecret}:/files"
+              ":sftp,host=${inventory.${rel.host}.ipv4},user=sftpuser-${name},key_file=${sshKeySecret}:/files"
               "/replicated/apps/${name}/remote"
               "--config=/dev/null"
               "--vfs-cache-mode=full"
@@ -62,13 +64,13 @@ let
       X11Forwarding no
   '';
 
-  makeSftpUser = name: {
+  makeSftpUser = name: cfg: {
     groups."sftpuser-${name}" = { };
     users."sftpuser-${name}" = {
       isSystemUser = true;
       home = "/"; # Note that this is relative to the ChrootDirectory
       group = "sftpuser-${name}";
-      openssh.authorizedKeys.keyFiles = [ ../keys/id_sftp_${name}.pub ];
+      openssh.authorizedKeys.keyFiles = [ cfg.sshKeyPublic ];
     };
   };
 
@@ -76,12 +78,6 @@ let
 in
 {
   options.lab.rcloneMounts = {
-    isMountHost = lib.mkOption {
-      type = lib.types.bool;
-      default = config.networking.hostName == sftpHost;
-      description = "convenience value to conditionally pass ssh public key";
-      readOnly = true;
-    };
     services = lib.mkOption {
       default = { };
       description = "attribute set of applications requiring clone mounts.";
@@ -106,7 +102,7 @@ in
                 default = null;
               };
               sshKeyPublic = lib.mkOption {
-                type = lib.types.nullOr lib.types.str;
+                type = lib.types.nullOr lib.types.path;
                 default = null;
               };
             };
@@ -116,44 +112,46 @@ in
     };
   };
 
-  config = lib.mkMerge [
-    (lib.mkIf (config.networking.hostName == rcloneMount) {
-      systemd.services = lib.mapAttrs' (
-        name: cfg: lib.nameValuePair "rclone-${name}" (mkRcloneMount ({ inherit name; } // cfg))
-      ) enabledMountpoints;
-    })
-    (lib.mkIf (config.networking.hostName == sftpHost) {
-      users = lib.mkMerge (map makeSftpUser (lib.attrNames enabledMountpoints));
-      services = {
-        openssh.extraConfig = lib.concatStringsSep "\n" (
-          map makeSftpMatchBlock (lib.attrNames enabledMountpoints)
-        );
+  config = lib.mkIf rel.isActive (
+    lib.mkMerge [
+      (lib.mkIf rel.isClient {
+        systemd.services = lib.mapAttrs' (
+          name: cfg: lib.nameValuePair "rclone-${name}" (mkRcloneMount ({ inherit name; } // cfg))
+        ) enabledMountpoints;
+      })
+      (lib.mkIf rel.isHost {
+        users = lib.mkMerge (lib.mapAttrsToList makeSftpUser enabledMountpoints);
+        services = {
+          openssh.extraConfig = lib.concatStringsSep "\n" (
+            map makeSftpMatchBlock (lib.attrNames enabledMountpoints)
+          );
 
-        sanoid = {
-          enable = true;
-          datasets = {
-            "holt/replicated/apps" = {
-              autosnap = true;
-              autoprune = true;
-              recursive = true;
+          sanoid = {
+            enable = true;
+            datasets = {
+              "holt/replicated/apps" = {
+                autosnap = true;
+                autoprune = true;
+                recursive = true;
 
-              hourly = 0;
-              daily = 30;
-              weekly = 4;
-              monthly = 6;
-              yearly = 0;
+                hourly = 0;
+                daily = 30;
+                weekly = 4;
+                monthly = 6;
+                yearly = 0;
+              };
             };
           };
         };
-      };
-      systemd.tmpfiles.rules = (
-        lib.concatLists (
-          map (name: [
-            "d /srv/sftp/apps/${name} 0755 root root - -"
-            "d /srv/sftp/apps/${name}/files 0700 sftpuser-${name} sftpuser-${name} - -"
-          ]) (lib.attrNames enabledMountpoints)
-        )
-      );
-    })
-  ];
+        systemd.tmpfiles.rules = (
+          lib.concatLists (
+            map (name: [
+              "d /srv/sftp/apps/${name} 0755 root root - -"
+              "d /srv/sftp/apps/${name}/files 0700 sftpuser-${name} sftpuser-${name} - -"
+            ]) (lib.attrNames enabledMountpoints)
+          )
+        );
+      })
+    ]
+  );
 }
