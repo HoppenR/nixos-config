@@ -37,6 +37,8 @@
           inet_interfaces = "loopback-only";
           mynetworks = [ "127.0.0.0/8" ];
 
+          mailbox_size_limit = 51200000;
+          message_size_limit = 51200000;
           relayhost = [ "[smtp.protonmail.ch]:587" ];
           smtp_generic_maps = "inline:{ { root@${config.networking.hostName} = contact@${config.networking.domain} } }";
           smtp_sasl_auth_enable = "yes";

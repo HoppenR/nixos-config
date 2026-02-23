@@ -75,6 +75,9 @@
           vim.opt.listchars = { extends = '▸', nbsp = '◇', tab = '│ ', trail = '∘', leadmultispace = '│   ' }
           vim.opt.matchpairs = { '(:)', '{:}', '[:]', '<:>', '«:»' }
 
+          vim.keymap.set('n', '<M-C-n>', '<cmd>cnext<CR>')
+          vim.keymap.set('n', '<M-C-p>', '<cmd>cprevious<CR>')
+
           vim.diagnostic.config({
             virtual_text = true,
             virtual_lines = false,

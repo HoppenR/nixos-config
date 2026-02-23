@@ -8,16 +8,6 @@
     ./common.nix
   ];
 
-  boot = {
-    # TODO: look into kernel params for ZFS ARC when I have a better machine
-    # kernelParams = [
-    #   # 4GiB = 4 * 1024 * 1024 * 1024 = 4294967296 byte
-    #   "zfs.zfs_arc_max=4294967296"
-    #   # 2GiB = 2 * 1024 * 1024 * 1024 = 2147483600 byte
-    #   "zfs.zfs_arc_min=2147483648"
-    # ];
-  };
-
   console.colors = lib.attrValues {
     c01_black = "1a1c19";
     c02_red = "8b2635";

@@ -35,14 +35,14 @@
     { nixpkgs, ... }@inputs:
     let
       identities = import ./identities.nix;
-      system = "x86_64-linux";
       inventory = import ./inventory.nix;
+      system = "x86_64-linux";
       specialArgs = {
         inherit
           identities
           inputs
-          system
           inventory
+          system
           ;
       };
     in

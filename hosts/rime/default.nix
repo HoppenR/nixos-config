@@ -7,7 +7,7 @@
 
   boot = {
     zfs = {
-      forceImportRoot = false;
+      forceImportRoot = true;
       extraPools = [ "tank" ];
     };
   };

@@ -207,8 +207,6 @@
           bindkey -M viins      '^[OB' history-beginning-search-forward
           bindkey -M viins      '^[OF' end-of-line
           bindkey -M viins      '^[OH' beginning-of-line
-          bindkey -M viins      '^a'   cd-show
-          bindkey -M viins      '^g'   cdstack-menu
           bindkey -M viins      '§'    closest-history-match-accept
           bindkey -M visual     '¤'    edit-command-line
 

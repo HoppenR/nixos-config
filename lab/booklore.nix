@@ -95,7 +95,7 @@ in
         ];
         pull = "newer";
         extraOptions = [
-          "--network=pasta:--tcp-ports,${toString config.lab.booklore.port},--tcp-ns,${toString config.services.mysql.settings.mysqld.port}"
+          "--network=pasta:--tcp-ports,${toString config.lab.booklore.port},--tcp-ns,${toString config.services.mysql.settings.mysqld.port},--tcp-ns,${toString config.lab.postfix.port}"
           "--storage-opt=overlay.mount_program=${pkgs.fuse-overlayfs}/bin/fuse-overlayfs"
           "--storage-opt=overlay.mountopt=nodev,metacopy=on"
           "--user=0:0"
@@ -122,8 +122,15 @@ in
                 config.sops.secrets."mysql-booklore-password".path
               })';"
               echo "GRANT ALL PRIVILEGES ON booklore.* TO 'booklore'@'127.0.0.1';"
+              echo "INSERT INTO booklore.email_provider_v2
+                (user_id, name, host, port, username, password, from_address, auth, start_tls, is_default, shared)
+                VALUES (1, 'Postfix', '127.0.0.1', ${toString config.lab.postfix.port}, \"\", \"\", 'Booklore Service <contact@${config.networking.domain}>', 0, 0, 1, 1)
+                ON DUPLICATE KEY UPDATE
+                  host = VALUES(host),
+                  port = VALUES(port),
+                  from_address = VALUES(from_address);"
               echo "FLUSH PRIVILEGES;"
-            ) | ${config.services.mysql.package}/bin/mysql -N
+            ) | ${config.services.mysql.package}/bin/mariadb -N
           '';
           restartTriggers = [
             config.sops.secrets."mysql-booklore-password".path
