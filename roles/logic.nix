@@ -45,6 +45,7 @@
   lab = {
     booklore.enable = true;
     joplin.enable = true;
+    nextcloud.enable = true;
     openssh.enable = true;
     vaultwarden.enable = true;
     endpoints = {
@@ -71,6 +72,8 @@
 
   services = {
     pipewire.enable = false;
+    # Nginx is fairly ingrained into a lot of modules, so they mkDefault true
+    nginx.enable = lib.mkForce false;
   };
 
   programs.fuse.userAllowOther = true;

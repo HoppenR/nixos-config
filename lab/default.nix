@@ -8,13 +8,13 @@
     ./relations.nix
     ./rclone-mount.nix
     ./streams.nix
-    ./syncthing.nix
     ./zfs-replication.nix
     # Specialized
     ./booklore.nix
     ./endpoints
     ./joplin.nix
     ./mysql.nix
+    ./nextcloud.nix
     ./postfix.nix
     ./postgres.nix
     ./vaultwarden.nix

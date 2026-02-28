@@ -15,11 +15,6 @@ let
       clients = [ "rime" ];
       host = "skadi";
     };
-    syncthing = {
-      enabled = true;
-      clients = [ "rime" ];
-      host = "skadi";
-    };
     zfsReplication = {
       enabled = true;
       clients = [ "skadi" ];

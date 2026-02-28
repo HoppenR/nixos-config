@@ -84,6 +84,31 @@
     };
   };
 
+  security = {
+    polkit = {
+      debug = true;
+      extraConfig = ''
+        polkit.addRule(function(action, subject) {
+          polkit.log("user " +  subject.user + " is attempting action " + action.id + " from PID " + subject.pid);
+        });
+
+        polkit.addRule(function(action, subject) {
+          if (action.id == "org.freedesktop.policykit.exec") {
+            return polkit.Result.AUTH_ADMIN_KEEP;
+          }
+        });
+
+        polkit.addRule(function(action, subject) {
+          if (action.id.indexOf("org.freedesktop.systemd1.") == 0) {
+            return polkit.Result.AUTH_ADMIN_KEEP;
+          }
+        });
+      '';
+    };
+    run0.enableSudoAlias = true;
+    sudo.enable = false;
+  };
+
   hardware = {
     i2c = {
       enable = true;
@@ -102,13 +127,11 @@
     config.allowUnfreePredicate = (
       pkg:
       builtins.elem (lib.getName pkg) [
-        "discord"
         "steam"
         "steam-unwrapped"
       ]
     );
     overlays = [
-      (import ../overlays/kitty-single.nix)
       inputs.streamshower.overlays.default
     ];
   };

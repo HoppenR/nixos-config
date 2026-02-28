@@ -26,10 +26,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
     };
-    # run0-sudo-shim = {
-    #   url = "github:lordgrimmauld/run0-sudo-shim";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    # };
   };
   outputs =
     { nixpkgs, ... }@inputs:

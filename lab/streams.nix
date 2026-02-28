@@ -16,7 +16,7 @@ in
           wayland.windowManager.hyprland = {
             settings = {
               bind = [
-                "$mod_apps, s, exec, $quickterm ${lib.getExe pkgs.streamshower} -a https://streams.${config.networking.domain}/stream-data"
+                "$mod_apps, s, exec, $terminal start -- ${lib.getExe pkgs.streamshower} -a https://streams.${config.networking.domain}/stream-data"
               ];
             };
           };

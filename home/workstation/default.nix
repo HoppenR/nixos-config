@@ -55,7 +55,6 @@ in
 
       inherit (pkgs)
         ddcutil
-        discord
         hyprshutdown
         koreader
         libnotify
@@ -64,9 +63,15 @@ in
         wl-clipboard
         ;
     };
+    pointerCursor = {
+      enable = true;
+      package = pkgs.phinger-cursors;
+      name = "phinger-cursors-dark";
+      hyprcursor.enable = true;
+    };
     sessionVariables = {
       BROWSER = "firefox";
-      TERMINAL = "kitty";
+      TERMINAL = "wezterm";
     };
     stateVersion = "25.11";
   };
@@ -143,7 +148,7 @@ in
     };
     joplin-desktop = {
       enable = true;
-      general.editor = "${lib.getExe pkgs.kitty} --execute ${lib.getExe config.programs.neovim.finalPackage}";
+      general.editor = "${lib.getExe pkgs.wezterm} start -- ${lib.getExe config.programs.neovim.finalPackage}";
       extraConfig = {
         "sync.9.path" = "https://joplin.${osConfig.networking.domain}";
         "sync.9.username" = "christofferlundell@protonmail.com";
@@ -153,53 +158,92 @@ in
         target = "joplin-server";
       };
     };
-    kitty = {
+    wezterm = {
       enable = true;
-      shellIntegration = {
-        enableZshIntegration = true;
-      };
-      settings = {
-        font_family = "monospace";
-        font_size = 17;
-        disable_ligatures = "cursor";
-        scrollback_lines = 5000;
-        enable_audio_bell = false;
-        visual_bell_duration = 0.5;
-        visual_bell_color = "black";
-        window_alert_on_bell = true;
-        remember_window_size = false;
-        tab_bar_edge = "top";
-        tab_bar_style = "powerline";
-        tab_bar_align = "left";
-        tab_bar_min_tabs = 1;
-        tab_title_template = "{index}: {tab.active_exe}";
-        background = "#1a1b26";
-        background_opacity = 0.9;
-        "map ctrl+alt+1" = "first_window";
-        "map ctrl+alt+2" = "second_window";
-        "map ctrl+alt+3" = "third_window";
-        "map kitty_mod+t" = "new_tab_with_cwd";
-        "map kitty_mod+y" = "new_tab";
-        "map alt+1" = "goto_tab 1";
-        "map alt+2" = "goto_tab 2";
-        "map alt+3" = "goto_tab 3";
-        "map alt+4" = "goto_tab 4";
-        cursor_trail = 1;
-        cursor_trail_decay = "0.1 0.1";
-        cursor_trail_start_threshold = 2;
-      };
+      extraConfig = /* lua */ ''
+        local act = wezterm.action
+        wezterm.on('trigger-less-with-scrollback', function(window, pane)
+          local dims = pane:get_dimensions()
+          local text = pane:get_lines_as_escapes(dims.scrollback_rows)
+          local name = os.tmpname()
+          local f = assert(io.open(name, 'w+'))
+          f:write(text)
+          f:flush()
+          f:close()
+          window:perform_action(act.SplitPane {
+            direction = "Down",
+            size = { Percent = 95 },
+            command = {
+              args = {
+                'less',
+                '--force',
+                '--chop-long-lines',
+                '--RAW-CONTROL-CHARS',
+                '+G',
+                name,
+              },
+            },
+          }, pane)
+          wezterm.sleep_ms(1000)
+          os.remove(name)
+        end)
+
+        wezterm.on('format-window-title', function(tab, pane, tabs, panes, config)
+          local user_vars = tab.active_pane.user_vars
+          local title = tab.active_pane.title
+          local nix_shell = user_vars.IN_NIX_SHELL
+          if nix_shell and nix_shell ~= "" then
+              title = ' ' .. title
+          end
+          return title
+        end)
+
+        return {
+          font = wezterm.font("monospace"),
+          font_size = 17.0,
+          color_scheme = "Tokyo Night",
+          window_background_opacity = 0.9,
+          text_background_opacity = 1.0,
+          audible_bell = "Disabled",
+          visual_bell = {
+            fade_in_duration_ms = 75,
+            fade_out_duration_ms = 425,
+            target = 'CursorColor',
+          },
+          scrollback_lines = 5000,
+          enable_tab_bar = true,
+          use_fancy_tab_bar = false,
+          tab_bar_at_bottom = false,
+          hide_tab_bar_if_only_one_tab = false,
+          keys = {
+            { key = 't', mods = 'CTRL|SHIFT', action = act.SpawnTab 'DefaultDomain' },
+            { key = 'y', mods = 'CTRL|SHIFT', action = act.SpawnTab 'CurrentPaneDomain' },
+            { key = '1', mods = 'ALT', action = act.ActivateTab(0) },
+            { key = '2', mods = 'ALT', action = act.ActivateTab(1) },
+            { key = '3', mods = 'ALT', action = act.ActivateTab(2) },
+            { key = '4', mods = 'ALT', action = act.ActivateTab(3) },
+            { key = 'H', mods = 'CTRL|SHIFT', action = act.EmitEvent 'trigger-less-with-scrollback' },
+          },
+        }
+      '';
     };
     obs-studio = {
       enable = true;
     };
     zsh = {
+      initContent = /* zsh */ ''
+        function reset_prog_title() {
+          printf "\033]1337;SetUserVar=%s=%s\007" "IN_NIX_SHELL" "$(echo -n "$IN_NIX_SHELL" | base64)"
+          print -Pn "\e]2;%~\a"
+        }
+        add-zsh-hook precmd reset_prog_title
+      '';
       dirHashes = {
         nix = "/persist/nixos";
         personal = "${config.home.homeDirectory}/Projects/personal";
       };
       shellAliases = {
         run0 = "${pkgs.systemd}/bin/run0 --background='48;2;0;95;96' --setenv=TERM=xterm-256color --via-shell";
-        ssh = "${pkgs.kitty}/bin/kitten ssh";
       };
     };
   };
@@ -274,6 +318,9 @@ in
           }
         ];
       };
+    };
+    nextcloud-client = {
+      enable = true;
     };
   };
 
@@ -371,8 +418,7 @@ in
       "$mod_apps" = "MOD3";
       "$mod_move" = "SUPER";
       "$mod_hypr" = "MOD5";
-      "$terminal" = "${lib.getExe pkgs.kitty}";
-      "$quickterm" = "${pkgs.kitty}/bin/kitten quick-access-terminal";
+      "$terminal" = "${lib.getExe pkgs.wezterm}";
       bind = [
         "$mod_apps, RETURN, exec, $terminal"
         "$mod_apps, a, exec, ${lib.getExe pkgs.pavucontrol}"
@@ -497,6 +543,13 @@ in
         terminal = false;
         categories = [ "Utility" ];
       };
+      "wezterm-open" = {
+        name = "Wezterm Open Directory";
+        genericName = "Terminal Emulator";
+        exec = "${lib.getExe pkgs.wezterm} start --cwd %f";
+        terminal = false;
+        mimeType = [ "inode/directory" ];
+      };
     };
     configFile = {
       "hypr/hyprtoolkit.conf".text = ''
@@ -521,7 +574,7 @@ in
       enable = true;
       defaultApplications = {
         "text/*" = [ "nvim.desktop" ];
-        "inode/directory" = [ "kitty-open.desktop" ];
+        "inode/directory" = [ "wezterm-open.desktop" ];
       };
     };
   };

@@ -17,7 +17,6 @@ in
     inputs.streamserver.nixosModules.default
 
     inputs.home-manager.nixosModules.home-manager
-    # inputs.run0-sudo-shim.nixosModules.default
     inputs.sops-nix.nixosModules.sops
   ];
 
@@ -70,6 +69,14 @@ in
   };
 
   fonts.packages = builtins.attrValues {
+    inherit (pkgs)
+      fira-code
+      cozette
+      noto-fonts
+      ;
+    inherit (pkgs.maple-mono)
+      NF
+      ;
     inherit (pkgs.nerd-fonts)
       jetbrains-mono
       ;
@@ -182,11 +189,7 @@ in
         cue = true;
       };
     };
-    polkit = {
-      enable = true;
-    };
-    # run0-sudo-shim.enable = true;
-    # sudo.enable = false;
+    polkit.enable = true;
   };
 
   services = {

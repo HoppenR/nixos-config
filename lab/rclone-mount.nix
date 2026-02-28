@@ -9,14 +9,16 @@
 let
   rel = relations.rcloneMounts;
   # NOTE: filesystem expectations
-  # Expects on mountHost:   /replicated/apps/ | {name}/remote owned by {name}
+  # Expects on mountHost:   /replicated/apps/ | {name}/{mountpoint} owned by {name}
   # Expects on mountClient: /srv/sftp/apps/{name} | /files owned by sftp-{name}
+  # (^auto)
 
   mkRcloneMount =
     {
       name,
       group ? name,
-      allowOther ? true,
+      allowOther,
+      mountpoint,
       sshKeySecret,
       ...
     }:
@@ -33,9 +35,11 @@ let
           let
             args = [
               ":sftp,host=${inventory.${rel.host}.ipv4},user=sftpuser-${name},key_file=${sshKeySecret}:/files"
-              "/replicated/apps/${name}/remote"
+              "/replicated/apps/${name}/${mountpoint}"
               "--config=/dev/null"
               "--vfs-cache-mode=full"
+              "--dir-perms=0770"
+              "--file-perms=0660"
               "--vfs-cache-max-size=4Gi"
               "--vfs-write-back=5m"
               "--cache-dir=%C/rclone-${name}"
@@ -104,6 +108,10 @@ in
               sshKeyPublic = lib.mkOption {
                 type = lib.types.nullOr lib.types.path;
                 default = null;
+              };
+              mountpoint = lib.mkOption {
+                type = lib.types.str;
+                default = "remote";
               };
             };
           }

@@ -82,7 +82,7 @@
             tooltip-format = " {device_alias}";
             tooltip-format-connected = "{device_enumerate}";
             tooltip-format-enumerate-connected = " {device_alias}";
-            on-click = "${lib.getExe pkgs.kitty} --execute bluetoothctl";
+            on-click = "${lib.getExe pkgs.wezterm} start -- bluetoothctl";
             menu = "on-click-right";
             menu-file = pkgs.writeText "waybar-bluetooth-menu.xml" /* xml */ ''
               <?xml version="1.0" encoding="UTF-8"?>
@@ -144,7 +144,7 @@
               "▇"
               "█"
             ];
-            on-click = "${lib.getExe pkgs.kitty} --execute ${lib.getExe pkgs.btop} --preset 1";
+            on-click = "${lib.getExe pkgs.wezterm} start -- ${lib.getExe pkgs.btop} --preset 1";
           };
           "custom/spacer" = {
             format = "│";
@@ -243,7 +243,7 @@
               print $json->encode({ text => " $text", class => $class, tooltip => join("\n", @tooltip) });
             '';
             interval = 60;
-            on-click = "${lib.getExe pkgs.kitty} --execute ${pkgs.systemd}/bin/systemctl --user status";
+            on-click = "${lib.getExe pkgs.wezterm} start -- ${pkgs.systemd}/bin/systemctl --user status";
             return-type = "json";
           };
           idle_inhibitor = {
@@ -261,7 +261,7 @@
             format-disconnected = "󱘖 no lan";
             format-ethernet = "󰌘 {ifname}";
             interface = "lan0";
-            on-click = "${lib.getExe pkgs.kitty} --execute ${lib.getExe pkgs.btop} --preset 3";
+            on-click = "${lib.getExe pkgs.wezterm} start -- ${lib.getExe pkgs.btop} --preset 3";
             tooltip-format = ''
               󰈀 {ifname} via {gwaddr}
               IP: {ipaddr}/{cidr}'';
@@ -276,7 +276,7 @@
               "󰤨"
             ];
             interface = "laptop-wifi";
-            on-click = "${lib.getExe pkgs.kitty} --execute ${pkgs.iwd}/bin/iwctl";
+            on-click = "${lib.getExe pkgs.wezterm} start -- ${pkgs.iwd}/bin/iwctl";
             tooltip-format = ''
                {essid} ({signalStrength}%)
               IP: {ipaddr}/{cidr}

@@ -26,14 +26,6 @@
         unzip
         wget
         ;
-
-      inherit (pkgs.maple-mono // pkgs)
-        NF
-        cozette
-        fira-code
-        jetbrains-mono
-        noto-fonts
-        ;
     };
   };
 
@@ -275,7 +267,23 @@
             (( ahead > 0 )) && hook_com[misc]+="⇡$ahead"
             (( behind > 0 )) && hook_com[misc]+="⇣$behind"
           }
-
+          function zle-keymap-select() {
+            cursor_block='\e[2 q'
+            cursor_beam='\e[5 q'
+            if [[ $KEYMAP == vicmd ]] ||
+                [[ $1 = 'block' ]]; then
+                  echo -ne $cursor_block
+              elif [[ $KEYMAP == main ]] ||
+                  [[ $KEYMAP == viins ]] ||
+                  [[ $KEYMAP = "" ]] ||
+                  [[ $1 = 'beam' ]]; then
+                      echo -ne $cursor_beam
+            fi
+          }
+          zle-line-init() {
+            zle-keymap-select 'beam'
+          }
+          zle -N zle-keymap-select
           zle -N edit-command-line
           zle -N closest-history-match-accept _closest-history-match-accept
           zle -N vi-yank-arg _vi-yank-arg
@@ -289,7 +297,6 @@
           "m:{a-z-}={A-Z_} l:|=* r:|=*" # then try substring-matching
           "m:{a-z-}={A-Z_} r:|?=**" # then try fuzzy finding
         ];
-        DISABLE_AUTO_TITLE = true;
         KEYTIMEOUT = 1;
         PROMPT = "\\$(_in_nix_shell)[%n@%m %F{2}%4(c:…/:)%3c%f\\$vcs_info_msg_0_]%F{2}%(?.$.?)%f ";
         RPROMPT = "%(?..%F{1}%?%f)";
