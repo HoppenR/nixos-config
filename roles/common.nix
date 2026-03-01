@@ -176,8 +176,10 @@ in
 
   sops = {
     defaultSopsFile = ../secrets/secrets.yaml;
-    # created by services.openssh.hostKeys
-    age.sshKeyPaths = [ "/persist/etc/ssh/ssh_host_ed25519_key" ];
+    age = {
+      keyFile = "/persist/var/lib/sops-nix/age-pq.txt";
+      sshKeyPaths = lib.mkForce [ ];
+    };
     secrets.user-password.neededForUsers = true;
   };
 
