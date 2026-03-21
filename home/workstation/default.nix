@@ -3,6 +3,7 @@
   lib,
   osConfig,
   pkgs,
+  identities,
   ...
 }:
 let
@@ -46,7 +47,7 @@ let
   ];
 in
 {
-  _module.args = { inherit writeZsh monitors; };
+  _module.args = { inherit monitors; };
   home = {
     packages = builtins.attrValues {
       inherit
@@ -61,6 +62,7 @@ in
         mpv
         scrcpy
         wl-clipboard
+        telegram-desktop
         ;
     };
     pointerCursor = {
@@ -151,7 +153,7 @@ in
       general.editor = "${lib.getExe pkgs.wezterm} start -- ${lib.getExe config.programs.neovim.finalPackage}";
       extraConfig = {
         "sync.9.path" = "https://joplin.${osConfig.networking.domain}";
-        "sync.9.username" = "christofferlundell@protonmail.com";
+        "sync.9.username" = identities.people.christoffer.email;
       };
       sync = {
         interval = "5m";
@@ -326,6 +328,10 @@ in
 
   systemd.user = {
     services = {
+      hyprlauncher = {
+        Install.WantedBy = lib.mkForce [ ];
+      };
+
       notification-logger = {
         Install = {
           WantedBy = [ "graphical-session.target" ];
@@ -342,7 +348,7 @@ in
                 | ${lib.getExe pkgs.jq} --unbuffered --compact-output --raw-output \
                   '.payload.data | [.[0], .[3], .[4]] | @tsv' \
                 | while IFS=$'\t' read -r app_name summary body; do
-              if [[ "$app_name" == discord ]]; then
+              if [[ "$app_name" == "Telegram Desktop" ]]; then
                 if [[ "$body" =~ 'Reacted (.*) to your (.*)' ]]; then
                   body_str=" $match[1] ($match[2])"
                 else
@@ -351,7 +357,7 @@ in
                 if [[ "$summary" == Kittykins ]]; then
                   print -r -- "<5>💜 $summary$body_str"
                 else
-                  print -r -- " $summary$body_str"
+                  print -r -- " $summary$body_str"
                 fi
               else
                 print -r -- "($app_name)🔔 $summary - $body"

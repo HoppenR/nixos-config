@@ -34,6 +34,7 @@ in
       globalConfig = ''
         servers {
           trusted_proxies static 127.0.0.1 ::1
+          client_ip_headers CF-Connecting-IP X-Forwarded-For
         }
       '';
       virtualHosts = lib.listToAttrs (
@@ -42,6 +43,10 @@ in
           lib.nameValuePair v.hostname {
             extraConfig = ''
               import ${config.sops.templates."caddy-dns-config".path}
+              header {
+                Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+                defer
+              }
               ${v.caddy.extraConfig}
             '';
           }

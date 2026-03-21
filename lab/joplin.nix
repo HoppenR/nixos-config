@@ -84,24 +84,23 @@ in
         ];
 
         environment = {
-          APP_PORT = "22300";
           APP_BASE_URL = "https://joplin.${config.networking.domain}";
-
+          APP_PORT = "22300";
           DB_CLIENT = "pg";
-          POSTGRES_HOST = "/run/postgresql";
-          POSTGRES_DATABASE = "joplin";
-          POSTGRES_USER = "joplin";
-
-          STORAGE_DRIVER = "Type=Filesystem; Path=/app/storage";
-
+          HEARTBEAT_MESSAGE_SCHEDULE = "0 * * * *";
+          LOG_LEVEL = "warn";
+          MAILER_AUTH_PASSWORD = "";
+          MAILER_AUTH_USER = "";
           MAILER_ENABLED = "1";
           MAILER_HOST = "127.0.0.1";
           MAILER_NOREPLY_EMAIL = "contact@${config.networking.domain}";
           MAILER_NOREPLY_NAME = "Joplin Service";
           MAILER_PORT = toString config.lab.postfix.port;
           MAILER_SECURITY = "none";
-          MAILER_AUTH_USER = "";
-          MAILER_AUTH_PASSWORD = "";
+          POSTGRES_DATABASE = "joplin";
+          POSTGRES_HOST = "/run/postgresql";
+          POSTGRES_USER = "joplin";
+          STORAGE_DRIVER = "Type=Filesystem; Path=/app/storage";
         };
       };
 

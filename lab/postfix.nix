@@ -34,7 +34,7 @@
       postfix = {
         enable = true;
         settings.main = {
-          inet_interfaces = "loopback-only";
+          inet_interfaces = lib.mkDefault "loopback-only";
           mynetworks = [ "127.0.0.0/8" ];
 
           mailbox_size_limit = 51200000;

@@ -1,5 +1,6 @@
 {
   config,
+  identities,
   inputs,
   lib,
   pkgs,
@@ -74,7 +75,7 @@
         init.defaultBranch = "main";
         user = {
           name = "Christoffer Lundell";
-          email = "christofferlundell@protonmail.com";
+          email = identities.people.christoffer.email;
         };
       };
     };

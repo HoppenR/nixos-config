@@ -124,8 +124,6 @@ in
           after = [ "nextcloud-notify_push.service" ];
           wants = [ "nextcloud-notify_push.service" ];
           serviceConfig = {
-            # TODO: use: "-" + config.services.nextcloud.notify_push.socketPath
-            #       instead of after+wants?
             ReadWritePaths = [ config.services.nextcloud.notify_push.socketPath ];
           };
         };

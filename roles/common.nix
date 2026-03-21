@@ -9,6 +9,7 @@
 }:
 let
   machine = inventory.${config.networking.hostName};
+  writeZsh = pkgs.writers.makeScriptWriter { interpreter = lib.getExe pkgs.zsh; };
 in
 {
 
@@ -19,6 +20,8 @@ in
     inputs.home-manager.nixosModules.home-manager
     inputs.sops-nix.nixosModules.sops
   ];
+
+  _module.args = { inherit writeZsh; };
 
   boot = {
     loader = {
@@ -86,7 +89,7 @@ in
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "backup";
-    extraSpecialArgs = { inherit inputs; };
+    extraSpecialArgs = { inherit inputs identities writeZsh; };
     users = {
       ${config.lab.mainUser} = ../home/common;
     };
@@ -191,7 +194,27 @@ in
         cue = true;
       };
     };
-    polkit.enable = true;
+    polkit = {
+      enable = true;
+      debug = true;
+      extraConfig = ''
+        polkit.addRule(function(action, subject) {
+          polkit.log("user " +  subject.user + " is attempting action " + action.id + " from PID " + subject.pid);
+        });
+
+        polkit.addRule(function(action, subject) {
+          if (action.id == "org.freedesktop.policykit.exec") {
+            return polkit.Result.AUTH_ADMIN_KEEP;
+          }
+        });
+
+        polkit.addRule(function(action, subject) {
+          if (action.id.indexOf("org.freedesktop.systemd1.") == 0) {
+            return polkit.Result.AUTH_ADMIN_KEEP;
+          }
+        });
+      '';
+    };
   };
 
   services = {

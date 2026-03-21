@@ -42,6 +42,7 @@
         domain = "vaultwarden.${config.networking.domain}";
         environmentFile = config.sops.templates."vaultwarden-env".path;
         config = {
+          IP_HEADER = "X-Forwarded-For";
           ROCKET_ADDRESS = "::1";
           ROCKET_PORT = 8222;
           SIGNUPS_ALLOWED = false;

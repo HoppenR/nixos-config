@@ -20,6 +20,11 @@ let
       clients = [ "skadi" ];
       host = "hoddmimir";
     };
+    zed = {
+      enabled = true;
+      clients = [ "hoddmimir" ];
+      host = "skadi";
+    };
   };
 
   hostName = config.networking.hostName;

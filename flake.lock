@@ -115,11 +115,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1771190420,
-        "narHash": "sha256-exiAJEIx3V7fS9ALop1H6UB6WJNhs6EwMoLhZp3Bq0M=",
+        "lastModified": 1774104435,
+        "narHash": "sha256-MLCCun9ELNFq5ZjgM487BHXaQ2vl1vX8vk/pZLxAe24=",
         "owner": "HoppenR",
         "repo": "streamserver",
-        "rev": "de5d03af580dad238649856cffcc2a72069bca44",
+        "rev": "e7631feeafca6cd972c3a6bdf6cddd626afde08a",
         "type": "github"
       },
       "original": {
@@ -138,11 +138,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1771190383,
-        "narHash": "sha256-aH6uJPedYysGuCThmrjURKJEylZkJt1Q/CMyKDuPuos=",
+        "lastModified": 1774107402,
+        "narHash": "sha256-qhrxuid7raBkXpRXJO/RXXHxq63+9Lk2O1m1A44Sjy8=",
         "owner": "HoppenR",
         "repo": "streamshower",
-        "rev": "34a66758b50823f9bb5abad10c6aea3fcbbcb1ce",
+        "rev": "d8fe6dd4ab320c7d6e691c7f31e03ab62113aa72",
         "type": "github"
       },
       "original": {

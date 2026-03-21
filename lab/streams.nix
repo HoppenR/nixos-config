@@ -3,6 +3,7 @@
   lib,
   config,
   relations,
+  writeZsh,
   ...
 }:
 let
@@ -11,12 +12,43 @@ in
 {
   config = lib.mkIf rel.isActive (
     lib.mkMerge [
+      {
+        sops = {
+          secrets = {
+            "streamserver-basic-auth-pass".key = "streamserver/basic-auth-pass";
+          };
+        };
+      }
       (lib.mkIf rel.isClient {
+        assertions = [
+          {
+            assertion = config.programs.hyprland.enable;
+            message = "Expected hyprland for streamshower keybind";
+          }
+        ];
+        sops = {
+          templates = {
+            "streamshower-env" = {
+              content = ''
+                STREAMS_BASIC_AUTH_PASS=${config.sops.placeholder."streamserver-basic-auth-pass"}
+                STREAMS_BASIC_AUTH_USER=hoppenr
+              '';
+              owner = config.lab.mainUser;
+            };
+          };
+        };
         home-manager.users.${config.lab.mainUser} = {
           wayland.windowManager.hyprland = {
             settings = {
               bind = [
-                "$mod_apps, s, exec, $terminal start -- ${lib.getExe pkgs.streamshower} -a https://streams.${config.networking.domain}/stream-data"
+                "$mod_apps, s, exec, $terminal start -- ${
+                  writeZsh "streamshower-wrapped" /* zsh */ ''
+                    declare -a env_vars
+                    env_vars=("''${(f)$(<"${config.sops.templates."streamshower-env".path}")}")
+                    export "''${env_vars[@]}"
+                    exec ${lib.getExe pkgs.streamshower} -a "https://streams.${config.networking.domain}/stream-data"
+                  ''
+                }"
               ];
             };
           };
@@ -36,9 +68,10 @@ in
           templates = {
             "streamserver-env" = {
               content = ''
-                USER_NAME=hoppenr
                 CLIENT_ID=${config.sops.placeholder."streamserver-client-id"}
                 CLIENT_SECRET=${config.sops.placeholder."streamserver-client-secret"}
+                STREAMS_BASIC_AUTH_PASS=${config.sops.placeholder."streamserver-basic-auth-pass"}
+                USER_NAME=hoppenr
               '';
             };
           };
@@ -48,6 +81,13 @@ in
           port = 8181;
           domain = config.networking.domain;
           environmentFile = config.sops.templates."streamserver-env".path;
+        };
+        systemd.services = {
+          streamserver = {
+            restartTriggers = [
+              config.sops.templates."streamserver-env".path
+            ];
+          };
         };
       })
     ]

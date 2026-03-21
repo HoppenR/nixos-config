@@ -342,7 +342,7 @@
                   print -r -- "$match[1]"
                   exit 0
                 fi
-                sleep 0.2
+                sleep 1.0
               done
               print -r -- "??"
             '';

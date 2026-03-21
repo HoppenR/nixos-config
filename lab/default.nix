@@ -8,6 +8,7 @@
     ./relations.nix
     ./rclone-mount.nix
     ./streams.nix
+    ./zed.nix
     ./zfs-replication.nix
     # Specialized
     ./booklore.nix
