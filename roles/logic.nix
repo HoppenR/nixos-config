@@ -56,10 +56,10 @@
           root * /replicated/web
           file_server browse
         '';
-        "ssh" = {
-          caddy.enable = false;
-          ingress = "ssh://127.0.0.1:${toString (builtins.head config.services.openssh.ports)}";
-        };
+        # "ssh" = {
+        #   caddy.enable = false;
+        #   ingress = "ssh://127.0.0.1:${toString (builtins.head config.services.openssh.ports)}";
+        # };
         "www".caddy.extraConfig = "redir https://${config.networking.domain}{uri}";
       };
     };
@@ -85,6 +85,7 @@
         containers = {
           newuidmap = "/run/wrappers/bin/newuidmap";
           newgidmap = "/run/wrappers/bin/newgidmap";
+          host_containers_internal_ip = "none";
         };
       };
     };

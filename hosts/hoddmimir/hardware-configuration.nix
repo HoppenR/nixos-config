@@ -31,6 +31,7 @@
   fileSystems."/home" =
     { device = "holt/safe/home";
       fsType = "zfs";
+      neededForBoot = true;
     };
 
   fileSystems."/srv/sftp/apps" =

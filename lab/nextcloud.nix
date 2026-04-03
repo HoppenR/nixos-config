@@ -3,6 +3,7 @@
   config,
   pkgs,
   relations,
+  inventory,
   ...
 }:
 let
@@ -15,6 +16,10 @@ in
       type = lib.types.port;
       default = 8081;
       readOnly = true;
+    };
+    machine = lib.mkOption {
+      type = (lib.types.addCheck lib.types.attrs (attrs: (attrs ? ipv4) && (attrs ? ipv6)));
+      description = "attribute set containing at least 'ipv4' and 'ipv6'";
     };
   };
 
@@ -82,11 +87,6 @@ in
             }
           '';
         };
-      };
-
-      networking.hosts = {
-        # Needed for push_notify
-        "127.0.0.1" = [ "cloud.${config.networking.domain}" ];
       };
 
       sops.secrets = {
@@ -200,6 +200,8 @@ in
             trusted_proxies = [
               "127.0.0.1"
               "::1"
+              inventory.${config.networking.hostName}.ipv4
+              inventory.${config.networking.hostName}.ipv6
             ];
           };
           config = {

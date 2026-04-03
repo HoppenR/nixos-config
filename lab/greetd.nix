@@ -5,8 +5,10 @@
   ...
 }:
 let
+  # TODO: switch to agreety? with a wrapper to print ascii art
+  #       or just getty with ascii as services.getty.helpLine
   sp = builtins.fromJSON "\"\\u2007\"";
-  greeingCommon = (
+  greetingCommon = (
     lib.strings.escapeShellArg ''
       ${sp}        | \| |_ _|\ \/ / (\_/)  / _ \/ __|        ${sp}
       ${sp}        | .`  | |  >  < (='.'=)| (_) \__ \        ${sp}
@@ -14,6 +16,13 @@ let
     ''
   );
   roleArt = {
+    bifrost = lib.strings.escapeShellArg ''
+      ${sp}    .  _  | _ (_) __| _ \/ _ \/ __|_   _|  _  .    ${sp}
+      ${sp}   /  / \ | _ < | _||   / (_) \__ \ | |   / \  \   ${sp}
+      ${sp}  |  |   ||___/_|_| |_|_\\___/|___/ |_|  |   |  |  ${sp}
+      ${sp}   \ ════════════════════════════════════════  /   ${sp}
+      ${sp}    .  .  .  .  .  .  .  .  .  .  .  .  .  .  .    ${sp}
+    '';
     skadi = lib.strings.escapeShellArg ''
       ${sp}         * / __ | |/ /  /_\  |   \|_ _| *         ${sp}
       ${sp}          *\__ \| ' <  / * \ ┼─|)  | | *          ${sp}
@@ -37,7 +46,7 @@ let
   greetingEnding = lib.strings.escapeShellArg ''
     NixOS ${config.system.nixos.version}
   '';
-  greeting = greeingCommon + roleArt.${config.networking.hostName} + greetingEnding;
+  greeting = greetingCommon + roleArt.${config.networking.hostName} + greetingEnding;
 
   cmdAndArgsArray = [
     "${lib.getExe pkgs.tuigreet}"

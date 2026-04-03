@@ -1,4 +1,13 @@
-{ ... }:
+{
+  config,
+  inventory,
+  topology,
+  ...
+}:
+let
+  machine = inventory.${config.networking.hostName};
+  gateway = topology.${machine.topology}.gateway;
+in
 {
   imports = [
     ../../roles/workstation.nix
@@ -35,48 +44,95 @@
   };
 
   networking = {
-    bonds = {
-      lan0 = {
-        interfaces = [
-          "dock-lan"
-          "laptop-lan"
-        ];
-        driverOptions = {
-          miimon = "100";
-          mode = "active-backup";
-          primary = "dock-lan";
-        };
-      };
-    };
     hostId = "007f0200";
     hostName = "rime";
-    useDHCP = false;
   };
-
   systemd.network = {
     enable = true;
     wait-online.enable = false;
     links = {
       "20-dock-lan" = {
-        matchConfig.MACAddress = "84:ba:59:74:c0:bc";
         linkConfig.Name = "dock-lan";
+        matchConfig.MACAddress = "84:ba:59:74:c0:bc";
       };
       "20-laptop-lan" = {
-        matchConfig.MACAddress = "74:5d:22:39:03:cf";
         linkConfig.Name = "laptop-lan";
+        matchConfig.MACAddress = "74:5d:22:39:03:cf";
       };
       "20-laptop-wifi" = {
-        matchConfig.MACAddress = "04:7b:cb:c1:96:22";
         linkConfig.Name = "laptop-wifi";
+        matchConfig.MACAddress = "04:7b:cb:c1:96:22";
+      };
+    };
+    netdevs = {
+      "30-lan0" = {
+        netdevConfig = {
+          Kind = "bond";
+          Name = "lan0";
+        };
+        bondConfig = {
+          Mode = "active-backup";
+          MIIMonitorSec = "200ms";
+        };
       };
     };
     networks = {
-      "30-laptop-wifi" = {
+      "40-dock-lan0" = {
+        matchConfig.Name = "dock-lan";
+        networkConfig = {
+          Bond = "lan0";
+          PrimarySlave = true;
+        };
+      };
+      "40-laptop-lan0" = {
+        matchConfig.Name = "laptop-lan";
+        networkConfig = {
+          Bond = "lan0";
+        };
+      };
+      "45-lan0-static" = {
+        matchConfig.Name = "lan0";
+        addresses = [
+          {
+            Address = "${machine.ipv4}/24";
+            RouteMetric = 10;
+          }
+          {
+            Address = "${machine.ipv6}/64";
+            RouteMetric = 10;
+          }
+        ];
+        networkConfig = {
+          DNS = [ inventory.${gateway}.ipv4 ];
+          Domains = [ config.networking.domain ];
+          IPv4ReversePathFilter = "loose";
+          IPv6AcceptRA = false;
+          KeepConfiguration = "static";
+        };
+        routes = [
+          {
+            Gateway = inventory.${gateway}.ipv4;
+            Metric = 10;
+          }
+          {
+            Gateway = inventory.${gateway}.ipv6;
+            Metric = 10;
+          }
+        ];
+      };
+      "50-laptop-wifi" = {
         matchConfig.Name = "laptop-wifi";
         networkConfig = {
-          DHCP = "no";
-          IPv6AcceptRA = "no";
-          KeepConfiguration = "static";
+          DHCP = true;
+          Domains = [ config.networking.domain ];
+          IPv4ReversePathFilter = "loose";
+          IPv6AcceptRA = true;
+        };
+        dhcpV4Config = {
+          RouteMetric = 100;
+        };
+        ipv6AcceptRAConfig = {
+          RouteMetric = 100;
         };
       };
     };

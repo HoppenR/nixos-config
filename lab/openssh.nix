@@ -23,6 +23,7 @@
           KbdInteractiveAuthentication = false;
           PasswordAuthentication = false;
           PermitRootLogin = "no";
+          UseDns = true;
         };
       };
     };

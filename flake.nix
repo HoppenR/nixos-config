@@ -33,20 +33,22 @@
       identities = import ./identities.nix;
       inventory = import ./inventory.nix;
       system = "x86_64-linux";
+      topology = import ./topology.nix;
       specialArgs = {
         inherit
           identities
           inputs
           inventory
           system
+          topology
           ;
       };
     in
     {
       nixosConfigurations = {
-        skadi = nixpkgs.lib.nixosSystem {
+        bifrost = nixpkgs.lib.nixosSystem {
           inherit specialArgs;
-          modules = [ ./hosts/skadi ];
+          modules = [ ./hosts/bifrost ];
         };
 
         hoddmimir = nixpkgs.lib.nixosSystem {
@@ -57,6 +59,11 @@
         rime = nixpkgs.lib.nixosSystem {
           inherit specialArgs;
           modules = [ ./hosts/rime ];
+        };
+
+        skadi = nixpkgs.lib.nixosSystem {
+          inherit specialArgs;
+          modules = [ ./hosts/skadi ];
         };
       };
     };

@@ -10,8 +10,6 @@
   ];
   options.lab = {
     endpoints = {
-      caddy.enable = lib.mkEnableOption "Caddy generation for endpoints";
-      cloudflared.enable = lib.mkEnableOption "Cloudflare tunnel generation for endpoints";
       hosts = lib.mkOption {
         default = { };
         type = lib.types.attrsOf (

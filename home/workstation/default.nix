@@ -61,8 +61,8 @@ in
         libnotify
         mpv
         scrcpy
-        wl-clipboard
         telegram-desktop
+        wl-clipboard
         ;
     };
     pointerCursor = {
@@ -429,7 +429,7 @@ in
         "$mod_apps, RETURN, exec, $terminal"
         "$mod_apps, a, exec, ${lib.getExe pkgs.pavucontrol}"
         "$mod_apps, d, exec, ${lib.getExe pkgs.hyprlauncher}"
-        "$mod_apps, e, exec, $terminal --execute ${lib.getExe config.programs.neovim.finalPackage}"
+        "$mod_apps, e, exec, $terminal start ${lib.getExe config.programs.neovim.finalPackage}"
         "$mod_apps, f, exec, ${lib.getExe pkgs.grimblast} --notify save area ${config.home.homeDirectory}/Pictures/Screenshots/snapshot_$(date +%F_%H-%M-%S).png"
         "$mod_apps, w, exec, ${lib.getExe config.programs.firefox.finalPackage}"
         "$mod_hypr+SHIFT, q, killactive"

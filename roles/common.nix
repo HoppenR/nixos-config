@@ -55,6 +55,7 @@ in
           gcc
           git
           neovim-unwrapped
+          psmisc
           sops
           yubikey-manager
           ;
@@ -108,31 +109,10 @@ in
 
   networking = {
     domain = "hoppenr.xyz";
-    defaultGateway = {
-      address = "192.168.0.1";
-      interface = "lan0";
-    };
     nftables.enable = true;
-    hosts = (
-      lib.mapAttrs' (hostName: hostData: lib.nameValuePair hostData.ipv4 [ hostName ]) inventory
-    );
-    interfaces.lan0 = {
-      ipv4.addresses = [
-        {
-          address = machine.ipv4;
-          prefixLength = 24;
-        }
-      ];
-      ipv6.addresses = [
-        {
-          address = machine.ipv6;
-          prefixLength = 64;
-        }
-      ];
-      useDHCP = false;
-    };
     resolvconf.enable = false;
     useNetworkd = true;
+    useDHCP = false;
   };
 
   nix = {

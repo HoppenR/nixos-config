@@ -292,7 +292,8 @@
                 ""
               ];
             };
-            on-click = "${lib.getExe pkgs.pavucontrol}";
+            on-click = "${lib.getExe pkgs.pamixer} -t";
+            on-click-right = "${lib.getExe pkgs.pavucontrol}";
           };
           temperature = {
             critical-threshold = 100;

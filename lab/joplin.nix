@@ -76,7 +76,7 @@ in
         ];
         pull = "newer";
         extraOptions = [
-          "--network=pasta:--tcp-ports,${environment.APP_PORT},--tcp-ns,${toString config.lab.postfix.port}"
+          "--network=pasta:--no-map-gw,--map-guest-addr,none,--tcp-ports,${environment.APP_PORT},--tcp-ns,${toString config.lab.postfix.port}"
           "--storage-opt=overlay.mount_program=${pkgs.fuse-overlayfs}/bin/fuse-overlayfs"
           "--storage-opt=overlay.mountopt=nodev,metacopy=on"
           "--user=1001:1001"

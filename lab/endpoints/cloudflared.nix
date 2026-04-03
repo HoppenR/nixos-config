@@ -4,6 +4,11 @@
   ...
 }:
 {
+  options.lab.endpoints = {
+    cloudflared = {
+      enable = lib.mkEnableOption "Cloudflare tunnel generation for endpoints";
+    };
+  };
   config = lib.mkIf config.lab.endpoints.cloudflared.enable {
     sops = {
       secrets = {

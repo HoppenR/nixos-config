@@ -10,8 +10,22 @@
     ./common.nix
   ];
 
-  # P2425D config:
-  boot.kernelModules = [ "i2c-dev" ];
+  boot = {
+    kernel.sysctl = {
+      # "net.ipv4.conf.all.rp_filter" = 1;
+      # "net.ipv4.conf.default.rp_filter" = 1;
+      "net.ipv4.conf.all.arp_announce" = 2;
+      "net.ipv4.conf.all.arp_ignore" = 1;
+      "net.ipv4.conf.default.arp_announce" = 2;
+      "net.ipv4.conf.default.arp_ignore" = 1;
+      "net.ipv4.conf.lan0.arp_announce" = 2;
+      "net.ipv4.conf.lan0.arp_ignore" = 1;
+      "net.ipv4.conf.laptop-wifi.arp_announce" = 2;
+      "net.ipv4.conf.laptop-wifi.arp_ignore" = 1;
+    };
+    # P2425D config:
+    kernelModules = [ "i2c-dev" ];
+  };
 
   console.colors = lib.attrValues {
     c01_black = "1d1f21";
@@ -61,14 +75,7 @@
   networking = {
     wireless.iwd = {
       enable = true;
-      settings = {
-        General = {
-          EnableNetworkConfiguration = true;
-        };
-        Network = {
-          NameResolvingService = "systemd";
-        };
-      };
+      settings.General.EnableNetworkConfiguration = false;
     };
   };
 

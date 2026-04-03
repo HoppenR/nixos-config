@@ -22,8 +22,11 @@
           vim.g.loaded_netrw = 1
           vim.g.loaded_netrwPlugin = 1
           vim.g.mapleader = ' '
+          vim.cmd.packadd('nvim.undotree')
+          vim.keymap.set('n', '<leader>u', require('undotree').open)
 
           vim.o.autochdir = true
+          vim.o.autocomplete = true
           vim.o.cursorline = true
           vim.o.expandtab = true
           vim.o.fileignorecase = true
@@ -43,7 +46,7 @@
           vim.o.colorcolumn = '80'
           vim.o.conceallevel = 2
           vim.o.foldmethod = 'marker'
-          vim.o.laststatus = 3
+          vim.o.laststatus = 2
           vim.o.pumblend = 0
           vim.o.shiftwidth = 0
           vim.o.signcolumn = 'no'
@@ -115,23 +118,6 @@
           ''}'';
         defaultEditor = true;
         plugins = [
-          {
-            plugin = pkgs.vimPlugins.fidget-nvim;
-            type = "lua";
-            config = /* lua */ ''
-              require('fidget').setup({
-                integration = {
-                  ['nvim-tree'] = { enable = false },
-                  ['xcodebuild-nvim'] = { enable = false },
-                },
-                notification = {
-                  override_vim_notify = true,
-                  view = { stack_upwards = false },
-                  window = { border = vim.o.winborder },
-                },
-              })
-            '';
-          }
           {
             plugin = pkgs.vimPlugins.oil-nvim;
             type = "lua";
@@ -205,14 +191,6 @@
               })
             '';
           }
-          {
-            plugin = pkgs.vimPlugins.telescope-undo-nvim;
-            type = "lua";
-            config = /* lua */ ''
-              Telescope = require('telescope')
-              vim.keymap.set('n', '<leader>u', Telescope.extensions.undo.undo)
-            '';
-          }
         ]
         ++ [
           (pkgs.vimPlugins.nvim-treesitter.withPlugins (p: [
@@ -266,6 +244,10 @@
         ];
         viAlias = true;
         vimAlias = true;
+        withNodeJs = false;
+        withPerl = false;
+        withPython3 = false;
+        withRuby = false;
       };
     };
     xdg = {
@@ -287,6 +269,17 @@
         '';
         "nvim/ftplugin/zsh.lua".text = /* lua */ ''
           vim.opt_local.iskeyword:append('-')
+        '';
+        "nvim/ftplugin/msg.lua".text = /* lua */ ''
+          local Ui2 = require("vim._core.ui2")
+          local win = Ui2.wins and Ui2.wins.msg
+          if win and vim.api.nvim_win_is_valid(win) then
+            vim.api.nvim_set_option_value(
+              "winhighlight",
+              "Normal:NormalFloat,FloatBorder:FloatBorder,Search:Normal",
+              { scope = "local", win = win }
+            )
+          end
         '';
 
         "nvim/lsp/nixd.lua".text = /* lua */ ''
@@ -364,6 +357,7 @@
                   end,
                   all
                 )
+                vim.bo[ev.buf].autocomplete = false
                 client.server_capabilities.completionProvider.triggerCharacters = chars
                 vim.lsp.completion.enable(true, client.id, ev.buf, { autotrigger = true })
               end
@@ -411,6 +405,20 @@
               })
             end
           })
+          vim.api.nvim_create_autocmd('LspProgress', {
+            group = LspSettings,
+            callback = function(ev)
+              local value = ev.data.params.value
+              vim.api.nvim_echo({ { value.message or 'done' } }, false, {
+                id = 'lsp.' .. ev.data.client_id,
+                kind = 'progress',
+                percent = value.percentage,
+                source = 'vim.lsp',
+                status = value.kind ~= 'end' and 'running' or 'success',
+                title = value.title,
+              })
+            end,
+          })
         '';
         "nvim/plugin/treesitter.lua".text = /* lua */ ''
           vim.api.nvim_create_autocmd('FileType', {
@@ -421,6 +429,68 @@
               end
             end,
           })
+        '';
+        "nvim/plugin/ui2.lua".text = /* lua */ ''
+          local Ui2 = require("vim._core.ui2")
+          local msgs = require("vim._core.ui2.messages")
+          Ui2.enable({
+            msg = {
+              targets = {
+                [""] = "msg",
+                empty = "cmd",
+                bufwrite = "msg",
+                confirm = "cmd",
+                emsg = "pager",
+                echo = "msg",
+                echomsg = "msg",
+                echoerr = "pager",
+                completion = "cmd",
+                list_cmd = "pager",
+                lua_error = "pager",
+                lua_print = "msg",
+                progress = "pager",
+                rpc_error = "pager",
+                quickfix = "msg",
+                search_cmd = "cmd",
+                search_count = "cmd",
+                shell_cmd = "pager",
+                shell_err = "pager",
+                shell_out = "pager",
+                shell_ret = "msg",
+                undo = "msg",
+                verbose = "pager",
+                wildlist = "cmd",
+                wmsg = "msg",
+                typed_cmd = "cmd",
+              },
+              cmd = {
+                height = 0.5,
+              },
+              dialog = {
+                height = 0.5,
+              },
+              msg = {
+                height = 0.3,
+                timeout = 5000,
+              },
+              pager = {
+                height = 0.5,
+              },
+            },
+          })
+          local orig_set_pos = msgs.set_pos
+          msgs.set_pos = function(tgt)
+            orig_set_pos(tgt)
+            if (tgt == "msg" or tgt == nil) and vim.api.nvim_win_is_valid(Ui2.wins.msg) then
+              pcall(vim.api.nvim_win_set_config, Ui2.wins.msg, {
+                anchor = "SE",
+                border = "rounded",
+                col = vim.o.columns - 1,
+                relative = "editor",
+                row = vim.o.lines - 5,
+              })
+            end
+          end
         '';
       };
     };
