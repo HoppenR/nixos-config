@@ -11,6 +11,7 @@
   config = lib.mkIf config.lab.openssh.enable {
     services = {
       openssh = {
+        # TODO: listen only on internal subnet?
         enable = true;
         hostKeys = [
           {

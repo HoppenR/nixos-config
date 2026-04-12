@@ -45,14 +45,28 @@ in
           "${machine.ipv4}/24"
           "${machine.ipv6}/64"
         ];
-        Gateway = [
+        DNS = [
           inventory.${gateway}.ipv4
           inventory.${gateway}.ipv6
         ];
-        DNS = [ inventory.${gateway}.ipv4 ];
         Domains = [ config.networking.domain ];
-        IPv6AcceptRA = true;
+        IPv6AcceptRA = false;
+        NTP = [
+          inventory.${gateway}.ipv4
+          inventory.${gateway}.ipv6
+        ];
+        MulticastDNS = true;
       };
+      routes = [
+        {
+          Gateway = inventory.${gateway}.ipv4;
+          GatewayOnLink = true;
+        }
+        {
+          Gateway = inventory.${gateway}.ipv6;
+          GatewayOnLink = true;
+        }
+      ];
     };
   };
   system.stateVersion = "25.11";

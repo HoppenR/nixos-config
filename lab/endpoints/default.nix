@@ -8,6 +8,8 @@
     ./caddy.nix
     ./cloudflared.nix
   ];
+  # TODO: add a cloudflared.enable toggle to each endpoint so that I can add
+  #       internal routes here
   options.lab = {
     endpoints = {
       hosts = lib.mkOption {

@@ -8,6 +8,15 @@
     ./common.nix
   ];
 
+  networking = {
+    firewall = {
+      allowedUDPPorts = [
+        # mDNS
+        5353
+      ];
+    };
+  };
+
   console.colors = lib.attrValues {
     c01_black = "1a1c19";
     c02_red = "8b2635";

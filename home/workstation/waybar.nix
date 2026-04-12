@@ -207,38 +207,39 @@
               my $json = JSON::PP->new;
               my $now  = time();
               sub fmt_rel {
-                  my $sec = shift;
-                  return "0min" if $sec <= 60;
-                  my @res;
-                  my %units = (w => 604800, d => 86400, h => 3600, min => 60);
-                  for my $suffix (sort keys %units) {
-                      if (my $count = int($sec / $units{$suffix})) {
-                          push @res, "$count$suffix";
-                          last if @res == 2;
-                          $sec %= $units{$suffix};
-                      }
+                my $sec = shift;
+                return "0min" if $sec <= 60;
+                my @res;
+                my @units = ([604800,"w"], [86400,"d"], [3600,"h"], [60,"min"]);
+                for my $pair (@units) {
+                  my ($divisor, $suffix) = @$pair;
+                  if (my $count = int($sec / $divisor)) {
+                    push @res, "$count$suffix";
+                    last if @res == 2;
+                    $sec %= $divisor;
                   }
-                  return join(" ", @res);
+                }
+                return join(" ", @res);
               }
               sub get_sys {
-                  my ($subcmd, $is_user) = @_;
-                  my $out = qx(systemctl @{[ !$is_user ? "" : '--user' ]} $subcmd --output json) or return [];
-                  my $result = $json->decode($out);
-                  return [ map { {
-                      unit => $_->{unit} =~ s/\.(?:timer|service)$//r . (!$is_user ? "" : " --user"),
-                      left => $_->{left} / 1e6 - $now,
-                  } } @$result ]
+                my ($subcmd, $is_user) = @_;
+                my $out = qx(systemctl @{[ !$is_user ? "" : '--user' ]} $subcmd --output json) or return [];
+                my $result = $json->decode($out);
+                return [ map { {
+                  unit => $_->{unit} =~ s/\.(?:timer|service)$//r . (!$is_user ? "" : " --user"),
+                  left => $_->{left} / 1e6 - $now,
+                } } @$result ]
               }
               my @failed = map { @{ get_sys('list-units --failed', $_) } } (0, 1);
               my @timers = sort { $a->{left} <=> $b->{left} } map { @{ get_sys('list-timers', $_) } } (0, 1);
               my @tooltip = ("--- Timers ---", map { sprintf "%s: %s", $_->{unit}, fmt_rel($_->{left}) } @timers);
               my ($text, $class) = ("none", "");
               if (@failed) {
-                  $text = "Failed: " . $failed[0]{unit};
-                  $class = "warning";
-                  push @tooltip, "--- Failed ---", map { $_->{unit} } @failed;
+                $text = "Failed: " . $failed[0]{unit};
+                $class = "warning";
+                push @tooltip, "--- Failed ---", map { $_->{unit} } @failed;
               } elsif (@timers) {
-                  $text = sprintf("%s: %s", $timers[0]{unit}, fmt_rel($timers[0]{left}));
+                $text = sprintf("%s: %s", $timers[0]{unit}, fmt_rel($timers[0]{left}));
               }
               print $json->encode({ text => " $text", class => $class, tooltip => join("\n", @tooltip) });
             '';
@@ -252,7 +253,7 @@
               activated = "󰒳 ";
               deactivated = "󰒲 ";
             };
-            "timeout" = 60;
+            "timeout" = 120;
           };
           memory = {
             format = " {percentage}%";

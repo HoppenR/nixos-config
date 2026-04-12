@@ -142,6 +142,7 @@ in
             machine.ipv6
           ];
           bootstrap_dns = [ "9.9.9.9" ];
+          cache_optimistic = true;
           clients = {
             runtime_sources = {
               hosts = true;
@@ -202,12 +203,24 @@ in
         };
       };
     };
+    chrony = {
+      enable = true;
+      enableNTS = true;
+      extraConfig = ''
+        allow ${lanSubnet}
+        allow ${lanv6Subnet}
+      '';
+      servers = [
+        "nts.netnod.se"
+        "nts.ntp.se"
+      ];
+    };
     hostapd = {
       enable = true;
       radios = {
         wlan_24 = {
           band = "2g";
-          channel = 1;
+          channel = 0;
           countryCode = "SE";
           networks.wlan_24 = {
             ssid = "asgard_24";
@@ -217,15 +230,20 @@ in
               wpaPasswordFile = config.sops.secrets."wifi-password".path;
             };
             settings = {
+              chanlist = "1 6 11 13";
               bridge = "br-lan";
               hw_mode = "g";
               ieee80211ax = 1;
+              ieee80211w = 1;
             };
+          };
+          wifi6 = {
+            enable = true;
           };
         };
         wlan_5 = {
           band = "5g";
-          channel = 36;
+          channel = 0;
           countryCode = "SE";
           networks.wlan_5 = {
             ssid = "asgard_5";
@@ -235,15 +253,35 @@ in
               wpaPasswordFile = config.sops.secrets."wifi-password".path;
             };
             settings = {
+              chanlist = "36 40 44 48";
               bridge = "br-lan";
               hw_mode = "a";
-              ieee80211ac = 1;
-              ieee80211ax = 1;
-              vht_capab = "[MAX-MPDU-11454][VHT160][SHORT-GI-80][SHORT-GI-160][TX-STBC-2BY1][RX-STBC-1][SU-BEAMFORMER][SU-BEAMFORMEE][MU-BEAMFORMER]";
-              vht_oper_centr_freq_seg0_idx = 42;
-              vht_oper_chwidth = 1;
+              ieee80211ac = true;
+              ieee80211ax = true;
+              ieee80211d = true;
+              ieee80211h = true;
+              ieee80211n = true;
               wmm_enabled = 1;
             };
+          };
+          wifi5 = {
+            enable = true;
+            operatingChannelWidth = "80";
+            capabilities = [
+              "MAX-MPDU-11454"
+              "SHORT-GI-80"
+              "TX-STBC-2BY1"
+              "RX-STBC-1"
+              "SU-BEAMFORMER"
+              "SU-BEAMFORMEE"
+              "MU-BEAMFORMER"
+            ];
+          };
+          wifi6 = {
+            enable = true;
+            multiUserBeamformer = true;
+            singleUserBeamformee = true;
+            singleUserBeamformer = true;
           };
         };
       };
@@ -254,15 +292,19 @@ in
     pipewire.enable = false;
     resolved = {
       settings.Resolve = {
-        DNS = [ "127.0.0.1" ];
+        Cache = true;
+        DNS = [
+          "127.0.0.1"
+          "::1"
+        ];
         FallbackDNS = [ ];
         Domains = [
           "~."
           "~${config.networking.domain}"
         ];
         DNSStubListener = true;
-        LLMNR = "yes";
-        MulticastDNS = "yes";
+        LLMNR = false;
+        MulticastDNS = true;
       };
     };
     # unbound = {
@@ -323,6 +365,9 @@ in
           Name = "br-lan";
         };
         bridgeConfig = {
+          MulticastSnooping = false;
+          MulticastQuerier = true;
+
           AgeingTimeSec = 60;
           ForwardDelaySec = 2;
           STP = true;
@@ -350,6 +395,7 @@ in
           IPv6AcceptRA = false;
           IPv6Forwarding = true;
           IPv6SendRA = true;
+          MulticastDNS = true;
         };
         dhcpPrefixDelegationConfig = {
           Announce = true;
@@ -357,14 +403,34 @@ in
           UplinkInterface = "wan0";
         };
         domains = [ config.networking.domain ];
+        dhcpServerStaticLeases = lib.concatMap (
+          hostData:
+          lib.optional (hostData ? mac && hostData != machine) {
+            MACAddress = hostData.mac;
+            Address = hostData.ipv4;
+          }
+        ) (builtins.attrValues inventory);
         dhcpServerConfig = {
-          DNS = [ machine.ipv4 ];
+          DNS = [
+            machine.ipv4
+            machine.ipv6
+          ];
+          EmitDNS = true;
+          EmitNTP = true;
+          NTP = [
+            machine.ipv4
+            machine.ipv6
+          ];
           # x.x.x.101 -> x.x.x.200
           PoolOffset = 101;
           PoolSize = 99;
         };
+        ipv6Prefixes = [ { Prefix = lanv6Subnet; } ];
         ipv6SendRAConfig = {
           DNS = [ machine.ipv6 ];
+          EmitDNS = true;
+          Managed = false;
+          OtherInformation = true;
         };
       };
       "35-br-lan" = {

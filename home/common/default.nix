@@ -265,8 +265,8 @@
             fi
             local -i ahead=$(git rev-list --count @{u}..HEAD 2>/dev/null)
             local -i behind=$(git rev-list --count HEAD..@{u} 2>/dev/null)
-            (( ahead > 0 )) && hook_com[misc]+="⇡$ahead"
-            (( behind > 0 )) && hook_com[misc]+="⇣$behind"
+            (( ahead > 0 )) && hook_com[misc]+="↑$ahead"
+            (( behind > 0 )) && hook_com[misc]+="↓$behind"
           }
           function zle-keymap-select() {
             cursor_block='\e[2 q'

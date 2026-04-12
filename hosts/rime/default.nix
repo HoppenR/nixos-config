@@ -69,6 +69,7 @@ in
         netdevConfig = {
           Kind = "bond";
           Name = "lan0";
+          MACAddress = "74:5d:22:39:03:cf";
         };
         bondConfig = {
           Mode = "active-backup";
@@ -103,19 +104,37 @@ in
           }
         ];
         networkConfig = {
-          DNS = [ inventory.${gateway}.ipv4 ];
+          DNS = [
+            inventory.${gateway}.ipv4
+            inventory.${gateway}.ipv6
+          ];
           Domains = [ config.networking.domain ];
           IPv4ReversePathFilter = "loose";
           IPv6AcceptRA = false;
           KeepConfiguration = "static";
+          NTP = [
+            inventory.${gateway}.ipv4
+            inventory.${gateway}.ipv6
+          ];
+          MulticastDNS = true;
         };
         routes = [
           {
+            Destination = "${inventory.${gateway}.ipv4}/32";
+            Metric = 10;
+          }
+          {
             Gateway = inventory.${gateway}.ipv4;
+            GatewayOnLink = true;
+            Metric = 10;
+          }
+          {
+            Destination = "${inventory.${gateway}.ipv6}/128";
             Metric = 10;
           }
           {
             Gateway = inventory.${gateway}.ipv6;
+            GatewayOnLink = true;
             Metric = 10;
           }
         ];
@@ -127,6 +146,7 @@ in
           Domains = [ config.networking.domain ];
           IPv4ReversePathFilter = "loose";
           IPv6AcceptRA = true;
+          MulticastDNS = "resolve";
         };
         dhcpV4Config = {
           RouteMetric = 100;

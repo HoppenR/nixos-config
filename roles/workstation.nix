@@ -73,6 +73,12 @@
   };
 
   networking = {
+    firewall = {
+      allowedUDPPorts = [
+        # mDNS
+        5353
+      ];
+    };
     wireless.iwd = {
       enable = true;
       settings.General.EnableNetworkConfiguration = false;
@@ -124,6 +130,11 @@
   };
 
   services = {
+    resolved = {
+      settings.Resolve = {
+        MulticastDNS = true;
+      };
+    };
     pipewire = {
       enable = true;
       pulse.enable = true;
