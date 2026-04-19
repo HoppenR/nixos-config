@@ -2,8 +2,8 @@
   pkgs,
   lib,
   config,
-  inventory,
   relations,
+  net,
   ...
 }:
 let
@@ -34,7 +34,7 @@ let
         ExecStart =
           let
             args = [
-              ":sftp,host=${inventory.${rel.host}.ipv4},user=sftpuser-${name},key_file=${sshKeySecret}:/files"
+              ":sftp,host=${net.ip net.mgmt rel.host},user=sftpuser-${name},key_file=${sshKeySecret}:/files"
               "/replicated/apps/${name}/${mountpoint}"
               "--config=/dev/null"
               "--vfs-cache-mode=full"

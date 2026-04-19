@@ -2,7 +2,7 @@
   lib,
   config,
   pkgs,
-  inventory,
+  net,
   ...
 }:
 let
@@ -15,7 +15,7 @@ in
     };
   };
   config = lib.mkIf config.lab.endpoints.caddy.enable {
-    networking.firewall.allowedTCPPorts = [
+    networking.firewall.interfaces."vlan-mgmt".allowedTCPPorts = [
       80
       443
     ];
@@ -39,15 +39,15 @@ in
       enable = true;
       package = pkgs.caddy.withPlugins {
         plugins = [ "github.com/caddy-dns/cloudflare@v0.2.3" ];
-        hash = "sha256-20o+14cn/eeLuf1c8uGE1ODRZGC0oxocaIVlv4tFSvA=";
+        hash = "sha256-+htYZclHv9qI0TeHcBFvPkWzJVAZ5jqzTODrh4YmqXY=";
       };
       globalConfig =
         let
           trustedProxies = [
             "127.0.0.1"
             "::1"
-            inventory.${config.networking.hostName}.ipv4
-            inventory.${config.networking.hostName}.ipv6
+            (net.ip net.mgmt config.networking.hostName)
+            (net.ip6 net.mgmt config.networking.hostName)
           ];
         in
         ''

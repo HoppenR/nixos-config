@@ -5,6 +5,7 @@
   lib,
   pkgs,
   relations,
+  net,
   ...
 }:
 let
@@ -21,11 +22,11 @@ in
         services.postfix = {
           settings.main = {
             inet_interfaces = "all";
-            mynetworks = map (client: "${inventory.${client}.ipv4}/32") rel.clients;
+            mynetworks = map (client: "${net.ip net.mgmt client}/32") rel.clients;
           };
         };
         networking.firewall.extraInputRules = lib.concatMapStrings (client: ''
-          ip saddr ${inventory.${client}.ipv4} tcp dport ${toString config.lab.postfix.port} iifname "lan0" accept
+          ip saddr ${net.ip net.mgmt client} tcp dport ${toString config.lab.postfix.port} iifname "vlan-mgmt" accept
         '') rel.clients;
       })
       (lib.mkIf rel.isClient {
@@ -39,7 +40,7 @@ in
             set_to_header on
           '';
           accounts.default = {
-            host = inventory.${rel.host}.ipv4;
+            host = net.ip net.mgmt rel.host;
             from = "ZED Service <contact@${config.networking.domain}>";
           };
         };

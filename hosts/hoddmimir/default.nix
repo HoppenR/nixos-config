@@ -2,6 +2,7 @@
   config,
   inventory,
   topology,
+  net,
   ...
 }:
 let
@@ -38,35 +39,56 @@ in
       matchConfig.MACAddress = "bc:24:11:14:eb:fb";
       linkConfig.Name = "lan0";
     };
-    networks."40-lan0" = {
-      matchConfig.Name = "lan0";
-      networkConfig = {
-        Address = [
-          "${machine.ipv4}/24"
-          "${machine.ipv6}/64"
-        ];
-        DNS = [
-          inventory.${gateway}.ipv4
-          inventory.${gateway}.ipv6
-        ];
-        Domains = [ config.networking.domain ];
-        IPv6AcceptRA = false;
-        NTP = [
-          inventory.${gateway}.ipv4
-          inventory.${gateway}.ipv6
-        ];
-        MulticastDNS = true;
+    netdevs = {
+      "30-vlan-mgmt" = {
+        netdevConfig = {
+          Kind = "vlan";
+          Name = "vlan-mgmt";
+        };
+        vlanConfig.Id = 10;
       };
-      routes = [
-        {
-          Gateway = inventory.${gateway}.ipv4;
-          GatewayOnLink = true;
-        }
-        {
-          Gateway = inventory.${gateway}.ipv6;
-          GatewayOnLink = true;
-        }
-      ];
+    };
+    networks = {
+      "40-lan0" = {
+        matchConfig.Name = "lan0";
+        vlan = [ "vlan-mgmt" ];
+        networkConfig = {
+          DHCP = false;
+          IPv6AcceptRA = false;
+          KeepConfiguration = "static";
+          LinkLocalAddressing = false;
+        };
+      };
+      "50-vlan-mgmt" = {
+        matchConfig.Name = "vlan-mgmt";
+        domains = [ config.networking.domain ];
+        networkConfig = {
+          Address = [
+            "${net.ip net.mgmt config.networking.hostName}/24"
+            "${net.ip6 net.mgmt config.networking.hostName}/64"
+          ];
+          DNS = [
+            (net.ip net.mgmt gateway)
+            (net.ip6 net.mgmt gateway)
+          ];
+          IPv6AcceptRA = false;
+          NTP = [
+            (net.ip net.mgmt gateway)
+            (net.ip6 net.mgmt gateway)
+          ];
+          MulticastDNS = true;
+        };
+        routes = [
+          {
+            Gateway = net.ip net.mgmt gateway;
+            GatewayOnLink = true;
+          }
+          {
+            Gateway = net.ip6 net.mgmt gateway;
+            GatewayOnLink = true;
+          }
+        ];
+      };
     };
   };
   system.stateVersion = "25.11";

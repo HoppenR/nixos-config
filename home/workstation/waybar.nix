@@ -261,7 +261,7 @@
           "network#lan" = {
             format-disconnected = "󱘖 no lan";
             format-ethernet = "󰌘 {ifname}";
-            interface = "lan0";
+            interface = "vlan-mgmt";
             on-click = "${lib.getExe pkgs.wezterm} start -- ${lib.getExe pkgs.btop} --preset 3";
             tooltip-format = ''
               󰈀 {ifname} via {gwaddr}

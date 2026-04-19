@@ -2,6 +2,7 @@
   config,
   inventory,
   topology,
+  net,
   ...
 }:
 let
@@ -40,35 +41,98 @@ in
         linkConfig.Name = "lan0";
       };
     };
-    networks."40-lan0" = {
-      matchConfig.Name = "lan0";
-      networkConfig = {
-        Address = [
-          "${machine.ipv4}/24"
-          "${machine.ipv6}/64"
-        ];
-        DNS = [
-          inventory.${gateway}.ipv4
-          inventory.${gateway}.ipv6
-        ];
-        Domains = [ config.networking.domain ];
-        IPv6AcceptRA = false;
-        NTP = [
-          inventory.${gateway}.ipv4
-          inventory.${gateway}.ipv6
-        ];
-        MulticastDNS = true;
+    netdevs = {
+      "30-vlan-mgmt" = {
+        netdevConfig = {
+          Kind = "vlan";
+          Name = "vlan-mgmt";
+        };
+        vlanConfig.Id = 10;
       };
-      routes = [
-        {
-          Gateway = inventory.${gateway}.ipv4;
-          GatewayOnLink = true;
-        }
-        {
-          Gateway = inventory.${gateway}.ipv6;
-          GatewayOnLink = true;
-        }
-      ];
+      "30-vlan-guest" = {
+        netdevConfig = {
+          Kind = "vlan";
+          Name = "vlan-guest";
+        };
+        vlanConfig.Id = 20;
+      };
+    };
+    networks = {
+      "40-lan0" = {
+        matchConfig.Name = "lan0";
+        vlan = [
+          "vlan-mgmt"
+          "vlan-guest"
+        ];
+        networkConfig = {
+          DHCP = false;
+          IPv6AcceptRA = false;
+          KeepConfiguration = "static";
+          LinkLocalAddressing = false;
+        };
+      };
+      "50-vlan-mgmt" = {
+        # TODO: add different vrfs for each vlan on this system
+        matchConfig.Name = "vlan-mgmt";
+        domains = [ config.networking.domain ];
+        networkConfig = {
+          Address = [
+            "${net.ip net.mgmt config.networking.hostName}/24"
+            "${net.ip6 net.mgmt config.networking.hostName}/64"
+          ];
+          DNS = [
+            (net.ip net.mgmt gateway)
+            (net.ip6 net.mgmt gateway)
+          ];
+          IPv6AcceptRA = false;
+          NTP = [
+            (net.ip net.mgmt gateway)
+            (net.ip6 net.mgmt gateway)
+          ];
+          MulticastDNS = true;
+        };
+        routes = [
+          {
+            Gateway = net.ip net.mgmt gateway;
+            GatewayOnLink = true;
+          }
+          {
+            Gateway = net.ip6 net.mgmt gateway;
+            GatewayOnLink = true;
+          }
+        ];
+      };
+      "50-vlan-guest" = {
+        matchConfig.Name = "vlan-guest";
+        networkConfig = {
+          Address = [
+            "${net.ip net.guest config.networking.hostName}/24"
+            "${net.ip6 net.guest config.networking.hostName}/64"
+          ];
+          DNS = [
+            "9.9.9.9"
+            "149.112.112.112"
+          ];
+          IPv4ReversePathFilter = "loose";
+          IPv6AcceptRA = false;
+          KeepConfiguration = "static";
+          NTP = [
+            (net.ip net.guest gateway)
+            (net.ip6 net.guest gateway)
+          ];
+          MulticastDNS = true;
+        };
+        routes = [
+          {
+            Gateway = net.ip net.guest gateway;
+            GatewayOnLink = true;
+          }
+          {
+            Gateway = net.ip6 net.guest gateway;
+            GatewayOnLink = true;
+          }
+        ];
+      };
     };
   };
   system.stateVersion = "25.11";

@@ -83,6 +83,9 @@ in
   ];
 
   programs = {
+    firefox = {
+      configPath = "${config.xdg.configHome}/mozilla/firefox";
+    };
     yazi = {
       enable = true;
       shellWrapperName = "y";

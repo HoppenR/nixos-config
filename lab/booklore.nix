@@ -95,7 +95,7 @@ in
         ];
         pull = "newer";
         extraOptions = [
-          "--network=pasta:--no-map-gw,--map-guest-addr,none,--tcp-ports,${toString config.lab.booklore.port},--tcp-ns,${toString config.services.mysql.settings.mysqld.port},--tcp-ns,${toString config.lab.postfix.port}"
+          "--network=pasta:--no-map-gw,--map-guest-addr,none,--interface,vlan-guest,--tcp-ports,${toString config.lab.booklore.port},--tcp-ns,${toString config.services.mysql.settings.mysqld.port},--tcp-ns,${toString config.lab.postfix.port}"
           "--storage-opt=overlay.mount_program=${pkgs.fuse-overlayfs}/bin/fuse-overlayfs"
           "--storage-opt=overlay.mountopt=nodev,metacopy=on"
           "--user=0:0"

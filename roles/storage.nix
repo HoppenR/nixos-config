@@ -10,7 +10,7 @@
 
   networking = {
     firewall = {
-      allowedUDPPorts = [
+      interfaces."vlan-mgmt".allowedTCPPorts = [
         # mDNS
         5353
       ];

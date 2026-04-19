@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  net,
   ...
 }:
 {
@@ -11,8 +12,17 @@
   config = lib.mkIf config.lab.openssh.enable {
     services = {
       openssh = {
-        # TODO: listen only on internal subnet?
         enable = true;
+        listenAddresses = [
+          {
+            addr = net.ip net.mgmt config.networking.hostName;
+            port = 22;
+          }
+          {
+            addr = net.ip6 net.mgmt config.networking.hostName;
+            port = 22;
+          }
+        ];
         hostKeys = [
           {
             path = "/persist/etc/ssh/ssh_host_ed25519_key";

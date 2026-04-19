@@ -3,7 +3,7 @@
   config,
   pkgs,
   relations,
-  inventory,
+  net,
   ...
 }:
 let
@@ -18,8 +18,8 @@ in
       readOnly = true;
     };
     machine = lib.mkOption {
-      type = (lib.types.addCheck lib.types.attrs (attrs: (attrs ? ipv4) && (attrs ? ipv6)));
-      description = "attribute set containing at least 'ipv4' and 'ipv6'";
+      type = lib.types.addCheck lib.types.attrs (attrs: (attrs ? id));
+      description = "attribute set containing at least 'id'";
     };
   };
 
@@ -200,8 +200,8 @@ in
             trusted_proxies = [
               "127.0.0.1"
               "::1"
-              inventory.${config.networking.hostName}.ipv4
-              inventory.${config.networking.hostName}.ipv6
+              (net.ip net.mgmt config.networking.hostName)
+              (net.ip6 net.mgmt config.networking.hostName)
             ];
           };
           config = {

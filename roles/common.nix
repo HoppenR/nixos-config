@@ -5,11 +5,32 @@
   lib,
   pkgs,
   inventory,
+  topology,
   ...
 }:
 let
   machine = inventory.${config.networking.hostName};
   writeZsh = pkgs.writers.makeScriptWriter { interpreter = lib.getExe pkgs.zsh; };
+
+  net = {
+    mgmt = 10;
+    guest = 20;
+    iot = 30;
+    ip =
+      vlan: hostName:
+      let
+        host = inventory.${hostName};
+        base = topology.${host.topology}.ipBase;
+      in
+      "${base}.${toString vlan}.${toString host.id}";
+    ip6 =
+      vlan: hostName:
+      let
+        host = inventory.${hostName};
+        base = topology.${host.topology}.ip6Base;
+      in
+      "${base}:${toString vlan}::${toString host.id}";
+  };
 in
 {
 
@@ -21,7 +42,7 @@ in
     inputs.sops-nix.nixosModules.sops
   ];
 
-  _module.args = { inherit writeZsh; };
+  _module.args = { inherit net writeZsh; };
 
   boot = {
     loader = {
@@ -110,6 +131,7 @@ in
   networking = {
     domain = "hoppenr.xyz";
     nftables.enable = true;
+    firewall.backend = "nftables";
     resolvconf.enable = false;
     useNetworkd = true;
     useDHCP = false;
@@ -137,7 +159,8 @@ in
       knownHosts = lib.mapAttrs (hostName: hostData: {
         hostNames = [
           hostName
-          hostData.ipv4
+          (net.ip net.mgmt hostName)
+          (net.ip6 net.mgmt hostName)
         ];
         publicKey = hostData.publicKey;
       }) (lib.filterAttrs (hostName: hostData: hostData ? publicKey) inventory);
@@ -199,7 +222,13 @@ in
 
   services = {
     pcscd.enable = true;
-    resolved.enable = true;
+    resolved = {
+      enable = true;
+      settings.Resolve = {
+        LLMNR = false;
+        MulticastDNS = true;
+      };
+    };
     udev = {
       packages = builtins.attrValues {
         inherit (pkgs)

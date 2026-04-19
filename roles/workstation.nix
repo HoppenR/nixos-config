@@ -12,16 +12,10 @@
 
   boot = {
     kernel.sysctl = {
-      # "net.ipv4.conf.all.rp_filter" = 1;
-      # "net.ipv4.conf.default.rp_filter" = 1;
       "net.ipv4.conf.all.arp_announce" = 2;
       "net.ipv4.conf.all.arp_ignore" = 1;
       "net.ipv4.conf.default.arp_announce" = 2;
       "net.ipv4.conf.default.arp_ignore" = 1;
-      "net.ipv4.conf.lan0.arp_announce" = 2;
-      "net.ipv4.conf.lan0.arp_ignore" = 1;
-      "net.ipv4.conf.laptop-wifi.arp_announce" = 2;
-      "net.ipv4.conf.laptop-wifi.arp_ignore" = 1;
     };
     # P2425D config:
     kernelModules = [ "i2c-dev" ];
@@ -74,7 +68,7 @@
 
   networking = {
     firewall = {
-      allowedUDPPorts = [
+      interfaces."vlan-mgmt".allowedTCPPorts = [
         # mDNS
         5353
       ];

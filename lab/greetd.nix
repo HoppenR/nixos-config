@@ -8,13 +8,11 @@ let
   # TODO: switch to agreety? with a wrapper to print ascii art
   #       or just getty with ascii as services.getty.helpLine
   sp = builtins.fromJSON "\"\\u2007\"";
-  greetingCommon = (
-    lib.strings.escapeShellArg ''
-      ${sp}        | \| |_ _|\ \/ / (\_/)  / _ \/ __|        ${sp}
-      ${sp}        | .`  | |  >  < (='.'=)| (_) \__ \        ${sp}
-      ${sp}        |_|\_|___|/_/\_\(")_(")_\___/|___/        ${sp}
-    ''
-  );
+  greetingCommon = lib.strings.escapeShellArg ''
+    ${sp}        | \| |_ _|\ \/ / (\_/)  / _ \/ __|        ${sp}
+    ${sp}        | .`  | |  >  < (='.'=)| (_) \__ \        ${sp}
+    ${sp}        |_|\_|___|/_/\_\(")_(")_\___/|___/        ${sp}
+  '';
   roleArt = {
     bifrost = lib.strings.escapeShellArg ''
       ${sp}    .  _  | _ (_) __| _ \/ _ \/ __|_   _|  _  .    ${sp}
