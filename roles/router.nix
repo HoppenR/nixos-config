@@ -1,22 +1,16 @@
 {
-  inputs,
   config,
   lib,
   pkgs,
   inventory,
   topology,
   net,
+  writeZsh,
   ...
 }:
 let
   machine = inventory.${config.networking.hostName};
   top = topology.${machine.topology};
-  mgmtSubnet = "${top.ipBase}.${toString net.mgmt}.0/24";
-  mgmtv6Subnet = "${top.ip6Base}:${toString net.mgmt}::/64";
-  guestSubnet = "${top.ipBase}.${toString net.guest}.0/24";
-  guestv6Subnet = "${top.ip6Base}:${toString net.guest}::/64";
-  networkServer = topology.${machine.topology}.server;
-  endpoints = inputs.self.nixosConfigurations.${networkServer}.config.lab.endpoints.hosts;
 in
 {
   imports = [
@@ -57,9 +51,6 @@ in
 
     "net.ipv6.conf.wan0.accept_ra" = 2;
 
-    "net.ipv4.conf.veth-tr-host.accept_local" = 1;
-    "net.ipv4.conf.vrf-transit.accept_local" = 1;
-    "net.ipv4.ip_nonlocal_bind" = 1;
     "net.vrf.strict_mode" = 1;
   };
 
@@ -83,6 +74,37 @@ in
   };
 
   environment = {
+    etc = {
+      "netns/ns-mgmt/hosts".text = ''
+        127.0.0.1 localhost
+        ::1 localhost
+        127.0.0.2 ${config.networking.hostName}.${config.networking.domain} ${config.networking.hostName}
+      ''
+      + (lib.concatMapStrings (hostName: ''
+        ${net.ip net.mgmt hostName} ${hostName}.${config.networking.domain}
+        ${net.ip6 net.mgmt hostName} ${hostName}.${config.networking.domain}
+      '') (lib.attrNames inventory));
+      "netns/ns-guest/hosts".text = ''
+        127.0.0.1 localhost
+        ::1 localhost
+        127.0.0.2 ${config.networking.hostName}
+      '';
+      "netns/ns-mgmt/resolv.conf".text = ''
+        nameserver 127.0.0.1
+        nameserver ::1
+        nameserver ${net.ip net.mgmt config.networking.hostName}
+        nameserver ${net.ip6 net.mgmt config.networking.hostName}
+        search ${config.networking.domain}
+        options edns0 trust-ad
+      '';
+      "netns/ns-guest/resolv.conf".text = ''
+        nameserver 127.0.0.1
+        nameserver ::1
+        nameserver ${net.ip net.guest config.networking.hostName}
+        nameserver ${net.ip6 net.guest config.networking.hostName}
+        options edns0 trust-ad
+      '';
+    };
     systemPackages = (
       builtins.attrValues {
         inherit (pkgs)
@@ -90,6 +112,7 @@ in
           dig
           iw
           nload
+          nmap
           tcpdump
           ;
       }
@@ -117,20 +140,10 @@ in
   };
 
   networking = {
-    hosts = lib.foldl' lib.recursiveUpdate { } (
-      lib.mapAttrsToList (hostName: _: {
-        "${net.ip net.mgmt hostName}" = [ "${hostName}.${config.networking.domain}" ];
-        "${net.ip6 net.mgmt hostName}" = [ "${hostName}.${config.networking.domain}" ];
-      }) inventory
-    );
+    resolvconf.enable = true;
     nftables.tables."nixos-nat" = {
       family = "ip";
       content = ''
-        chain prerouting {
-          type filter hook prerouting priority raw; policy accept;
-          iifname { "veth-tr-host", "veth-tr-mgmt", "veth-tr-guest" } counter ct zone set 1
-          iifname "wan0" counter ct zone set 1
-        }
         chain postrouting {
           type nat hook postrouting priority srcnat; policy accept;
           oifname "wan0" iifname "vrf-transit" counter masquerade
@@ -143,47 +156,10 @@ in
       allowedUDPPorts = [ ];
       checkReversePath = "strict";
       extraForwardRules = ''
-        iifname "veth-tr-mgmt" oifname "vrf-transit" accept
-        iifname "veth-tr-guest" oifname "vrf-transit" accept
-        iifname "veth-tr-host" oifname "vrf-transit" accept
         iifname "vrf-transit" oifname "wan0" accept
-        iifname "vrf-mgmt" oifname "veth-mgmt" accept
-        iifname "vrf-guest" oifname "veth-guest" accept
-      '';
-      extraReversePathFilterRules = ''
-        iifname "veth-tr-host" accept
-        iifname "vrf-transit" accept
       '';
       filterForward = true;
       interfaces = {
-        "vrf-mgmt" = {
-          allowedTCPPorts = [
-            22
-            53
-            3000
-            5353
-          ];
-          allowedUDPPorts = [
-            53
-            67
-            123
-            323
-            5353
-          ];
-        };
-        "vrf-guest" = {
-          allowedTCPPorts = [
-            53
-            5353
-          ];
-          allowedUDPPorts = [
-            53
-            67
-            123
-            323
-            5353
-          ];
-        };
         "wan0" = {
           allowedTCPPorts = [ ];
           allowedUDPPorts = [ ];
@@ -195,109 +171,52 @@ in
     };
   };
 
+  system.nssModules = lib.mkForce [ ];
+
   services = {
-    adguardhome = {
+    nscd.enable = false;
+    dnsmasq = {
       enable = true;
-      port = 3000;
-      mutableSettings = false;
-      openFirewall = false;
-      host = net.ip net.mgmt config.networking.hostName;
       settings = {
-        # TODO: set up webgui-interface over https via caddy
-        #       should set up caddy to serve only over 192.168.10.0/24
-        #       for internal endpoints
-        auth_attempts = 5;
-        block_auth_min = 15;
-        users = [
-          {
-            name = "admin";
-            password = "$2b$05$/XS4VgbMhE6PUWQhoa7JPuXenSCDKZrLFX0twny4.bCXYoGduN63W";
-          }
+        bind-interfaces = true;
+        bogus-priv = true;
+        # domain = config.networking.domain;
+        domain-needed = true;
+        enable-ra = true;
+        expand-hosts = true;
+        interface = "vlan-guest";
+        no-hosts = true;
+        no-resolv = true;
+        dhcp-host = lib.flatten (
+          lib.mapAttrsToList (
+            hostName: hostData:
+            lib.optional (
+              hostData ? mac && hostData != machine
+            ) "${hostData.mac},${net.ip net.guest hostName},${hostName}"
+          ) inventory
+        );
+        dhcp-option = [
+          "option:router,${net.ip net.guest config.networking.hostName}"
+          "option:dns-server,${net.ip net.guest config.networking.hostName}"
+          "option:ntp-server,162.159.200.1" # time.cloudflare.com
+          "option6:dns-server,[${net.ip6 net.guest config.networking.hostName}]"
         ];
-        dns = {
-          allowed_clients = [
-            "127.0.0.1"
-            "::1"
-            mgmtSubnet
-            mgmtv6Subnet
-          ];
-          bind_hosts = [
-            "127.0.0.1"
-            "::1"
-            (net.ip net.mgmt config.networking.hostName)
-            (net.ip6 net.mgmt config.networking.hostName)
-          ];
-          bootstrap_dns = [ "9.9.9.9" ];
-          cache_optimistic = true;
-          clients = {
-            runtime_sources = {
-              hosts = true;
-              rdns = true;
-            };
-          };
-          enable_dnssec = true;
-          hostsfile_enabled = true;
-          # TODO: fix not being able to access 127.0.0.53:53 from vrf-mgmt
-          #       -> also enable use_private_ptr_resolvers
-          # local_ptr_upstreams = [ "127.0.0.53:53" ];
-          use_private_ptr_resolvers = false;
-          port = 53;
-          private_networks = [
-            mgmtSubnet
-            mgmtv6Subnet
-          ];
-          upstream_dns = [ "https://dns.quad9.net/dns-query" ];
-        };
-        filtering = {
-          rewrites = (
-            # Prevent leaking the 127.0.0.2 entry in /etc/hosts
-            [
-              {
-                domain = "${config.networking.hostName}.${config.networking.domain}";
-                answer = net.ip net.mgmt config.networking.hostName;
-                enabled = true;
-              }
-              {
-                domain = "${config.networking.hostName}.${config.networking.domain}";
-                answer = net.ip6 net.mgmt config.networking.hostName;
-                enabled = true;
-              }
-              {
-                domain = "${config.networking.hostName}";
-                answer = net.ip net.mgmt config.networking.hostName;
-                enabled = true;
-              }
-              {
-                domain = "${config.networking.hostName}";
-                answer = net.ip6 net.mgmt config.networking.hostName;
-                enabled = true;
-              }
-            ]
-            ++ (lib.flatten (
-              lib.mapAttrsToList (name: info: [
-                {
-                  domain = info.hostname;
-                  answer = net.ip net.mgmt networkServer;
-                  enabled = true;
-                }
-                {
-                  domain = info.hostname;
-                  answer = net.ip6 net.mgmt networkServer;
-                  enabled = true;
-                }
-              ]) endpoints
-            ))
-          );
-        };
+        dhcp-range = [
+          "${top.ipBase}.${toString net.guest}.127,${top.ipBase}.${toString net.guest}.254,24h"
+          "::,constructor:vlan-guest,ra-stateless,64"
+        ];
+        server = [
+          "9.9.9.9"
+          "149.112.112.112"
+        ];
       };
     };
     chrony = {
-      # TODO: figure out how to get chrony to serve vrf-mgmt
       enable = true;
       enableNTS = true;
       extraConfig = ''
-        allow ${mgmtSubnet}
-        allow ${mgmtv6Subnet}
+        allow ${net.subnet net.mgmt top}
+        allow ${net.subnet6 net.mgmt top}
         bindaddress ${net.ip net.mgmt config.networking.hostName}
         bindaddress ${net.ip6 net.mgmt config.networking.hostName}
       '';
@@ -429,57 +348,237 @@ in
       openFirewall = false;
     };
     pipewire.enable = false;
-    resolved = {
-      settings.Resolve = {
-        Cache = true;
-        DNS = [
-          "127.0.0.1"
-          "::1"
-        ];
-        FallbackDNS = [ "" ];
-        Domains = [
-          "~."
-          "~${config.networking.domain}"
-        ];
-        DNSStubListener = true;
-      };
-    };
+    resolved.enable = false;
   };
 
   systemd = {
+    targets = {
+      multi-user.wants = [
+        "setup-network@mgmt.service"
+        "setup-network@guest.service"
+        # "setup-network@iot.service"
+        "nftables-ns@mgmt.service"
+        "nftables-ns@guest.service"
+        # "nftables-ns@iot.service"
+      ];
+    };
     services = {
-      adguardhome = {
-        after = [ "sys-subsystem-net-devices-vrf\\x2dmgmt.device" ];
-        bindsTo = [ "sys-subsystem-net-devices-vrf\\x2dmgmt.device" ];
-        serviceConfig.BindNetworkInterface = "vrf-mgmt";
+      dnsmasq = {
+        after = [ "setup-network@guest.service" ];
+        requires = [ "setup-network@guest.service" ];
+        serviceConfig = {
+          BindPaths = [
+            "/etc/netns/ns-guest/hosts:/etc/hosts"
+            "/etc/netns/ns-guest/resolv.conf:/etc/resolv.conf"
+          ];
+          NetworkNamespacePath = "/run/netns/ns-guest";
+        };
       };
-      chrony = {
-        after = [ "sys-subsystem-net-devices-vrf\\x2dmgmt.device" ];
-        bindsTo = [ "sys-subsystem-net-devices-vrf\\x2dmgmt.device" ];
-        serviceConfig.BindNetworkInterface = "vrf-mgmt";
+      chronyd = {
+        after = [ "setup-network@mgmt.service" ];
+        requires = [ "setup-network@mgmt.service" ];
+        serviceConfig = {
+          BindPaths = [
+            "/etc/netns/ns-mgmt/hosts:/etc/hosts"
+            "/etc/netns/ns-mgmt/resolv.conf:/etc/resolv.conf"
+          ];
+          NetworkNamespacePath = "/run/netns/ns-mgmt";
+        };
       };
       sshd = {
-        after = [ "sys-subsystem-net-devices-vrf\\x2dmgmt.device" ];
-        bindsTo = [ "sys-subsystem-net-devices-vrf\\x2dmgmt.device" ];
-        serviceConfig.BindNetworkInterface = "vrf-mgmt";
+        after = [ "setup-network@mgmt.service" ];
+        requires = [ "setup-network@mgmt.service" ];
+        serviceConfig = {
+          BindPaths = [
+            "/etc/netns/ns-mgmt/hosts:/etc/hosts"
+            "/etc/netns/ns-mgmt/resolv.conf:/etc/resolv.conf"
+          ];
+          NetworkNamespacePath = "/run/netns/ns-mgmt";
+        };
+      };
+
+      "netns@" = {
+        before = [ "network.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = "${pkgs.iproute2}/bin/ip netns add ns-%i";
+          ExecStop = "${pkgs.iproute2}/bin/ip netns del ns-%i";
+        };
+      };
+      "move-netdev@" = {
+        after = [ "netns@%i.service" ];
+        requires = [ "netns@%i.service" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = "${
+            writeZsh "move-netdev.zsh" /* zsh */ ''
+              for i in {1..50}; do
+                if ${pkgs.iproute2}/bin/ip link show vlan-$1 >/dev/null 2>&1; then
+                  ${pkgs.iproute2}/bin/ip link set vlan-$1 netns ns-$1
+                  break
+                fi
+                sleep 0.1
+              done
+              for i in {1..50}; do
+                if ${pkgs.iproute2}/bin/ip link show veth-$1 >/dev/null 2>&1; then
+                  ${pkgs.iproute2}/bin/ip link set veth-$1 netns ns-$1
+                  break
+                fi
+                sleep 0.1
+              done
+            ''
+          } %i";
+        };
+      };
+      "setup-network@" = {
+        after = [ "move-netdev@%i.service" ];
+        requires = [ "move-netdev@%i.service" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          NetworkNamespacePath = "/run/netns/ns-%i";
+          ExecStart =
+            let
+              mkSetupNetworkScript =
+                name: data:
+                writeZsh "setup-network-${name}" /* zsh */ ''
+                  sysctl -w net.ipv4.ip_forward=1
+                  ip link set lo up
+                  ip link set vlan-${name} up
+                  ip addr replace ${net.ip net.${name} config.networking.hostName}/24 dev vlan-${name}
+                  ip addr replace ${net.ip6 net.${name} config.networking.hostName}/64 dev vlan-${name}
+                  ip neighbor replace 172.26.${toString net.${name}}.1 lladdr "${data.mac}" dev veth-${name}
+                  sysctl -w net.ipv4.conf.vlan-${name}.forwarding=1
+                  sysctl -w net.ipv4.conf.vlan-${name}.rp_filter=1
+                  ip link set veth-${name} up
+                  ip addr replace 172.26.${toString net.${name}}.2/30 dev veth-${name}
+                  ip route replace default via 172.26.${toString net.${name}}.1
+                  sysctl -w net.ipv4.conf.veth-${name}.forwarding=1
+                  sysctl -w net.ipv4.conf.veth-${name}.rp_filter=1
+                '';
+            in
+            "${
+              writeZsh "move-netdev.zsh" /* zsh */ ''
+                case "$1" in
+                  mgmt) exec ${mkSetupNetworkScript "mgmt" { mac = "5a:6f:79:3a:33:1a"; }} ;;
+                  guest) exec ${mkSetupNetworkScript "guest" { mac = "8e:9d:a2:87:aa:76"; }} ;;
+                esac
+              ''
+            } %i";
+        };
+      };
+      "nftables-ns@" = {
+        description = "nftables firewall for namespace %i";
+        bindsTo = [ "netns@%i.service" ];
+        after = [ "netns@%i.service" ];
+        before = [ "network.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          NetworkNamespacePath = "/run/netns/ns-%i";
+          ExecStart =
+            let
+              mkNftRules =
+                name:
+                {
+                  tcp ? [ ],
+                  udp ? [ ],
+                  extraInputRules ? "",
+                  extraForwardRules ? "",
+                  extraReversePathFilterRules ? "",
+                }:
+                pkgs.writeText "nftables-${name}.conf" ''
+                  flush ruleset
+                  table inet nixos-fw {
+                    chain rpfilter {
+                      type filter hook prerouting priority mangle + 10; policy drop;
+                      meta nfproto ipv4 udp sport . udp dport { 68 . 67, 67 . 68 } accept comment "DHCPv4 client/server"
+                      fib saddr . mark . iif oif exists accept
+                      jump rpfilter-allow
+                      log level info prefix "rpfilter drop: "
+                    }
+                    chain rpfilter-allow {
+                      ${extraReversePathFilterRules}
+                    }
+                    chain input {
+                      type filter hook input priority filter; policy drop;
+                      iifname "lo" accept
+                      icmpv6 type echo-reply accept
+                      ct state vmap { invalid : drop, established : accept, related : accept, new : jump input-allow, untracked : jump input-allow }
+                    }
+                    chain input-allow {
+                      icmpv6 type != { nd-redirect, 139 } accept
+                      ip6 daddr fe80::/64 udp dport 546 accept comment "DHCPv6 client"
+                      ${
+                        if tcp != [ ] then "tcp dport { ${lib.concatStringsSep ", " (map toString tcp)} } accept" else ""
+                      }
+                      ${
+                        if udp != [ ] then "udp dport { ${lib.concatStringsSep ", " (map toString udp)} } accept" else ""
+                      }
+                      ${extraInputRules}
+                    }
+                    chain forward {
+                      type filter hook forward priority filter; policy drop;
+                      ct state vmap { established : accept, related : accept, new : jump forward-allow, untracked : jump forward-allow }
+                    }
+                    chain forward-allow {
+                      icmpv6 type != { router-renumbering, 139 } accept
+                      ct status dnat accept comment "allow port forward"
+                      ${extraForwardRules}
+                    }
+                  }
+                '';
+              rules = {
+                mgmt = {
+                  tcp = [
+                    22 # SSH
+                    53 # DNS
+                  ];
+                  udp = [
+                    53
+                    67 # DHCPv4
+                    123 # NTP
+                    323 # Chrony control
+                    547 # DHCPv6
+                  ];
+                  extraInputRules = ''
+                    ip saddr ${net.ip net.mgmt top.server} tcp dport 443 accept
+                    ip6 saddr ${net.ip6 net.mgmt top.server} tcp dport 443 accept
+                  '';
+                  extraForwardRules = ''
+                    iifname "vlan-mgmt" oifname "veth-mgmt" accept
+                  '';
+                };
+                guest = {
+                  tcp = [
+                    53 # DNS
+                  ];
+                  udp = [
+                    53 # DNS
+                    67 # DHCPv4
+                    547 # DHCPv6
+                  ];
+                  extraForwardRules = ''
+                    iifname "vlan-guest" oifname "veth-guest" accept
+                  '';
+                  extraReversePathFilterRules = "";
+                };
+              };
+            in
+            "${writeZsh "load-nft-ns" ''
+              case "$1" in
+                mgmt)  ${pkgs.nftables}/bin/nft -f ${mkNftRules "mgmt" rules.mgmt} ;;
+                guest) ${pkgs.nftables}/bin/nft -f ${mkNftRules "guest" rules.guest} ;;
+              esac
+            ''} %i";
+          ExecStop = "${pkgs.nftables}/bin/nft flush ruleset";
+        };
       };
     };
     network = {
       netdevs = {
-        "10-vrf-mgmt" = {
-          netdevConfig = {
-            Kind = "vrf";
-            Name = "vrf-mgmt";
-          };
-          vrfConfig.Table = 10;
-        };
-        "10-vrf-guest" = {
-          netdevConfig = {
-            Kind = "vrf";
-            Name = "vrf-guest";
-          };
-          vrfConfig.Table = 20;
-        };
         "10-vrf-iot" = {
           netdevConfig = {
             Kind = "vrf";
@@ -493,15 +592,6 @@ in
             Name = "vrf-transit";
           };
           vrfConfig.Table = 100;
-        };
-        "10-veth-host" = {
-          netdevConfig = {
-            Kind = "veth";
-            Name = "veth-host";
-          };
-          peerConfig = {
-            Name = "veth-tr-host";
-          };
         };
         "10-veth-mgmt" = {
           netdevConfig = {
@@ -567,70 +657,6 @@ in
             IPv4ReversePathFilter = "strict";
           };
         };
-        "10-vrf-mgmt" = {
-          matchConfig.Name = "vrf-mgmt";
-          address = [
-            "127.0.0.1/8"
-            "::1/128"
-          ];
-          # TODO: add ipv6 local routes?
-          routes = [
-            {
-              Destination = "127.0.0.1";
-              Type = "local";
-              Table = 10;
-            }
-            {
-              Destination = "192.168.10.1";
-              Type = "local";
-              Table = 10;
-            }
-          ];
-          networkConfig = {
-            IPv4Forwarding = true;
-            IPv6Forwarding = true;
-          };
-        };
-        "10-vrf-guest" = {
-          matchConfig.Name = "vrf-guest";
-          address = [
-            "127.0.0.1/8"
-            "::1/128"
-          ];
-          # TODO: add routes
-          networkConfig = {
-            IPv4Forwarding = true;
-            IPv6Forwarding = true;
-          };
-        };
-        "25-veth-tr-host" = {
-          matchConfig.Name = "veth-tr-host";
-          networkConfig = {
-            Address = "172.26.0.1/30";
-            VRF = "vrf-transit";
-            IPv4Forwarding = true;
-            IPv4ReversePathFilter = "loose";
-          };
-          linkConfig = {
-            MACAddress = "32:5d:1d:b7:4c:15";
-            RequiredForOnline = "no";
-          };
-          routes = [
-            {
-              Destination = "172.26.0.2/32";
-            }
-            {
-              Destination = "${top.ipBase}.0.0/24";
-              Gateway = "172.26.0.2";
-            }
-          ];
-          neighbors = [
-            {
-              Address = "172.26.0.2";
-              LinkLayerAddress = "9e:1d:b3:f2:b2:1e";
-            }
-          ];
-        };
         "25-veth-tr-mgmt" = {
           matchConfig.Name = "veth-tr-mgmt";
           networkConfig = {
@@ -647,7 +673,7 @@ in
               Destination = "172.26.10.2/32";
             }
             {
-              Destination = mgmtSubnet;
+              Destination = net.subnet net.mgmt top;
               Gateway = "172.26.10.2";
             }
           ];
@@ -665,79 +691,27 @@ in
             VRF = "vrf-transit";
             IPv4Forwarding = true;
           };
-          # TODO: add neighbors
+          linkConfig = {
+            MACAddress = "8e:9d:a2:87:aa:76";
+            RequiredForOnline = false;
+          };
           routes = [
             {
               Destination = "172.26.20.2/32";
             }
             {
-              Destination = guestSubnet;
+              Destination = net.subnet net.guest top;
               Gateway = "172.26.20.2";
-            }
-          ];
-        };
-        "25-veth-host" = {
-          matchConfig.Name = "veth-host";
-          networkConfig = {
-            Address = "172.26.0.2/30";
-            IPv4Forwarding = true;
-            IPv4ReversePathFilter = "strict";
-          };
-          linkConfig = {
-            MACAddress = "9e:1d:b3:f2:b2:1e";
-          };
-          neighbors = [
-            {
-              Address = "172.26.0.1";
-              LinkLayerAddress = "32:5d:1d:b7:4c:15";
-            }
-          ];
-          routes = [
-            {
-              Destination = "0.0.0.0/0";
-              Gateway = "172.26.0.1";
             }
           ];
         };
         "25-veth-mgmt" = {
           matchConfig.Name = "veth-mgmt";
-          networkConfig = {
-            Address = "172.26.10.2/30";
-            VRF = "vrf-mgmt";
-            IPv4Forwarding = true;
-            IPv4ReversePathFilter = "strict";
-          };
-          linkConfig = {
-            MACAddress = "1e:55:ac:e4:d4:7b";
-          };
-          neighbors = [
-            {
-              Address = "172.26.10.1";
-              LinkLayerAddress = "5a:6f:79:3a:33:1a";
-            }
-          ];
-          routes = [
-            {
-              Destination = "0.0.0.0/0";
-              Gateway = "172.26.10.1";
-            }
-          ];
+          linkConfig.Unmanaged = true;
         };
         "25-veth-guest" = {
           matchConfig.Name = "veth-guest";
-          networkConfig = {
-            Address = "172.26.20.2/30";
-            VRF = "vrf-guest";
-            IPv4Forwarding = true;
-            IPv4ReversePathFilter = "strict";
-          };
-          # TODO: add neighbors
-          routes = [
-            {
-              Destination = "0.0.0.0/0";
-              Gateway = "172.26.20.1";
-            }
-          ];
+          linkConfig.Unmanaged = true;
         };
         "30-br-lan-server" = {
           matchConfig.Name = "br-lan";
@@ -801,106 +775,21 @@ in
         };
         "40-vlan-mgmt-server" = {
           matchConfig.Name = "vlan-mgmt";
-          address = [
-            "${net.ip net.mgmt config.networking.hostName}/24"
-            "${net.ip6 net.mgmt config.networking.hostName}/64"
-          ];
-          dhcpPrefixDelegationConfig = {
-            Announce = true;
-            SubnetId = net.mgmt;
-            UplinkInterface = "wan0";
-          };
-          dhcpServerConfig = {
-            DNS = [ (net.ip net.mgmt config.networking.hostName) ];
-            EmitDNS = true;
-            EmitNTP = true;
-            NTP = [
-              (net.ip net.mgmt config.networking.hostName)
-            ];
-            PoolOffset = 127;
-            PoolSize = 128;
-          };
-          dhcpServerStaticLeases = lib.flatten (
-            lib.mapAttrsToList (
-              hostName: hostData:
-              lib.optional (hostData ? mac && hostData != machine) {
-                MACAddress = hostData.mac;
-                Address = net.ip net.mgmt hostName;
-              }
-            ) inventory
-          );
-          domains = [ config.networking.domain ];
-          ipv6Prefixes = [ { Prefix = mgmtv6Subnet; } ];
-          ipv6SendRAConfig = {
-            DNS = [ (net.ip6 net.mgmt config.networking.hostName) ];
-            EmitDNS = true;
-            Managed = false;
-            OtherInformation = true;
-          };
-          networkConfig = {
-            DHCPPrefixDelegation = true;
-            DHCPServer = true;
-            IPv4Forwarding = true;
-            IPv4ReversePathFilter = "strict";
-            IPv6AcceptRA = false;
-            IPv6Forwarding = true;
-            IPv6SendRA = true;
-            MulticastDNS = true;
-            VRF = "vrf-mgmt";
-          };
+          linkConfig.Unmanaged = true;
         };
         "40-vlan-guest-server" = {
           matchConfig.Name = "vlan-guest";
-          address = [
-            "${net.ip net.guest config.networking.hostName}/24"
-            "${net.ip6 net.guest config.networking.hostName}/64"
-          ];
-          dhcpPrefixDelegationConfig = {
-            Announce = true;
-            SubnetId = net.guest;
-            UplinkInterface = "wan0";
-          };
-          dhcpServerConfig = {
-            DNS = [
-              "9.9.9.9"
-              "149.112.112.112"
-            ];
-            EmitDNS = true;
-            EmitNTP = true;
-            NTP = [ "time.cloudflare.com" ];
-            PoolOffset = 127;
-            PoolSize = 128;
-          };
-          ipv6Prefixes = [ { Prefix = guestv6Subnet; } ];
-          ipv6SendRAConfig = {
-            DNS = [ (net.ip6 net.guest config.networking.hostName) ];
-            EmitDNS = true;
-            Managed = false;
-            OtherInformation = true;
-          };
-          networkConfig = {
-            DHCPPrefixDelegation = true;
-            DHCPServer = true;
-            # IPMasquerade = "both";
-            IPv4Forwarding = true;
-            IPv4ReversePathFilter = "strict";
-            IPv6AcceptRA = false;
-            IPv6Forwarding = true;
-            IPv6SendRA = true;
-            MulticastDNS = true;
-            VRF = "vrf-guest";
-          };
+          linkConfig.Unmanaged = true;
         };
         "40-vlan-iot-server" = {
           matchConfig.Name = "vlan-iot";
-          # TODO: implement this
+          linkConfig.Unmanaged = true;
         };
         "40-wan" = {
           matchConfig.Name = "wan0";
           networkConfig = {
             DHCP = true;
             DHCPPrefixDelegation = true;
-            # IPMasquerade = "both";
             IPv4Forwarding = true;
             IPv4ReversePathFilter = "strict";
             IPv6AcceptRA = true;

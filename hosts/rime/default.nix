@@ -182,16 +182,12 @@ in
         ];
         networkConfig = {
           DNS = [
-            "9.9.9.9"
-            "149.112.112.112"
+            (net.ip net.guest gateway)
+            (net.ip6 net.guest gateway)
           ];
           IPv4ReversePathFilter = "loose";
           IPv6AcceptRA = false;
           KeepConfiguration = "static";
-          NTP = [
-            (net.ip net.guest gateway)
-            (net.ip6 net.guest gateway)
-          ];
           MulticastDNS = true;
         };
         routes = [

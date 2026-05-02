@@ -16,6 +16,8 @@ let
     mgmt = 10;
     guest = 20;
     iot = 30;
+    subnet = vlan: top: "${top.ipBase}.${toString vlan}.0/24";
+    subnet6 = vlan: top: "${top.ip6Base}:${toString vlan}::0/64";
     ip =
       vlan: hostName:
       let
@@ -132,7 +134,7 @@ in
     domain = "hoppenr.xyz";
     nftables.enable = true;
     firewall.backend = "nftables";
-    resolvconf.enable = false;
+    resolvconf.enable = lib.mkDefault false;
     useNetworkd = true;
     useDHCP = false;
   };
@@ -223,7 +225,7 @@ in
   services = {
     pcscd.enable = true;
     resolved = {
-      enable = true;
+      enable = lib.mkDefault true;
       settings.Resolve = {
         LLMNR = false;
         MulticastDNS = true;

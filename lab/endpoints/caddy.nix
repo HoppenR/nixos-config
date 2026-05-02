@@ -30,6 +30,7 @@ in
           content = ''
             tls {
               dns cloudflare ${config.sops.placeholder.cloudflare-api-token}
+              resolvers 1.1.1.1
             }
           '';
         };
@@ -38,8 +39,8 @@ in
     services.caddy = {
       enable = true;
       package = pkgs.caddy.withPlugins {
-        plugins = [ "github.com/caddy-dns/cloudflare@v0.2.3" ];
-        hash = "sha256-+htYZclHv9qI0TeHcBFvPkWzJVAZ5jqzTODrh4YmqXY=";
+        plugins = [ "github.com/caddy-dns/cloudflare@v0.2.4" ];
+        hash = "sha256-J0HWjCPoOoARAxDpG2bS9c0x5Wv4Q23qWZbTjd8nW84=";
       };
       globalConfig =
         let
@@ -54,15 +55,21 @@ in
           servers {
             trusted_proxies static ${lib.concatStringsSep " " trustedProxies}
             client_ip_headers CF-Connecting-IP X-Forwarded-For
+            strict_sni_host on
           }
         '';
+      extraConfig = ''
+        :443, :80 {
+          abort
+        }
+      '';
       virtualHosts = lib.listToAttrs (
         map (
           v:
           lib.nameValuePair v.hostname {
             extraConfig = ''
               import ${config.sops.templates."caddy-dns-config".path}
-              # bind 127.0.0.1 ::1
+              bind ${net.ip net.mgmt config.networking.hostName} ${net.ip6 net.mgmt config.networking.hostName} ${lib.optionalString v.cloudflare.enable "127.0.0.1 ::1"}
               header {
                 Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
                 defer

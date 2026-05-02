@@ -3,6 +3,9 @@
   config,
   ...
 }:
+let
+  enabledCloudflareEndpoints = lib.filterAttrs (_: v: v.cloudflare.enable) config.lab.endpoints.hosts;
+in
 {
   options.lab.endpoints = {
     cloudflared = {
@@ -32,7 +35,7 @@
         "${config.networking.domain}" = {
           credentialsFile = config.sops.templates."cloudflare-tunnel-config".path;
           ingress = lib.listToAttrs (
-            map (v: lib.nameValuePair v.hostname v.ingress) (lib.attrValues config.lab.endpoints.hosts)
+            map (v: lib.nameValuePair v.hostname v.ingress) (lib.attrValues enabledCloudflareEndpoints)
           );
           default = "http_status:503";
         };

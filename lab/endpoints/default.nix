@@ -8,8 +8,6 @@
     ./caddy.nix
     ./cloudflared.nix
   ];
-  # TODO: add a cloudflared.enable toggle to each endpoint so that I can add
-  #       internal routes here
   options.lab = {
     endpoints = {
       hosts = lib.mkOption {
@@ -44,6 +42,12 @@
                   default = {
                     service = "https://localhost:443";
                     originRequest.originServerName = sub.config.hostname;
+                  };
+                };
+                cloudflare = {
+                  enable = lib.mkOption {
+                    type = lib.types.bool;
+                    default = true;
                   };
                 };
                 caddy = {

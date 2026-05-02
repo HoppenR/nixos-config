@@ -6,6 +6,8 @@
     ./openssh.nix
     # Relations
     ./relations.nix
+    ./adguardhome.nix
+    ./proxmox.nix
     ./rclone-mount.nix
     ./streams.nix
     ./zed.nix

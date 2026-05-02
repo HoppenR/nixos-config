@@ -84,6 +84,7 @@ in
             (net.ip net.mgmt gateway)
             (net.ip6 net.mgmt gateway)
           ];
+          IPv4ReversePathFilter = "strict";
           IPv6AcceptRA = false;
           NTP = [
             (net.ip net.mgmt gateway)
@@ -110,16 +111,12 @@ in
             "${net.ip6 net.guest config.networking.hostName}/64"
           ];
           DNS = [
-            "9.9.9.9"
-            "149.112.112.112"
-          ];
-          IPv4ReversePathFilter = "loose";
-          IPv6AcceptRA = false;
-          KeepConfiguration = "static";
-          NTP = [
             (net.ip net.guest gateway)
             (net.ip6 net.guest gateway)
           ];
+          IPv4ReversePathFilter = "strict";
+          IPv6AcceptRA = false;
+          KeepConfiguration = "static";
           MulticastDNS = true;
         };
         routes = [

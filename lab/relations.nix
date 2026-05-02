@@ -5,6 +5,16 @@
 }:
 let
   relations = {
+    adguardhome = {
+      enabled = true;
+      clients = [ "skadi" ];
+      host = "bifrost";
+    };
+    proxmox = {
+      enabled = true;
+      clients = [ "skadi" ];
+      host = "yggdrasil";
+    };
     rcloneMounts = {
       enabled = true;
       clients = [ "skadi" ];
