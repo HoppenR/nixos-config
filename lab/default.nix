@@ -14,9 +14,13 @@
     ./zfs-replication.nix
     # Specialized
     ./booklore.nix
+    ./chrony.nix
+    ./dnsmasq.nix
     ./endpoints
+    ./hostapd.nix
     ./joplin.nix
     ./mysql.nix
+    ./namespaces
     ./nextcloud.nix
     ./postfix.nix
     ./postgres.nix

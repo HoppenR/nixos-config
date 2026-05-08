@@ -12,12 +12,16 @@ let
   rel = relations.adguardhome;
   machine = inventory.${config.networking.hostName};
   top = topology.${machine.topology};
-  endpoints = inputs.self.nixosConfigurations.${top.server}.config.lab.endpoints.hosts;
+  client = lib.head rel.clients;
+  endpoints = inputs.self.nixosConfigurations.${client}.config.lab.endpoints.hosts;
 in
 {
   config = lib.mkIf rel.isActive (
     lib.mkMerge [
       {
+        assertions = [
+          { assertion = builtins.length rel.clients == 1; }
+        ];
         sops.secrets = {
           "adguardhome-certificate" = {
             key = "adguardhome/certificate";
@@ -31,7 +35,7 @@ in
           "adguardhome" = {
             cloudflare.enable = false;
             caddy.extraConfig = ''
-              reverse_proxy https://${net.ip net.mgmt top.gateway} {
+              reverse_proxy https://[${net.ip6 net.mgmt rel.host}]:443 {
                 transport http {
                   tls_server_name adguardhome.${config.networking.domain}
                   tls_trusted_ca_certs ${config.sops.secrets."adguardhome-certificate".path}
@@ -42,22 +46,39 @@ in
         };
       })
       (lib.mkIf rel.isHost {
+        lab.namespaces = {
+          mgmt.firewall = {
+            tcp = [
+              53 # DNS
+            ];
+            udp = [
+              53 # DNS
+              67 # DHCPv4
+              547 # DHCPv6
+            ];
+            extraInputRules = ''
+              ip6 saddr ${net.ip6 net.mgmt client} tcp dport 443 accept
+            '';
+          };
+        };
         sops.secrets = {
           "adguardhome-key".key = "adguardhome/key";
         };
-        systemd.services.adguardhome = {
-          after = [ "setup-network@mgmt.service" ];
-          requires = [ "setup-network@mgmt.service" ];
-          serviceConfig = {
-            BindPaths = [
-              "/etc/netns/ns-mgmt/hosts:/etc/hosts"
-              "/etc/netns/ns-mgmt/resolv.conf:/etc/resolv.conf"
-            ];
-            NetworkNamespacePath = "/run/netns/ns-mgmt";
-            LoadCredential = [
-              "cert:${config.sops.secrets."adguardhome-certificate".path}"
-              "key:${config.sops.secrets."adguardhome-key".path}"
-            ];
+        systemd.services = {
+          adguardhome = {
+            after = [ "setup-network@mgmt.service" ];
+            requires = [ "setup-network@mgmt.service" ];
+            serviceConfig = {
+              BindPaths = [
+                "/etc/netns/ns-mgmt/hosts:/etc/hosts"
+                "/etc/netns/ns-mgmt/resolv.conf:/etc/resolv.conf"
+              ];
+              NetworkNamespacePath = "/run/netns/ns-mgmt";
+              LoadCredential = [
+                "cert:${config.sops.secrets."adguardhome-certificate".path}"
+                "key:${config.sops.secrets."adguardhome-key".path}"
+              ];
+            };
           };
         };
         services.adguardhome = {
@@ -65,7 +86,7 @@ in
           port = 0; # golang: any free available port
           mutableSettings = false;
           openFirewall = false;
-          host = net.ip net.mgmt config.networking.hostName;
+          host = "[${net.ip6 net.mgmt config.networking.hostName}]";
           settings = {
             auth_attempts = 5;
             block_auth_min = 15;
@@ -156,12 +177,12 @@ in
                   lib.mapAttrsToList (name: info: [
                     {
                       domain = info.hostname;
-                      answer = net.ip net.mgmt top.server;
+                      answer = net.ip net.mgmt client;
                       enabled = true;
                     }
                     {
                       domain = info.hostname;
-                      answer = net.ip6 net.mgmt top.server;
+                      answer = net.ip6 net.mgmt client;
                       enabled = true;
                     }
                   ]) endpoints

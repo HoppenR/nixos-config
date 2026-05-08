@@ -7,7 +7,7 @@ let
   relations = {
     adguardhome = {
       enabled = true;
-      clients = [ "skadi" ];
+      clients = lib.singleton "skadi";
       host = "bifrost";
     };
     proxmox = {

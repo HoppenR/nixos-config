@@ -72,7 +72,7 @@ in
         };
       };
       "50-vlan-mgmt" = {
-        # TODO: add different vrfs for each vlan on this system
+        # TODO: add different namespaces for each vlan on this system
         matchConfig.Name = "vlan-mgmt";
         domains = [ config.networking.domain ];
         networkConfig = {
