@@ -140,6 +140,7 @@ in
   };
 
   nix = {
+    channel.enable = false;
     gc = {
       automatic = true;
       dates = "weekly";

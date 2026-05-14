@@ -23,7 +23,7 @@
               port = 22;
             }
             {
-              addr = net.ip6 net.mgmt config.networking.hostName;
+              addr = "[${net.ip6 net.mgmt config.networking.hostName}]";
               port = 22;
             }
           ];

@@ -5,8 +5,6 @@
   ...
 }:
 let
-  # TODO: switch to agreety? with a wrapper to print ascii art
-  #       or just getty with ascii as services.getty.helpLine
   sp = builtins.fromJSON "\"\\u2007\"";
   greetingCommon = lib.strings.escapeShellArg ''
     ${sp}        | \| |_ _|\ \/ / (\_/)  / _ \/ __|        ${sp}

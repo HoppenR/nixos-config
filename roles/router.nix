@@ -48,8 +48,8 @@ in
     "net.ipv4.conf.default.arp_ignore" = 1;
     "net.ipv4.conf.default.rp_filter" = 1;
 
-    "net.ipv6.conf.wan0.accept_ra" = 2;
-    "net.vrf.strict_mode" = 1;
+    # "net.ipv6.conf.wan0.accept_ra" = 2;
+    # "net.vrf.strict_mode" = 1;
   };
 
   console.colors = lib.attrValues {
@@ -266,7 +266,7 @@ in
           IPv4Forwarding = true;
         };
         linkConfig = {
-          MACAddress = "5a:6f:79:3a:33:1a";
+          MACAddress = config.lab.namespaces.mgmt.gatewayMac;
           RequiredForOnline = "no";
         };
         routes = [
@@ -287,7 +287,7 @@ in
           IPv4Forwarding = true;
         };
         linkConfig = {
-          MACAddress = "8e:9d:a2:87:aa:76";
+          MACAddress = config.lab.namespaces.guest.gatewayMac;
           RequiredForOnline = false;
         };
         routes = [

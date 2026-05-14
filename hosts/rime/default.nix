@@ -120,7 +120,6 @@ in
         };
       };
       "50-vlan-mgmt" = {
-        # TODO: add different vrfs for each vlan on this system
         matchConfig.Name = "vlan-mgmt";
         addresses = [
           {
@@ -173,11 +172,11 @@ in
         addresses = [
           {
             Address = "${net.ip net.guest config.networking.hostName}/24";
-            RouteMetric = 10;
+            RouteMetric = 20;
           }
           {
             Address = "${net.ip6 net.guest config.networking.hostName}/64";
-            RouteMetric = 10;
+            RouteMetric = 20;
           }
         ];
         networkConfig = {
@@ -193,21 +192,21 @@ in
         routes = [
           {
             Destination = "${net.ip net.guest gateway}/32";
-            Metric = 10;
+            Metric = 20;
           }
           {
             Gateway = net.ip net.guest gateway;
             GatewayOnLink = true;
-            Metric = 10;
+            Metric = 20;
           }
           {
             Destination = "${net.ip6 net.guest gateway}/128";
-            Metric = 10;
+            Metric = 20;
           }
           {
             Gateway = net.ip6 net.guest gateway;
             GatewayOnLink = true;
-            Metric = 10;
+            Metric = 20;
           }
         ];
       };
