@@ -11,7 +11,7 @@
     admins = [ "christoffer" ];
     id = 41;
     mac = "bc:24:11:51:3b:c5";
-    publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA5h7nWVcRhCpsi8RfiqyCr5tUyWQj53/VfoP7dp2mgd skadi_host_key";
+    publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOX16F+D8ltI8YeXqiTYuAG2QtqVE1IkJ9MHKGcn7QLa root@skadi";
     role = "logic";
     topology = "home";
   };

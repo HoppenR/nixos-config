@@ -12,6 +12,7 @@ in
 {
   imports = [
     ../../roles/logic.nix
+    ./disko.nix
     ./hardware-configuration.nix
   ];
 
