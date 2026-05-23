@@ -149,8 +149,9 @@ in
     };
     settings = {
       experimental-features = [
-        "nix-command"
         "flakes"
+        "nix-command"
+        "pipe-operators"
       ];
       auto-optimise-store = true;
       allowed-users = [ "@wheel" ];
@@ -166,8 +167,8 @@ in
           (net.ip net.mgmt hostName)
           (net.ip6 net.mgmt hostName)
         ];
-        publicKey = hostData.publicKey;
-      }) (lib.filterAttrs (hostName: hostData: hostData ? publicKey) inventory);
+        inherit (hostData) publicKey;
+      }) (lib.filterAttrs (_: hostData: hostData ? publicKey) inventory);
       extraConfig =
         let
           mainuserHome = config.home-manager.users.${config.lab.mainUser};

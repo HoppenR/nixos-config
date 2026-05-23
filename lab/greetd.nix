@@ -47,10 +47,11 @@ let
   cmdAndArgsArray = [
     "${lib.getExe pkgs.tuigreet}"
     "--greeting ${greeting}"
-    "--user-menu"
-    "--time"
+    "--remember-session"
     "--theme '${config.lab.greetd.theme}'"
+    "--time"
     "--time-format %R"
+    "--user-menu"
   ]
   ++ lib.optional config.lab.greetd.useZshLogin "--cmd 'zsh --login'";
 in

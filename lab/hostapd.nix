@@ -53,15 +53,17 @@ in
               ssid = "midgard_24";
               bssid = mkGuestBssid config.lab.hostapd.bssid24;
               authentication = {
-                mode = "wpa3-sae-transition";
-                saePasswordsFile = config.sops.secrets."wifi-guest-password".path;
+                mode = "wpa2-sha256";
+                # saePasswordsFile = config.sops.secrets."wifi-guest-password".path;
                 wpaPasswordFile = config.sops.secrets."wifi-guest-password".path;
               };
               settings = {
                 chanlist = "1 6 11 13";
                 hw_mode = "g";
-                ieee80211ax = 1;
-                ieee80211w = 1;
+                ieee80211n = 1;
+                # TODO: figure out why this didn't work on some older devices
+                # ieee80211ax = 1;
+                # ieee80211w = 1;
               };
             };
           };

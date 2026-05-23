@@ -69,7 +69,7 @@ in
         podman = {
           user = "joplin";
         };
-        image = "joplin/server:latest";
+        image = "docker.io/joplin/server:latest";
         volumes = [
           "/run/postgresql:/run/postgresql"
           "/replicated/apps/joplin/remote:/app/storage"

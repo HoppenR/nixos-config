@@ -84,7 +84,8 @@
       homedir = "${config.xdg.stateHome}/gnupg";
       scdaemonSettings = {
         disable-ccid = true;
-        # Disabling this enables the OpenPGP PIN cache, but creates resource contention for other commands
+        # NOTE: Disabling this enables the OpenPGP PIN cache,
+        #       but creates resource contention for other commands
         pcsc-shared = false;
         deny-admin = true;
       };

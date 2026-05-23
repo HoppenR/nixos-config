@@ -39,7 +39,7 @@ let
 
   hostName = config.networking.hostName;
   decorate =
-    name: rel:
+    _: rel:
     rel
     // rec {
       isHost = hostName == rel.host;

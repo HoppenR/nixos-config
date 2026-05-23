@@ -149,7 +149,7 @@ in
               ];
             };
             filtering = {
-              rewrites = (
+              rewrites =
                 # Prevent leaking the 127.0.0.2 entry in /etc/hosts
                 [
                   {
@@ -174,7 +174,7 @@ in
                   }
                 ]
                 ++ (lib.flatten (
-                  lib.mapAttrsToList (name: info: [
+                  lib.mapAttrsToList (_: info: [
                     {
                       domain = info.hostname;
                       answer = net.ip net.mgmt client;
@@ -186,8 +186,7 @@ in
                       enabled = true;
                     }
                   ]) endpoints
-                ))
-              );
+                ));
             };
             tls = {
               enabled = true;

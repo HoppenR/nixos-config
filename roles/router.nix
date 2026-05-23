@@ -32,7 +32,7 @@ in
     {
       assertion =
         let
-          ids = lib.mapAttrsToList (n: v: v.id) inventory;
+          ids = lib.mapAttrsToList (_: v: v.id) inventory;
         in
         builtins.length (lib.unique ids) == builtins.length ids;
     }
@@ -47,9 +47,6 @@ in
     "net.ipv4.conf.default.arp_filter" = 1;
     "net.ipv4.conf.default.arp_ignore" = 1;
     "net.ipv4.conf.default.rp_filter" = 1;
-
-    # "net.ipv6.conf.wan0.accept_ra" = 2;
-    # "net.vrf.strict_mode" = 1;
   };
 
   console.colors = lib.attrValues {
@@ -72,18 +69,16 @@ in
   };
 
   environment = {
-    systemPackages = (
-      builtins.attrValues {
-        inherit (pkgs)
-          bridge-utils
-          dig
-          iw
-          nload
-          nmap
-          tcpdump
-          ;
-      }
-    );
+    systemPackages = builtins.attrValues {
+      inherit (pkgs)
+        bridge-utils
+        dig
+        iw
+        nload
+        nmap
+        tcpdump
+        ;
+    };
   };
 
   home-manager = {
@@ -104,20 +99,18 @@ in
     };
     hostapd = {
       enable = true;
-      bssid24 = "00:0a:52:0e:e4:14";
-      bssid5 = "00:0a:52:0e:e4:15";
+      bssid24 = config.systemd.network.links."10-wlan-24".matchConfig.MACAddress;
+      bssid5 = config.systemd.network.links."10-wlan-5".matchConfig.MACAddress;
     };
     namespaces = {
       mgmt = {
         enable = true;
         gatewayMac = "5a:6f:79:3a:33:1a";
         search = true;
-        extraHosts = (
-          lib.concatMapStrings (hostName: ''
-            ${net.ip net.mgmt hostName} ${hostName}.${config.networking.domain}
-            ${net.ip6 net.mgmt hostName} ${hostName}.${config.networking.domain}
-          '') (lib.attrNames inventory)
-        );
+        extraHosts = lib.concatMapStrings (hostName: ''
+          ${net.ip net.mgmt hostName} ${hostName}.${config.networking.domain}
+          ${net.ip6 net.mgmt hostName} ${hostName}.${config.networking.domain}
+        '') (lib.attrNames inventory);
         firewall.extraForwardRules = ''
           iifname "vlan-mgmt" oifname "veth-mgmt" accept
         '';

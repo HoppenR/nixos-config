@@ -186,16 +186,16 @@
               </interface>
             '';
             menu-actions = {
-              logout = "${pkgs.systemd}/bin/systemd-run --user --scope --unit=manual-logout ${lib.getExe pkgs.hyprshutdown}";
-              reboot = "${pkgs.systemd}/bin/systemd-run --user --scope --unit=manual-reboot ${lib.getExe pkgs.hyprshutdown} --post-cmd '${pkgs.systemd}/bin/systemctl reboot'";
-              shutdown = "${pkgs.systemd}/bin/systemd-run --user --scope --unit=manual-shutdown ${lib.getExe pkgs.hyprshutdown} --post-cmd '${pkgs.systemd}/bin/systemctl poweroff'";
+              logout = "${lib.getExe pkgs.uwsm} stop";
+              reboot = "${pkgs.systemd}/bin/systemctl reboot";
+              shutdown = "${pkgs.systemd}/bin/systemctl poweroff";
               suspend = "${pkgs.systemd}/bin/systemctl suspend";
             };
             on-click = writeZsh "hyprland-logout-dialog.zsh" /* zsh */ ''
               setopt ERR_EXIT NO_UNSET PIPE_FAIL
               ans="$(${pkgs.hyprland-qtutils}/bin/hyprland-dialog --title 'Exit Hyprland?' --text 'Are you sure?' --buttons 'Yes;No')"
               if [[ "$ans" == Yes ]]; then
-                ${pkgs.systemd}/bin/systemd-run --user --scope --unit=manual-logout ${lib.getExe pkgs.hyprshutdown}
+                ${lib.getExe pkgs.uwsm} stop
               fi
             '';
           };
@@ -206,8 +206,10 @@
               use JSON::PP;
               my $json = JSON::PP->new;
               my $now  = time();
+              my $inf  = 9**9**9;
               sub fmt_rel {
                 my $sec = shift;
+                return "∞" if $sec >= $inf;
                 return "0min" if $sec <= 60;
                 my @res;
                 my @units = ([604800,"w"], [86400,"d"], [3600,"h"], [60,"min"]);
@@ -227,7 +229,7 @@
                 my $result = $json->decode($out);
                 return [ map { {
                   unit => $_->{unit} =~ s/\.(?:timer|service)$//r . (!$is_user ? "" : " --user"),
-                  left => $_->{left} / 1e6 - $now,
+                  left => defined $_->{left} ? ($_->{left} / 1e6 - $now) : $inf,
                 } } @$result ]
               }
               my @failed = map { @{ get_sys('list-units --failed', $_) } } (0, 1);
@@ -322,8 +324,7 @@
         titleBarModules = {
           exclusive = false;
           layer = "top";
-          height = 27;
-          margin-top = 10;
+          margin-top = -16;
           modules-center = [ "hyprland/window" ];
           passthrough = true;
           position = "top";
@@ -367,66 +368,21 @@
           };
         };
 
-        bars = (
-          builtins.listToAttrs (
-            lib.imap0 (i: mon: {
-              name = "mainBar-${mon.serial}";
-              value = {
-                layer = "top";
-                position = "top";
-                output = mon.desc;
-              }
-              // (makeModules mon)
-              // commonMainBarConfig
-              // (makeDdcBrigtnessConfig mon i);
-            }) monitors
-          )
+        bars = builtins.listToAttrs (
+          lib.imap0 (i: mon: {
+            name = "mainBar-${mon.serial}";
+            value = {
+              layer = "top";
+              position = "top";
+              output = mon.desc;
+            }
+            // (makeModules mon)
+            // commonMainBarConfig
+            // (makeDdcBrigtnessConfig mon i);
+          }) (lib.filter (lib.getAttr "enabled") monitors)
         );
       in
-      bars
-      // {
-        # NOTE: special bar for laptop, should be removed in the future
-        "titleBar" = titleBarModules;
-        "mainBar-laptop" = {
-          layer = "top";
-          position = "top";
-          output = "eDP-1";
-        }
-        // commonMainBarConfig
-        // {
-          modules-left = [
-            "hyprland/workspaces"
-            "tray"
-            "hyprland/language"
-            "hyprland/submap"
-            "idle_inhibitor"
-            "cpu"
-            "custom/spacer"
-            "custom/timers"
-          ];
-          modules-center = [
-            "clock"
-          ];
-          modules-right = [
-            "bluetooth"
-            "custom/spacer"
-            "network#lan"
-            "custom/spacer"
-            "network#wifi"
-            "custom/spacer"
-            "pulseaudio"
-            "custom/spacer"
-            "backlight"
-            "custom/spacer"
-            "battery"
-            "custom/spacer"
-            "custom/power"
-          ];
-          backlight = {
-            format = "󰖨 {percent:>3}%";
-          };
-        };
-      };
+      bars;
     style = /* css */ ''
       window#waybar {
         background: none;
@@ -439,18 +395,17 @@
         font-size: 16px;
       }
       #window,
-      window#waybar.empty #window,
-      window#waybar:not(.solo) #window {
+      window#waybar.empty #window {
         background-color: rgba(26, 27, 38, 0.0);
         color: rgba(198, 208, 245, 0.0);
         transition: all 0.3s ease-in-out;
       }
-      window#waybar.solo #window {
+      window#waybar:not(.empty) #window {
         background-color: rgba(26, 27, 38, 0.5);
-        color: rgba(198, 208, 245, 0.75);
+        color: rgba(198, 208, 245, 0.85);
         padding: 0.5rem 0.7rem;
         margin: 0;
-        border-radius: 0 0 6px 6px;
+        border-radius: 6px 6px 0 0;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         border: 0.5px solid #ffffff;
       }

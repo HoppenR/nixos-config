@@ -3,11 +3,31 @@
   inputs,
   lib,
   pkgs,
+  inventory,
+  topology,
+  net,
   ...
 }:
+let
+  machine = inventory.${config.networking.hostName};
+  gateway = topology.${machine.topology}.gateway;
+in
 {
   imports = [
     ./common.nix
+  ];
+
+  assertions = [
+    {
+      assertion =
+        !config.home-manager.users.${config.lab.mainUser}.wayland.windowManager.hyprland.systemd.enable;
+      message = ''
+        UWSM is enabled globally, but Home Manager's native Hyprland systemd target 
+        integration is still active for main user '${config.lab.mainUser}'.
+        Please set 'wayland.windowManager.hyprland.systemd.enable = false;' in your
+        Home Manager configuration to prevent target activation conflicts.
+      '';
+    }
   ];
 
   boot = {
@@ -52,10 +72,10 @@
     };
   };
 
-  # P2425D config:
   users = {
     users = {
       ${config.lab.mainUser} = {
+        # P2425D config:
         extraGroups = [ "i2c" ];
       };
     };
@@ -78,9 +98,176 @@
       settings.General.EnableNetworkConfiguration = false;
     };
   };
+  systemd.network = {
+    netdevs = {
+      "30-lan0" = {
+        netdevConfig = {
+          Kind = "bond";
+          Name = "lan0";
+          MACAddress = config.systemd.network.links."20-laptop-lan".matchConfig.MACAddress;
+        };
+        bondConfig = {
+          Mode = "active-backup";
+          MIIMonitorSec = "200ms";
+        };
+      };
+      "30-vlan-mgmt" = {
+        netdevConfig = {
+          Kind = "vlan";
+          Name = "vlan-mgmt";
+        };
+        vlanConfig.Id = 10;
+      };
+      "30-vlan-guest" = {
+        netdevConfig = {
+          Kind = "vlan";
+          Name = "vlan-guest";
+        };
+        vlanConfig.Id = 20;
+      };
+    };
+    networks = {
+      "40-dock-lan0" = {
+        matchConfig.Name = "dock-lan";
+        networkConfig = {
+          Bond = "lan0";
+          PrimarySlave = true;
+        };
+      };
+      "40-laptop-lan0" = {
+        matchConfig.Name = "laptop-lan";
+        networkConfig = {
+          Bond = "lan0";
+        };
+      };
+      "45-lan0" = {
+        matchConfig.Name = "lan0";
+        vlan = [
+          "vlan-mgmt"
+          "vlan-guest"
+        ];
+        networkConfig = {
+          DHCP = false;
+          IPv6AcceptRA = false;
+          KeepConfiguration = "static";
+          LinkLocalAddressing = false;
+        };
+      };
+      "50-vlan-mgmt" = {
+        matchConfig.Name = "vlan-mgmt";
+        addresses = [
+          {
+            Address = "${net.ip net.mgmt config.networking.hostName}/24";
+            RouteMetric = 10;
+          }
+          {
+            Address = "${net.ip6 net.mgmt config.networking.hostName}/64";
+            RouteMetric = 10;
+          }
+        ];
+        domains = [ config.networking.domain ];
+        networkConfig = {
+          DNS = [
+            (net.ip net.mgmt gateway)
+            (net.ip6 net.mgmt gateway)
+          ];
+          IPv4ReversePathFilter = "loose";
+          IPv6AcceptRA = false;
+          KeepConfiguration = "static";
+          NTP = [
+            (net.ip net.mgmt gateway)
+            (net.ip6 net.mgmt gateway)
+          ];
+          MulticastDNS = true;
+        };
+        routes = [
+          {
+            Destination = "${net.ip net.mgmt gateway}/32";
+            Metric = 10;
+          }
+          {
+            Gateway = net.ip net.mgmt gateway;
+            GatewayOnLink = true;
+            Metric = 10;
+          }
+          {
+            Destination = "${net.ip6 net.mgmt gateway}/128";
+            Metric = 10;
+          }
+          {
+            Gateway = net.ip6 net.mgmt gateway;
+            GatewayOnLink = true;
+            Metric = 10;
+          }
+        ];
+      };
+      "50-vlan-guest" = {
+        matchConfig.Name = "vlan-guest";
+        addresses = [
+          {
+            Address = "${net.ip net.guest config.networking.hostName}/24";
+            RouteMetric = 20;
+          }
+          {
+            Address = "${net.ip6 net.guest config.networking.hostName}/64";
+            RouteMetric = 20;
+          }
+        ];
+        networkConfig = {
+          DNS = [
+            (net.ip net.guest gateway)
+            (net.ip6 net.guest gateway)
+          ];
+          IPv4ReversePathFilter = "loose";
+          IPv6AcceptRA = false;
+          KeepConfiguration = "static";
+          MulticastDNS = true;
+        };
+        routes = [
+          {
+            Destination = "${net.ip net.guest gateway}/32";
+            Metric = 20;
+          }
+          {
+            Gateway = net.ip net.guest gateway;
+            GatewayOnLink = true;
+            Metric = 20;
+          }
+          {
+            Destination = "${net.ip6 net.guest gateway}/128";
+            Metric = 20;
+          }
+          {
+            Gateway = net.ip6 net.guest gateway;
+            GatewayOnLink = true;
+            Metric = 20;
+          }
+        ];
+      };
+      "50-laptop-wifi" = {
+        matchConfig.Name = "laptop-wifi";
+        domains = [ config.networking.domain ];
+        networkConfig = {
+          DHCP = true;
+          IPv4ReversePathFilter = "loose";
+          IPv6AcceptRA = true;
+          MulticastDNS = "resolve";
+        };
+        dhcpV4Config = {
+          RouteMetric = 100;
+        };
+        ipv6AcceptRAConfig = {
+          RouteMetric = 100;
+        };
+      };
+    };
+  };
 
   programs = {
-    hyprland.enable = true;
+    hyprland = {
+      enable = true;
+      withUWSM = true;
+    };
     steam.enable = true;
     ssh = {
       extraConfig = ''
@@ -111,13 +298,12 @@
   };
 
   nixpkgs = {
-    config.allowUnfreePredicate = (
+    config.allowUnfreePredicate =
       pkg:
       builtins.elem (lib.getName pkg) [
         "steam"
         "steam-unwrapped"
-      ]
-    );
+      ];
     overlays = [
       inputs.streamshower.overlays.default
     ];

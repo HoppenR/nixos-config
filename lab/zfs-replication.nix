@@ -11,6 +11,12 @@ in
 {
   config = lib.mkIf rel.isActive (
     lib.mkMerge [
+      {
+        environment.systemPackages = [
+          pkgs.lzop
+          pkgs.mbuffer
+        ];
+      }
       (lib.mkIf rel.isClient {
         sops.secrets."zfs-replicate-syncoid-ssh-key" = {
           key = "zfs-replicate/syncoid-ssh-key";
@@ -46,10 +52,6 @@ in
         };
       })
       (lib.mkIf rel.isHost {
-        environment.systemPackages = [
-          pkgs.lzop
-          pkgs.mbuffer
-        ];
         services = {
           openssh.enable = true;
           sanoid = {
@@ -59,7 +61,6 @@ in
                 autosnap = false;
                 autoprune = true;
                 recursive = true;
-
                 hourly = 24;
                 daily = 7;
                 weekly = 4;
@@ -72,14 +73,15 @@ in
         system.activationScripts.zfs-allow-syncoid = {
           text = ''
             ${lib.getExe pkgs.zfs} allow syncoid \
-              canmount,compression,create,destroy,hold,mount,mountpoint,receive,release,recordsize,rollback,userprop \
+              canmount,compression,create,destroy,hold,mount,mountpoint,receive,release,recordsize,rollback,send,userprop \
               holt/replicated/db
           '';
         };
         users = {
-          groups.syncoid = { };
+          groups.syncoid.gid = 991;
           users.syncoid = {
             description = "ZFS Replication User";
+            uid = 993;
             group = "syncoid";
             isSystemUser = true;
             openssh.authorizedKeys.keyFiles = [ ../keys/id_syncoid_replicate.pub ];

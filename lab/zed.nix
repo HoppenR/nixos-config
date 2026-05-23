@@ -1,7 +1,6 @@
 {
   config,
   identities,
-  inventory,
   lib,
   pkgs,
   relations,

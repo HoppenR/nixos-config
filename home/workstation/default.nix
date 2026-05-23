@@ -13,7 +13,6 @@ let
   vlog = writeZshBin "vlog" /* zsh */ ''
     setopt ERR_EXIT NO_UNSET PIPE_FAIL
     local filter='. | "[\(.__REALTIME_TIMESTAMP | tonumber / 1000000 | strflocaltime("%H:%M:%S"))] \(.MESSAGE)"'
-
     ${pkgs.systemd}/bin/journalctl --user --unit=notification-logger "$@" --output=json \
       | ${pkgs.jq}/bin/jq --raw-output "$filter" \
       | less +G
@@ -21,25 +20,28 @@ let
 
   monitors = [
     rec {
+      enabled = true;
       desc = "Dell Inc. DELL P2425D ${serial}";
       mode = "2560x1440@100Hz";
-      pos = "-2560x0";
+      position = "-2560x0";
       scale = 1;
       serial = "DVH9D94";
       wallpaper = "${config.home.homeDirectory}/Pictures/backgrounds/bunny-pc-bg.png";
     }
     rec {
+      enabled = true;
       desc = "Dell Inc. DELL P2425D ${serial}";
       mode = "2560x1440@100Hz";
-      pos = "0x0";
+      position = "0x0";
       scale = 1;
       serial = "CVH9D94";
       wallpaper = "${config.home.homeDirectory}/Pictures/backgrounds/saabbackground.png";
     }
     rec {
+      enabled = false;
       desc = "California Institute of Technology ${serial}";
       mode = "1920x1200@60";
-      pos = "2560x0";
+      position = "2560x0";
       scale = 1;
       serial = "0x1404";
       wallpaper = "${config.home.homeDirectory}/Pictures/backgrounds/hyprland-islands.png";
@@ -56,7 +58,6 @@ in
 
       inherit (pkgs)
         ddcutil
-        hyprshutdown
         koreader
         libnotify
         mpv
@@ -80,6 +81,7 @@ in
 
   imports = [
     ./waybar.nix
+    ./hyprland.nix
   ];
 
   programs = {
@@ -252,6 +254,7 @@ in
       dirHashes = {
         nix = "/persist/nixos";
         personal = "${config.home.homeDirectory}/Projects/personal";
+        projects = "${config.home.homeDirectory}/Projects";
       };
       shellAliases = {
         run0 = "${pkgs.systemd}/bin/run0 --background='48;2;0;95;96' --setenv=TERM=xterm-256color --via-shell";
@@ -400,144 +403,6 @@ in
         };
       };
     };
-  };
-
-  wayland.windowManager.hyprland = {
-    enable = true;
-    systemd.enable = true;
-    settings = {
-      animation = [
-        "borderangle, 1, 100, movingLine, loop"
-      ];
-      bezier = [ "movingLine, 0, 0, 1, 1" ];
-      cursor = {
-        no_hardware_cursors = true;
-      };
-      general = {
-        gaps_in = 10;
-        gaps_out = "10, 25, 25, 25";
-        "col.active_border" = "rgba(81a1c1ee) rgba(00ffccee) rgba(99d1ffee) rgba(8839efee) 45deg";
-      };
-      misc = {
-        vrr = 2;
-      };
-      decoration = {
-        rounding = 10;
-        blur = {
-          enabled = true;
-          new_optimizations = true;
-          passes = 2;
-          size = 6;
-        };
-      };
-      "$mod_apps" = "MOD3";
-      "$mod_move" = "SUPER";
-      "$mod_hypr" = "MOD5";
-      "$terminal" = "${lib.getExe pkgs.wezterm}";
-      bind = [
-        "$mod_apps, RETURN, exec, $terminal"
-        "$mod_apps, a, exec, ${lib.getExe pkgs.pavucontrol}"
-        "$mod_apps, d, exec, ${lib.getExe pkgs.hyprlauncher}"
-        "$mod_apps, e, exec, $terminal start ${lib.getExe config.programs.neovim.finalPackage}"
-        "$mod_apps, f, exec, ${lib.getExe pkgs.grimblast} --notify save area ${config.home.homeDirectory}/Pictures/Screenshots/snapshot_$(date +%F_%H-%M-%S).png"
-        "$mod_apps, w, exec, ${lib.getExe config.programs.firefox.finalPackage}"
-        "$mod_hypr+SHIFT, q, killactive"
-        "$mod_hypr, Space, togglefloating"
-        "$mod_hypr, f, fullscreen"
-        "$mod_move, h, movefocus, l"
-        "$mod_move, j, movefocus, d"
-        "$mod_move, k, movefocus, u"
-        "$mod_move, l, movefocus, r"
-        "$mod_move, q, workspace, 1"
-        "$mod_move, w, workspace, 2"
-        "$mod_move, e, workspace, 3"
-        "$mod_move, r, workspace, 4"
-        "$mod_move, t, workspace, 5"
-        "$mod_move, y, workspace, 6"
-        "$mod_move, u, workspace, 7"
-        "$mod_move, i, workspace, 8"
-        "$mod_move, o, workspace, 9"
-        "$mod_move+SHIFT, q, movetoworkspacesilent, 1"
-        "$mod_move+SHIFT, w, movetoworkspacesilent, 2"
-        "$mod_move+SHIFT, e, movetoworkspacesilent, 3"
-        "$mod_move+SHIFT, r, movetoworkspacesilent, 4"
-        "$mod_move+SHIFT, t, movetoworkspacesilent, 5"
-        "$mod_move+SHIFT, y, movetoworkspacesilent, 6"
-        "$mod_move+SHIFT, u, movetoworkspacesilent, 7"
-        "$mod_move+SHIFT, i, movetoworkspacesilent, 8"
-        "$mod_move+SHIFT, o, movetoworkspacesilent, 9"
-        "$mod_move+SHIFT, h, movewindow, l"
-        "$mod_move+SHIFT, j, movewindow, d"
-        "$mod_move+SHIFT, k, movewindow, u"
-        "$mod_move+SHIFT, l, movewindow, r"
-      ];
-      binde = [
-        ", XF86AudioRaiseVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"
-        ", XF86AudioLowerVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%-"
-        ", XF86AudioMute, exec, ${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
-        ", XF86MonBrightnessUp, exec, ${lib.getExe pkgs.brightnessctl} --class=backlight set +20%"
-        ", XF86MonBrightnessDown, exec, ${lib.getExe pkgs.brightnessctl} --class=backlight set 20%-"
-        "$mod_hypr, l, resizeactive, 50 0"
-        "$mod_hypr, h, resizeactive, -50 0"
-        "$mod_hypr, k, resizeactive, 0 -50"
-        "$mod_hypr, j, resizeactive, 0 50"
-      ];
-      bindm = [
-        "$mod_move, mouse:272, movewindow"
-        "$mod_move, mouse:273, resizewindow"
-      ];
-      env = [
-        "NIXOS_OZONE_WL,1"
-      ];
-      workspace = [
-        "1,monitor:$mon_1,default:true"
-        "2,monitor:$mon_1"
-        "3,monitor:$mon_1"
-        "4,monitor:$mon_1"
-        "5,monitor:$mon_1"
-        "6,monitor:$mon_2,default:true"
-        "7,monitor:$mon_2"
-        "8,monitor:$mon_2"
-        "9,monitor:$mon_2"
-      ];
-      device = {
-        name = "at-translated-set-2-keyboard";
-        repeat_delay = 200;
-        repeat_rate = 25;
-      };
-      input = {
-        kb_layout = "se";
-        repeat_delay = 200;
-        repeat_rate = 25;
-        kb_file = "${pkgs.writeText "hyprland.xkb" /* xkb */ ''
-          xkb_keymap {
-            xkb_keycodes { include "evdev+aliases(qwerty)" };
-            xkb_types { include "complete" };
-            xkb_compat { include "complete" };
-            xkb_symbols {
-              include "pc+se+ru:2+inet(evdev)"
-              replace key <PRSC> { [ ISO_Level5_Shift ] };
-              replace key <AD12> { type = "EIGHT_LEVEL", [ diaeresis, asciicircum, asciitilde, caron, dead_diaeresis, dead_circumflex, dead_tilde, dead_caron ] };
-              replace key <AE12> { type = "EIGHT_LEVEL", [ acute, grave, plusminus, notsign, dead_acute, dead_grave, plusminus, notsign ] };
-              replace key <CAPS> {
-                type = "TWO_LEVEL",
-                symbols[Group1] = [ ISO_Next_Group, Caps_Lock ]
-              };
-            };
-          };
-        ''}";
-      };
-    }
-    // (lib.listToAttrs (
-      lib.imap1 (i: mon: {
-        name = "$mon_${toString i}";
-        value = "desc:${mon.desc}";
-      }) monitors
-    ))
-    // {
-      monitor = map (m: "desc:${m.desc}, ${m.mode}, ${m.pos}, ${toString m.scale}") monitors;
-    };
-    xwayland.enable = true;
   };
 
   xdg = {

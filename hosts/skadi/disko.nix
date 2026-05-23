@@ -56,6 +56,11 @@
         "local/root" = {
           type = "zfs_fs";
           mountpoint = "/";
+          postCreateHook = /* bash */ ''
+            if ! zfs list -H -o name "tank/local/root@blank" >/dev/null 2>&1; then
+              zfs snapshot tank/local/root@blank
+            fi
+          '';
           options.mountpoint = "legacy";
         };
         "local/nix" = {

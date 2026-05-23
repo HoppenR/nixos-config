@@ -87,7 +87,7 @@ in
         podman = {
           user = "booklore";
         };
-        image = "ghcr.io/booklore-app/booklore:latest";
+        image = "ghcr.io/grimmory-tools/grimmory:latest";
         volumes = [
           "/replicated/apps/booklore/remote/bookdrop:/bookdrop"
           "/replicated/apps/booklore/remote/books:/books"

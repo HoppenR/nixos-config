@@ -151,13 +151,11 @@ in
             };
           };
         };
-        systemd.tmpfiles.rules = (
-          lib.concatLists (
-            map (name: [
-              "d /srv/sftp/apps/${name} 0755 root root - -"
-              "d /srv/sftp/apps/${name}/files 0700 sftpuser-${name} sftpuser-${name} - -"
-            ]) (lib.attrNames enabledMountpoints)
-          )
+        systemd.tmpfiles.rules = lib.concatLists (
+          map (name: [
+            "d /srv/sftp/apps/${name} 0755 root root - -"
+            "d /srv/sftp/apps/${name}/files 0700 sftpuser-${name} sftpuser-${name} - -"
+          ]) (lib.attrNames enabledMountpoints)
         );
       })
     ]
