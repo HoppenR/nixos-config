@@ -27,5 +27,11 @@
         };
       };
     };
+    systemd.services = {
+      mysql = {
+        after = [ "replicated-db-mariadb.mount" ];
+        requires = [ "replicated-db-mariadb.mount" ];
+      };
+    };
   };
 }

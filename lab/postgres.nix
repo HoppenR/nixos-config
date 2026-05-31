@@ -20,5 +20,11 @@
         };
       };
     };
+    systemd.services = {
+      postgresql = {
+        after = [ "replicated-db-postgres.mount" ];
+        requires = [ "replicated-db-postgres.mount" ];
+      };
+    };
   };
 }

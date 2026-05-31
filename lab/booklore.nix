@@ -104,9 +104,10 @@ in
           config.sops.templates."booklore-env".path
         ];
         environment = {
+          APP_CORS_ALLOWED_ORIGINS = "https://booklore.${config.networking.domain}";
+          BOOKLORE_PORT = toString config.lab.booklore.port;
           DATABASE_URL = "jdbc:mariadb://127.0.0.1:${toString config.services.mysql.settings.mysqld.port}/booklore";
           DATABASE_USERNAME = "booklore";
-          BOOKLORE_PORT = toString config.lab.booklore.port;
           SWAGGER_ENABLED = "false";
         };
       };
