@@ -382,7 +382,10 @@
           }) (lib.filter (lib.getAttr "enabled") monitors)
         );
       in
-      bars;
+      bars
+      // {
+        "titleBar" = titleBarModules;
+      };
     style = /* css */ ''
       window#waybar {
         background: none;

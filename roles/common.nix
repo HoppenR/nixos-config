@@ -263,6 +263,7 @@ in
         ];
         hashedPasswordFile = config.sops.secrets.user-password.path;
         isNormalUser = true;
+        uid = 1000;
         shell = pkgs.zsh;
         openssh.authorizedKeys.keys = lib.concatMap (
           name: identities.people.${name}.publicKeys
@@ -270,6 +271,11 @@ in
       };
       "root" = {
         hashedPassword = null;
+      };
+    };
+    groups = {
+      users = {
+        gid = 100;
       };
     };
   };

@@ -10,6 +10,21 @@ let
   writeZsh = pkgs.writers.makeScriptWriter { interpreter = lib.getExe pkgs.zsh; };
   writeZshBin = name: text: pkgs.writeScriptBin name ("#!${lib.getExe pkgs.zsh}\n" + text);
 
+  stpepog-upload = writeZshBin "stpepog-upload" /* zsh */ ''
+    local latest_png=( ${config.home.homeDirectory}/Pictures/Screenshots/*.png(om[1]) )
+    if [[ -z "$latest_png" ]]; then
+        print -u2 -r -- "No screenshots found."
+        exit 1
+    fi
+    response=$(${lib.getExe pkgs.curl} -s -F "file=@$latest_png" https://st.pepog.com | head -n 1)
+    if [[ $? -eq 0 && -n "$response" ]]; then
+        echo -n "https://$response" | ${pkgs.wl-clipboard}/bin/wl-copy
+        ${pkgs.hyprland}/bin/hyprctl notify 0 5000 "rgb(52FFFF)" "Uploaded: $response (Copied to clipboard)"
+    else
+        ${pkgs.hyprland}/bin/hyprctl notify 3 5000 "rgb(FF0000)" "Upload failed!"
+    fi
+  '';
+
   vlog = writeZshBin "vlog" /* zsh */ ''
     setopt ERR_EXIT NO_UNSET PIPE_FAIL
     local filter='. | "[\(.__REALTIME_TIMESTAMP | tonumber / 1000000 | strflocaltime("%H:%M:%S"))] \(.MESSAGE)"'
@@ -47,12 +62,15 @@ let
       wallpaper = "${config.home.homeDirectory}/Pictures/backgrounds/hyprland-islands.png";
     }
   ];
+
+  mainUser = config.home.username;
 in
 {
   _module.args = { inherit monitors; };
   home = {
     packages = builtins.attrValues {
       inherit
+        stpepog-upload
         vlog
         ;
 
@@ -80,8 +98,9 @@ in
   };
 
   imports = [
+    ../lab/hyprland.nix
+    ./hyprland-binds.nix
     ./waybar.nix
-    ./hyprland.nix
   ];
 
   programs = {
@@ -164,11 +183,25 @@ in
       general.editor = "${lib.getExe pkgs.wezterm} start -- ${lib.getExe config.programs.neovim.finalPackage}";
       extraConfig = {
         "sync.9.path" = "https://joplin.${osConfig.networking.domain}";
-        "sync.9.username" = identities.people.christoffer.email;
+        "sync.9.username" = identities.people.${mainUser}.email;
       };
       sync = {
         interval = "5m";
         target = "joplin-server";
+      };
+    };
+    jujutsu = {
+      enable = true;
+      settings = {
+        user = {
+          name = "Christoffer Lundell";
+          email = identities.people.christoffer.email;
+        };
+        signing = {
+          behavior = "own";
+          backend = "gpg";
+          key = "EB37A6ACFEC39658";
+        };
       };
     };
     wezterm = {
@@ -229,8 +262,8 @@ in
           tab_bar_at_bottom = false,
           hide_tab_bar_if_only_one_tab = false,
           keys = {
-            { key = 't', mods = 'CTRL|SHIFT', action = act.SpawnTab 'DefaultDomain' },
-            { key = 'y', mods = 'CTRL|SHIFT', action = act.SpawnTab 'CurrentPaneDomain' },
+            { key = 't', mods = 'CTRL|SHIFT', action = act.SpawnCommandInNewTab { domain = 'CurrentPaneDomain' } },
+            { key = 'y', mods = 'CTRL|SHIFT', action = act.SpawnCommandInNewTab { cwd = wezterm.home_dir } },
             { key = '1', mods = 'ALT', action = act.ActivateTab(0) },
             { key = '2', mods = 'ALT', action = act.ActivateTab(1) },
             { key = '3', mods = 'ALT', action = act.ActivateTab(2) },
@@ -268,7 +301,9 @@ in
       enable = true;
       settings = {
         general = {
-          after_sleep_cmd = "${pkgs.hyprland}/bin/hyprctl dispatch dpms on";
+          after_sleep_cmd = ''
+            ${pkgs.hyprland}/bin/hyprctl dispatch 'hl.dsp.dpms({ action = "on" })'
+          '';
           before_sleep_cmd = "${pkgs.systemd}/bin/loginctl lock-session";
           lock_cmd = "${pkgs.procps}/bin/pidof --single-shot hyprlock || ${lib.getExe pkgs.hyprlock}";
           unlock_cmd = "${pkgs.procps}/bin/pkill -USR1 hyprlock";
@@ -280,8 +315,12 @@ in
           }
           {
             timeout = 1200;
-            on-timeout = "${pkgs.hyprland}/bin/hyprctl dispatch dpms off";
-            on-resume = "${pkgs.hyprland}/bin/hyprctl dispatch dpms on";
+            on-timeout = ''
+              ${pkgs.hyprland}/bin/hyprctl dispatch 'hl.dsp.dpms({ action = "off" })'
+            '';
+            on-resume = ''
+              ${pkgs.hyprland}/bin/hyprctl dispatch 'hl.dsp.dpms({ action = "on" })'
+            '';
           }
           {
             timeout = 1800;
@@ -295,6 +334,7 @@ in
       settings = {
         finders = {
           desktop_icons = false;
+          desktop_launch_prefix = "uwsm app -- ";
         };
         ui = {
           window_size = "800 520";
@@ -406,29 +446,48 @@ in
   };
 
   xdg = {
-    desktopEntries = rec {
-      "scrcpy-pixel" = {
+    desktopEntries = {
+      "scrcpy-pixel" = rec {
         name = "Scrcpy Pixel";
         genericName = "Android Mirror";
         exec = "${lib.getExe pkgs.scrcpy} --render-driver=vulkan --video-codec=h265 --keyboard=uhid --video-bit-rate=16M --stay-awake";
         icon = "phone";
         terminal = false;
         categories = [ "Utility" ];
+        actions = {
+          "virtual" = {
+            name = "Start Virtual Display";
+            exec = "${exec} --new-display=2508x1344/250";
+          };
+        };
       };
-      "scrcpy-virt-pixel" = {
-        name = "Scrcpy Pixel (Virtual)";
-        genericName = "Android Virtual Display";
-        exec = "${scrcpy-pixel.exec} --new-display=2508x1344/250";
-        icon = "phone";
+
+      "steam-friends" = {
+        name = "Steam Friends";
+        genericName = "Steam Friends List";
+        exec = "xdg-open steam://open/friends";
+        icon = "steam";
         terminal = false;
+        categories = [ "Game" ];
+      };
+
+      "stpepog-upload" = {
+        name = "Upload Latest Screenshot";
+        genericName = "Screenshot Uploader";
+        exec = "stpepog-upload";
+        icon = "camera-photo";
+        terminal = true;
         categories = [ "Utility" ];
       };
-      "wezterm-open" = {
-        name = "Wezterm Open Directory";
+
+      "wezterm-directory" = {
+        name = "Open in Wezterm";
         genericName = "Terminal Emulator";
         exec = "${lib.getExe pkgs.wezterm} start --cwd %f";
         terminal = false;
         mimeType = [ "inode/directory" ];
+        type = "Application";
+        noDisplay = false;
       };
     };
     configFile = {
@@ -454,7 +513,7 @@ in
       enable = true;
       defaultApplications = {
         "text/*" = [ "nvim.desktop" ];
-        "inode/directory" = [ "wezterm-open.desktop" ];
+        "inode/directory" = [ "wezterm-directory.desktop" ];
       };
     };
   };

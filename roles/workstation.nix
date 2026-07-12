@@ -17,19 +17,6 @@ in
     ./common.nix
   ];
 
-  assertions = [
-    {
-      assertion =
-        !config.home-manager.users.${config.lab.mainUser}.wayland.windowManager.hyprland.systemd.enable;
-      message = ''
-        UWSM is enabled globally, but Home Manager's native Hyprland systemd target 
-        integration is still active for main user '${config.lab.mainUser}'.
-        Please set 'wayland.windowManager.hyprland.systemd.enable = false;' in your
-        Home Manager configuration to prevent target activation conflicts.
-      '';
-    }
-  ];
-
   boot = {
     kernel.sysctl = {
       "net.ipv4.conf.all.arp_announce" = 2;
@@ -306,6 +293,9 @@ in
       ];
     overlays = [
       inputs.streamshower.overlays.default
+
+      # TODO: Remove these temporary fixes once waybar >= 0.15.1 is released
+      inputs.waybar-tmp-flake.overlays.default
     ];
   };
 
@@ -320,6 +310,22 @@ in
       pulse.enable = true;
       alsa.enable = true;
       jack.enable = true;
+    };
+    sanoid = {
+      enable = true;
+      datasets = {
+        "tank/safe/home" = {
+          autosnap = true;
+          autoprune = true;
+          recursive = false;
+
+          hourly = 0;
+          daily = 2;
+          weekly = 2;
+          monthly = 2;
+          yearly = 0;
+        };
+      };
     };
   };
 }

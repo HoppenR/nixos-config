@@ -3,6 +3,8 @@
   imports = [
     ../../roles/workstation.nix
     ./hardware-configuration.nix
+    # TODO uncomment disko.nix and remove fileSystems entries
+    # ./disko.nix
   ];
 
   boot = {

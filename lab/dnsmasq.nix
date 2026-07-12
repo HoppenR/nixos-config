@@ -51,8 +51,8 @@ in
           enable-ra = true;
           expand-hosts = true;
           interface = "vlan-guest";
-          no-hosts = true;
-          no-resolv = true;
+          no-hosts = false;
+          no-resolv = false;
           dhcp-host = lib.flatten (
             lib.mapAttrsToList (
               hostName: hostData:

@@ -197,6 +197,7 @@ in
               host = config.services.redis.servers.nextcloud.unixSocket;
               port = 0;
             };
+            trashbin_retention_obligation = "auto, 1";
             trusted_proxies = [
               "127.0.0.1"
               "::1"

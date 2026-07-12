@@ -34,6 +34,11 @@
       neededForBoot = true;
     };
 
+  fileSystems."/home/${config.lab.mainUser}/.local/share/Steam" =
+    { device = "tank/safe/steam";
+      fsType = "zfs";
+    };
+
   fileSystems."/persist" =
     { device = "tank/safe/persist";
       fsType = "zfs";

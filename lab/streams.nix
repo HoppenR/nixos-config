@@ -38,7 +38,7 @@ in
           };
         };
         home-manager.users.${config.lab.mainUser} = {
-          wayland.windowManager.hyprland.settings.bind =
+          config.lab.hyprland.binds =
             let
               streamshower-wrapped = writeZsh "streamshower-wrapped" /* zsh */ ''
                 declare -a env_vars
@@ -47,12 +47,14 @@ in
                 exec ${lib.getExe pkgs.streamshower} -a "https://streams.${config.networking.domain}/stream-data"
               '';
             in
-            lib.singleton {
-              _args = [
-                "MOD3 + s"
-                (lib.generators.mkLuaInline ''hl.dsp.exec_cmd(terminal .. " start ${streamshower-wrapped}")'')
-              ];
-            };
+            [
+              {
+                mods = [ "MOD3" ];
+                key = "s";
+                exec_raw = toString streamshower-wrapped;
+                settings.terminal = true;
+              }
+            ];
         };
       })
       (lib.mkIf rel.isHost {

@@ -73,6 +73,7 @@
           vim.o.winblend = 0
 
           vim.opt.cinoptions = { ':0', 'g0', '(0', 'W4', 'l1' }
+          vim.o.cpoptions = 'ABFaces'
           vim.opt.completeopt = { 'menuone', 'noinsert', 'popup' }
           vim.opt.foldmarker = { '{{{', '}}}' }
           vim.opt.listchars = { extends = '▸', nbsp = '◇', tab = '│ ', trail = '∘', leadmultispace = '│   ' }
