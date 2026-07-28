@@ -41,7 +41,7 @@ in
           config.lab.hyprland.binds =
             let
               streamshower-wrapped = writeZsh "streamshower-wrapped" /* zsh */ ''
-                declare -a env_vars
+                typeset -a env_vars
                 env_vars=("''${(f)$(<"${config.sops.templates."streamshower-env".path}")}")
                 export "''${env_vars[@]}"
                 exec ${lib.getExe pkgs.streamshower} -a "https://streams.${config.networking.domain}/stream-data"

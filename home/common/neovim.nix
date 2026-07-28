@@ -411,7 +411,7 @@
             callback = function(ev)
               local value = ev.data.params.value
               vim.api.nvim_echo({ { value.message or 'done' } }, false, {
-                id = 'lsp.' .. ev.data.client_id,
+                id = "lsp." .. ev.data.client_id .. "." .. value.title,
                 kind = 'progress',
                 percent = value.percentage,
                 source = 'vim.lsp',

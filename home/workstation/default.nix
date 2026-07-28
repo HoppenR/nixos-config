@@ -4,30 +4,32 @@
   osConfig,
   pkgs,
   identities,
+  writeZsh,
+  writeZshBin,
   ...
 }:
 let
-  writeZsh = pkgs.writers.makeScriptWriter { interpreter = lib.getExe pkgs.zsh; };
-  writeZshBin = name: text: pkgs.writeScriptBin name ("#!${lib.getExe pkgs.zsh}\n" + text);
-
   stpepog-upload = writeZshBin "stpepog-upload" /* zsh */ ''
-    local latest_png=( ${config.home.homeDirectory}/Pictures/Screenshots/*.png(om[1]) )
+    typeset -a latest_png
+    latest_png=( ${config.home.homeDirectory}/Pictures/Screenshots/*.png(om[1]) )
     if [[ -z "$latest_png" ]]; then
-        print -u2 -r -- "No screenshots found."
-        exit 1
+      print -ru2 -- "No screenshots found."
+      exit 1
     fi
-    response=$(${lib.getExe pkgs.curl} -s -F "file=@$latest_png" https://st.pepog.com | head -n 1)
+    response=$(${lib.getExe pkgs.curl} -s -F "file=@$latest_png" https://st.pepog.com)
     if [[ $? -eq 0 && -n "$response" ]]; then
-        echo -n "https://$response" | ${pkgs.wl-clipboard}/bin/wl-copy
-        ${pkgs.hyprland}/bin/hyprctl notify 0 5000 "rgb(52FFFF)" "Uploaded: $response (Copied to clipboard)"
+      typeset -a resp_lines
+      resp_lines=( ''${(f)response} )
+      ${pkgs.wl-clipboard}/bin/wl-copy <<< "https://$resp_lines[1]"
+      ${pkgs.hyprland}/bin/hyprctl notify 0 5000 "rgb(52FFFF)" "Uploaded: $resp_lines[1] (Copied to clipboard)"
     else
-        ${pkgs.hyprland}/bin/hyprctl notify 3 5000 "rgb(FF0000)" "Upload failed!"
+      ${pkgs.hyprland}/bin/hyprctl notify 3 5000 "rgb(FF0000)" "Upload failed!"
     fi
   '';
 
   vlog = writeZshBin "vlog" /* zsh */ ''
     setopt ERR_EXIT NO_UNSET PIPE_FAIL
-    local filter='. | "[\(.__REALTIME_TIMESTAMP | tonumber / 1000000 | strflocaltime("%H:%M:%S"))] \(.MESSAGE)"'
+    filter='. | "[\(.__REALTIME_TIMESTAMP | tonumber / 1000000 | strflocaltime("%H:%M:%S"))] \(.MESSAGE)"'
     ${pkgs.systemd}/bin/journalctl --user --unit=notification-logger "$@" --output=json \
       | ${pkgs.jq}/bin/jq --raw-output "$filter" \
       | less +G
@@ -279,7 +281,7 @@ in
     zsh = {
       initContent = /* zsh */ ''
         function reset_prog_title() {
-          printf "\033]1337;SetUserVar=%s=%s\007" "IN_NIX_SHELL" "$(echo -n "$IN_NIX_SHELL" | base64)"
+          printf "\033]1337;SetUserVar=%s=%s\007" "IN_NIX_SHELL" "$(print -n "$IN_NIX_SHELL" | base64)"
           print -Pn "\e]2;%~\a"
         }
         add-zsh-hook precmd reset_prog_title

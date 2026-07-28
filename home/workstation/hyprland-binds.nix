@@ -40,9 +40,7 @@ in
         {
           mods = [ mod_apps ];
           key = "e";
-          exec_raw = [
-            (lib.getExe config.programs.neovim.finalPackage)
-          ];
+          exec_raw = lib.getExe config.programs.neovim.finalPackage;
           settings.terminal = true;
         }
         {

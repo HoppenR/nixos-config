@@ -5,6 +5,29 @@
   ...
 }:
 let
+  attrsToXkb =
+    let
+      mkIndent = level: lib.concatStrings (lib.genList (_: "  ") level);
+      formatValue = v: if lib.isList v then "[ ${lib.concatStringsSep ", " v} ]" else ''"${v}"'';
+      formatBlockBody =
+        level: isKeyBlock: attrs:
+        let
+          formatEntryValue = k: if k == "_elements" then formatValue else formatNode (level + 1) k;
+          formatEntry = k: v: (mkIndent (level + 1)) + formatEntryValue k v;
+          mkEntries = lib.concatMapAttrsStringSep (if isKeyBlock then ",\n" else "\n") formatEntry;
+        in
+        "{\n${mkEntries attrs}\n${mkIndent level}};";
+      formatNode =
+        level: key: value:
+        if key == "include" then
+          ''include "${value}"''
+        else if lib.isAttrs value then
+          "${key} ${formatBlockBody level (lib.hasPrefix "replace key " key) value}"
+        else
+          "${key} = ${formatValue value}";
+    in
+    lib.concatMapAttrsStringSep "\n" (formatNode 0);
+
   moduleOptions = {
     key = lib.mkOption {
       type = lib.types.str;
@@ -59,7 +82,7 @@ let
 
       dspArgs =
         lib.optionals withUWSM [
-          "uwsm"
+          (lib.getExe pkgs.uwsm)
           "app"
           (lib.optionalString args.settings.terminal "-T")
           "--"
@@ -162,23 +185,58 @@ in
             kb_layout = "se";
             repeat_delay = 200;
             repeat_rate = 25;
-            kb_file = "${pkgs.writeText "hyprland.xkb" /* xkb */ ''
-              xkb_keymap {
-                xkb_keycodes { include "evdev+aliases(qwerty)" };
-                xkb_types { include "complete" };
-                xkb_compat { include "complete" };
-                xkb_symbols {
-                  include "pc+se+ru:2+inet(evdev)"
-                  replace key <PRSC> { [ ISO_Level5_Shift ] };
-                  replace key <AD12> { type = "EIGHT_LEVEL", [ diaeresis, asciicircum, asciitilde, caron, dead_diaeresis, dead_circumflex, dead_tilde, dead_caron ] };
-                  replace key <AE12> { type = "EIGHT_LEVEL", [ acute, grave, plusminus, notsign, dead_acute, dead_grave, plusminus, notsign ] };
-                  replace key <CAPS> {
-                    type = "TWO_LEVEL",
-                    symbols[Group1] = [ ISO_Next_Group, Caps_Lock ]
+            kb_file = pkgs.writeText "hyprland.xkb" (attrsToXkb {
+              xkb_keymap = {
+                xkb_compat.include = "complete";
+                xkb_keycodes.include = "evdev+aliases(qwerty)";
+                xkb_symbols = {
+                  include = "pc+se+ru:2+inet(evdev)";
+                  "replace key <AD12>" = {
+                    _elements = [
+                      # Originals
+                      "diaeresis"
+                      "asciicircum"
+                      "asciitilde"
+                      "caron"
+                      # Replacements on Hyper modifier
+                      "dead_diaeresis"
+                      "dead_circumflex"
+                      "dead_tilde"
+                      "dead_caron"
+                    ];
+                    type = "EIGHT_LEVEL";
+                  };
+                  "replace key <AE12>" = {
+                    _elements = [
+                      # Originals
+                      "acute"
+                      "grave"
+                      "plusminus"
+                      "notsign"
+                      # Replacements on Hyper modifier
+                      "dead_acute"
+                      "dead_grave"
+                      "plusminus"
+                      "notsign"
+                    ];
+                    type = "EIGHT_LEVEL";
+                  };
+                  "replace key <CAPS>" = {
+                    "symbols[Group1]" = [
+                      "ISO_Next_Group"
+                      "Caps_Lock"
+                    ];
+                    type = "TWO_LEVEL";
+                  };
+                  # Bind Print Screen as the Hyper modifier
+                  "replace key <PRSC>" = {
+                    _elements = [ "ISO_Level5_Shift" ];
+                    type = "ONE_LEVEL";
                   };
                 };
+                xkb_types.include = "complete";
               };
-            ''}";
+            });
           };
         };
         curve = [

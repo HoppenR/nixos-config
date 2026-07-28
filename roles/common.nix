@@ -11,6 +11,7 @@
 let
   machine = inventory.${config.networking.hostName};
   writeZsh = pkgs.writers.makeScriptWriter { interpreter = lib.getExe pkgs.zsh; };
+  writeZshBin = name: text: pkgs.writeScriptBin name ("#!${lib.getExe pkgs.zsh}\n" + text);
 
   net = {
     mgmt = 10;
@@ -45,7 +46,7 @@ in
     inputs.sops-nix.nixosModules.sops
   ];
 
-  _module.args = { inherit net writeZsh; };
+  _module.args = { inherit net writeZsh writeZshBin; };
 
   boot = {
     loader = {
@@ -114,7 +115,14 @@ in
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "backup";
-    extraSpecialArgs = { inherit inputs identities writeZsh; };
+    extraSpecialArgs = {
+      inherit
+        inputs
+        identities
+        writeZsh
+        writeZshBin
+        ;
+    };
     users = {
       ${config.lab.mainUser} = ../home/common;
     };

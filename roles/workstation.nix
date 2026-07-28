@@ -71,6 +71,7 @@ in
   lab = {
     greetd.enable = true;
     mainUser = "christoffer";
+    tailscale.enable = true;
   };
 
   networking = {
@@ -105,13 +106,6 @@ in
         };
         vlanConfig.Id = 10;
       };
-      "30-vlan-guest" = {
-        netdevConfig = {
-          Kind = "vlan";
-          Name = "vlan-guest";
-        };
-        vlanConfig.Id = 20;
-      };
     };
     networks = {
       "40-dock-lan0" = {
@@ -131,7 +125,6 @@ in
         matchConfig.Name = "lan0";
         vlan = [
           "vlan-mgmt"
-          "vlan-guest"
         ];
         networkConfig = {
           DHCP = false;
@@ -185,49 +178,6 @@ in
             Gateway = net.ip6 net.mgmt gateway;
             GatewayOnLink = true;
             Metric = 10;
-          }
-        ];
-      };
-      "50-vlan-guest" = {
-        matchConfig.Name = "vlan-guest";
-        addresses = [
-          {
-            Address = "${net.ip net.guest config.networking.hostName}/24";
-            RouteMetric = 20;
-          }
-          {
-            Address = "${net.ip6 net.guest config.networking.hostName}/64";
-            RouteMetric = 20;
-          }
-        ];
-        networkConfig = {
-          DNS = [
-            (net.ip net.guest gateway)
-            (net.ip6 net.guest gateway)
-          ];
-          IPv4ReversePathFilter = "loose";
-          IPv6AcceptRA = false;
-          KeepConfiguration = "static";
-          MulticastDNS = true;
-        };
-        routes = [
-          {
-            Destination = "${net.ip net.guest gateway}/32";
-            Metric = 20;
-          }
-          {
-            Gateway = net.ip net.guest gateway;
-            GatewayOnLink = true;
-            Metric = 20;
-          }
-          {
-            Destination = "${net.ip6 net.guest gateway}/128";
-            Metric = 20;
-          }
-          {
-            Gateway = net.ip6 net.guest gateway;
-            GatewayOnLink = true;
-            Metric = 20;
           }
         ];
       };
@@ -300,16 +250,16 @@ in
   };
 
   services = {
-    resolved = {
-      settings.Resolve = {
-        MulticastDNS = true;
-      };
-    };
     pipewire = {
       enable = true;
       pulse.enable = true;
       alsa.enable = true;
       jack.enable = true;
+    };
+    resolved = {
+      settings.Resolve = {
+        MulticastDNS = true;
+      };
     };
     sanoid = {
       enable = true;
