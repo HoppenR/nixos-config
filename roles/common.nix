@@ -86,14 +86,8 @@ in
           ;
       })
       ++ [
-        (pkgs.symlinkJoin {
-          name = "neovim-system-aliases";
-          paths = [ pkgs.neovim-unwrapped ];
-          postBuild = ''
-            ln -s ${lib.getExe pkgs.neovim-unwrapped} $out/bin/vi
-            ln -s ${lib.getExe pkgs.neovim-unwrapped} $out/bin/vim
-          '';
-        })
+        (pkgs.writeShellScriptBin "vi" ''exec nvim "$@"'')
+        (pkgs.writeShellScriptBin "vim" ''exec nvim "$@"'')
       ];
   };
 
@@ -210,22 +204,27 @@ in
         cue = true;
       };
     };
+    run0 = {
+      # TODO: Use this for 26.11 instead of manual polkit.extraConfig:
+      #       https://github.com/NixOS/nixpkgs/pull/533341
+    };
     polkit = {
       enable = true;
       debug = true;
-      extraConfig = ''
+      extraConfig = /* javascript */ ''
         polkit.addRule(function(action, subject) {
-          polkit.log("user " +  subject.user + " is attempting action " + action.id + " from PID " + subject.pid);
-        });
-
-        polkit.addRule(function(action, subject) {
-          if (action.id == "org.freedesktop.policykit.exec") {
+          if (action.id == "org.freedesktop.systemd1.manage-units" &&
+              subject.isInGroup("wheel") &&
+              subject.active &&
+              subject.local) {
             return polkit.Result.AUTH_ADMIN_KEEP;
           }
         });
-
         polkit.addRule(function(action, subject) {
-          if (action.id.indexOf("org.freedesktop.systemd1.") == 0) {
+          if (action.id == "org.freedesktop.policykit.exec" &&
+              subject.isInGroup("wheel") &&
+              subject.active &&
+              subject.local) {
             return polkit.Result.AUTH_ADMIN_KEEP;
           }
         });
@@ -240,6 +239,7 @@ in
       settings.Resolve = {
         LLMNR = false;
         MulticastDNS = true;
+        NDots = 1;
       };
     };
     udev = {
@@ -261,8 +261,10 @@ in
 
   users = {
     mutableUsers = false;
+    defaultUserShell = pkgs.zsh;
     users = {
-      ${config.lab.mainUser} = {
+      "${config.lab.mainUser}" = {
+        useDefaultShell = true;
         extraGroups = [
           "video"
           "input"
@@ -282,7 +284,7 @@ in
       };
     };
     groups = {
-      users = {
+      "users" = {
         gid = 100;
       };
     };

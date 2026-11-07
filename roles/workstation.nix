@@ -71,7 +71,6 @@ in
   lab = {
     greetd.enable = true;
     mainUser = "christoffer";
-    tailscale.enable = true;
   };
 
   networking = {
@@ -106,6 +105,13 @@ in
         };
         vlanConfig.Id = 10;
       };
+      "30-vlan-guest" = {
+        netdevConfig = {
+          Kind = "vlan";
+          Name = "vlan-guest";
+        };
+        vlanConfig.Id = 20;
+      };
     };
     networks = {
       "40-dock-lan0" = {
@@ -125,6 +131,7 @@ in
         matchConfig.Name = "lan0";
         vlan = [
           "vlan-mgmt"
+          "vlan-guest"
         ];
         networkConfig = {
           DHCP = false;
@@ -159,6 +166,7 @@ in
             (net.ip6 net.mgmt gateway)
           ];
           MulticastDNS = true;
+          DNSDefaultRoute = true;
         };
         routes = [
           {
@@ -181,6 +189,51 @@ in
           }
         ];
       };
+      "50-vlan-guest" = {
+        matchConfig.Name = "vlan-guest";
+        addresses = [
+          {
+            Address = "${net.ip net.guest config.networking.hostName}/24";
+            RouteMetric = 20;
+          }
+          {
+            Address = "${net.ip6 net.guest config.networking.hostName}/64";
+            RouteMetric = 20;
+          }
+        ];
+        networkConfig = {
+          DNS = [
+            (net.ip net.guest gateway)
+            (net.ip6 net.guest gateway)
+          ];
+          IPv4ReversePathFilter = "loose";
+          IPv6AcceptRA = false;
+          KeepConfiguration = "static";
+          MulticastDNS = false;
+          # TODO: this shouldn't be needed...
+          DNSDefaultRoute = true;
+        };
+        routes = [
+          {
+            Destination = "${net.ip net.guest gateway}/32";
+            Metric = 20;
+          }
+          {
+            Gateway = net.ip net.guest gateway;
+            GatewayOnLink = true;
+            Metric = 20;
+          }
+          {
+            Destination = "${net.ip6 net.guest gateway}/128";
+            Metric = 20;
+          }
+          {
+            Gateway = net.ip6 net.guest gateway;
+            GatewayOnLink = true;
+            Metric = 20;
+          }
+        ];
+      };
       "50-laptop-wifi" = {
         matchConfig.Name = "laptop-wifi";
         domains = [ config.networking.domain ];
@@ -189,6 +242,7 @@ in
           IPv4ReversePathFilter = "loose";
           IPv6AcceptRA = true;
           MulticastDNS = "resolve";
+          DNSDefaultRoute = false;
         };
         dhcpV4Config = {
           RouteMetric = 100;

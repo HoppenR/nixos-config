@@ -3,6 +3,7 @@
   pkgs,
   writeZsh,
   monitors,
+  osConfig,
   ...
 }:
 {
@@ -29,8 +30,6 @@
           ];
           modules-right = [
             "bluetooth"
-            "custom/spacer"
-            "custom/tailscale"
             "custom/spacer"
             "network#lan"
             "custom/spacer"
@@ -147,27 +146,6 @@
               "█"
             ];
             on-click = "${lib.getExe pkgs.wezterm} start -- ${lib.getExe pkgs.btop} --preset 1";
-          };
-          "custom/tailscale" = {
-            format = "󰖂 {}";
-            exec = writeZsh "tailscale-status" /* zsh */ ''
-              tlsc_status="$(${lib.getExe pkgs.tailscale} status --json)"
-              ${lib.getExe pkgs.jq} --raw-output '.BackendState' <<< "$tlsc_status"
-            '';
-            return-type = "text";
-            interval = 60;
-            on-click = writeZsh "tailscale-toggle" /* zsh */ ''
-              tlsc_status="$(${lib.getExe pkgs.tailscale} status --json)"
-              if ${lib.getExe pkgs.jq} --exit-status '.BackendState == "Running"' <<< "$tlsc_status"; then
-                ${lib.getExe pkgs.uwsm} app -- \
-                  ${pkgs.systemd}/bin/run0 --unit=tailscale-toggle \
-                    ${lib.getExe pkgs.tailscale} down
-              else
-                ${lib.getExe pkgs.uwsm} app -- \
-                  ${pkgs.systemd}/bin/run0 --unit=tailscale-toggle \
-                    ${lib.getExe pkgs.tailscale} up
-              fi
-            '';
           };
           "custom/spacer" = {
             format = "│";
@@ -509,7 +487,6 @@
       #custom-ddc-brightness,
       #custom-power,
       #custom-spacer,
-      #custom-tailscale,
       #custom-timers,
       #memory,
       #network,

@@ -1,5 +1,4 @@
-{ ... }:
-{
+_: {
   imports = [
     ../../roles/workstation.nix
     ./hardware-configuration.nix
@@ -40,21 +39,35 @@
     hostId = "007f0200";
     hostName = "rime";
   };
-  systemd.network = {
-    enable = true;
-    wait-online.enable = false;
-    links = {
-      "20-dock-lan" = {
-        linkConfig.Name = "dock-lan";
-        matchConfig.MACAddress = "84:ba:59:74:c0:bc";
+  systemd = {
+    network = {
+      enable = true;
+      wait-online.enable = false;
+      links = {
+        "20-dock-lan" = {
+          linkConfig.Name = "dock-lan";
+          matchConfig.MACAddress = "84:ba:59:74:c0:bc";
+        };
+        "20-laptop-lan" = {
+          linkConfig.Name = "laptop-lan";
+          matchConfig.MACAddress = "74:5d:22:39:03:cf";
+        };
+        "20-laptop-wifi" = {
+          linkConfig.Name = "laptop-wifi";
+          matchConfig.MACAddress = "04:7b:cb:c1:96:22";
+        };
       };
-      "20-laptop-lan" = {
-        linkConfig.Name = "laptop-lan";
-        matchConfig.MACAddress = "74:5d:22:39:03:cf";
-      };
-      "20-laptop-wifi" = {
-        linkConfig.Name = "laptop-wifi";
-        matchConfig.MACAddress = "04:7b:cb:c1:96:22";
+    };
+    services = {
+      "disable-dock-acpi-wakeup" = {
+        description = "Disable ACPI wakeup for the Lenovo dock";
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig.Type = "oneshot";
+        script = ''
+          if grep --quiet "^XHC4.*enabled" /proc/acpi/wakeup; then
+            echo "XHC4" > /proc/acpi/wakeup
+          fi
+        '';
       };
     };
   };

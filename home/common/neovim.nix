@@ -4,6 +4,9 @@
   pkgs,
   ...
 }:
+let
+  debugpyVenv = pkgs.python3.withPackages (ps: [ ps.debugpy ]);
+in
 {
   options.lab.neovim = {
     useOsc52 = lib.mkEnableOption "enable osc52 ssh copy/paste";
@@ -19,6 +22,7 @@
           vim.o.termguicolors = true
           vim.api.nvim_set_hl(0, 'WinBar', { link = 'Normal' })
           vim.api.nvim_set_hl(0, 'WinBarNC', { fg = '#707070', bg = 'none' })
+          vim.api.nvim_set_hl(0, 'Normal', { bg = 'none' })
           vim.g.loaded_netrw = 1
           vim.g.loaded_netrwPlugin = 1
           vim.g.mapleader = ' '
@@ -49,7 +53,7 @@
           vim.o.laststatus = 2
           vim.o.pumblend = 0
           vim.o.shiftwidth = 0
-          vim.o.signcolumn = 'no'
+          vim.o.signcolumn = 'yes:1'
           vim.o.shortmess = 'AFOTWiost'
           vim.o.statusline = table.concat({
             ' ',
@@ -76,6 +80,7 @@
           vim.o.cpoptions = 'ABFaces'
           vim.opt.completeopt = { 'menuone', 'noinsert', 'popup' }
           vim.opt.foldmarker = { '{{{', '}}}' }
+          vim.opt.jumpoptions = { 'clean', 'stack' }
           vim.opt.listchars = { extends = '▸', nbsp = '◇', tab = '│ ', trail = '∘', leadmultispace = '│   ' }
           vim.opt.matchpairs = { '(:)', '{:}', '[:]', '<:>', '«:»' }
 
@@ -190,6 +195,118 @@
                   },
                 },
               })
+            '';
+          }
+          {
+            plugin = pkgs.vimPlugins.nvim-dap-view;
+            type = "lua";
+            config = /* lua */ ''
+              DapView = require('dap-view')
+              DapView.setup({
+                auto_toggle = true,
+              })
+            '';
+          }
+          {
+            plugin = pkgs.vimPlugins.nvim-dap;
+            type = "lua";
+            config = /* lua */ ''
+              local Dap = require('dap')
+
+              Dap.adapters.python = {
+                type = 'executable',
+                command = "${lib.getExe debugpyVenv}",
+                args = { '-m', 'debugpy.adapter' },
+              }
+
+              local function open_dap_scratchpad(on_saved_callback)
+                local current_file = vim.fn.expand('%:p')
+                if current_file == "" then current_file = vim.fn.getcwd() .. '/main.py' end
+                local template = string.format([[
+                return {
+                    program = '%s',
+                    args = {
+                    },
+
+                    name = 'Session',
+                    type = 'python',
+                    request = 'launch',
+                    pythonPath = '${lib.getExe debugpyVenv}',
+                }
+                ]], current_file)
+                local buf = vim.api.nvim_create_buf(false, true)
+                vim.bo[buf].filetype = 'lua'
+                vim.bo[buf].buftype = 'nofile'
+                local width = math.min(80, vim.o.columns - 10)
+                local height = 15
+                local row = math.floor((vim.o.lines - height) / 2)
+                local col = math.floor((vim.o.columns - width) / 2)
+                local win = vim.api.nvim_open_win(buf, true, {
+                  relative = 'editor',
+                  width = width,
+                  height = height,
+                  row = row,
+                  col = col,
+                  style = 'minimal',
+                  border = 'rounded',
+                  title = ' DAP Session Configurator ',
+                  title_pos = 'center',
+                })
+                vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(template, '\n', { plain = true }))
+
+                local function save_and_run()
+                  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+                  local code_string = table.concat(lines, '\n')
+                  local chunk, err = load(code_string)
+                  if not chunk then
+                    vim.notify('DAP Config Parse Error: ' .. tostring(err), vim.log.levels.ERROR)
+                    return
+                  end
+                  local success, config = pcall(chunk)
+                  if not success or type(config) ~= 'table' then
+                    vim.notify('DAP Config Error: Must return a valid table.', vim.log.levels.ERROR)
+                    return
+                  end
+                  Dap.configurations.python = { config }
+                  if vim.api.nvim_win_is_valid(win) then
+                    vim.api.nvim_win_close(win, true)
+                  end
+                  if on_saved_callback then
+                    on_saved_callback()
+                  end
+                end
+                vim.keymap.set('n', '<CR>', save_and_run, { buffer = buf, desc = 'Save DAP config' })
+              end
+
+              local function dap_run()
+                if Dap.configurations.python then
+                  Dap.continue()
+                else
+                  open_dap_scratchpad(Dap.continue)
+                end
+              end
+
+              local function dap_edit_config()
+                open_dap_scratchpad(function()
+                  vim.notify('DAP configuration saved for session', vim.log.levels.INFO)
+                end)
+              end
+
+              vim.keymap.set('n', '<leader>de', dap_edit_config, { desc = 'Edit DAP config' })
+              vim.keymap.set('n', '<leader>dr', dap_run, { desc = 'Run DAP' })
+
+              vim.keymap.set('n', '<F5>', Dap.continue, { desc = 'Continue DAP' })
+              vim.keymap.set('n', '<F9>', Dap.toggle_breakpoint, { desc = 'Toggle DAP breakpoint' })
+              vim.keymap.set('n', '<F10>', Dap.step_over, { desc = 'DAP step over' })
+              vim.keymap.set('n', '<F11>', Dap.step_into, { desc = 'DAP step into' })
+              vim.keymap.set('n', '<F12>', Dap.step_out, { desc = 'DAP step out' })
+              vim.keymap.set('n', '<F21>', Dap.clear_breakpoints, { desc = 'Toggle DAP breakpoint' })
+              vim.keymap.set('n', '<leader>dq', Dap.terminate, { desc = 'Terminate DAP session' })
+
+              vim.keymap.set('n', '<leader>dn', '<cmd>DapNew<CR>')
+              vim.keymap.set('n', '<leader>dd', '<cmd>DapViewToggle<CR>')
+              vim.keymap.set('n', '<leader>dv', '<cmd>DapViewVirtualTextToggle<CR>')
+              vim.keymap.set('n', '<leader>dw', '<cmd>DapViewWatch<CR>')
             '';
           }
         ]

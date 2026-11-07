@@ -1,10 +1,10 @@
 {
+  inputs,
   config,
   lib,
   osConfig,
   pkgs,
   identities,
-  writeZsh,
   writeZshBin,
   ...
 }:
@@ -20,19 +20,11 @@ let
     if [[ $? -eq 0 && -n "$response" ]]; then
       typeset -a resp_lines
       resp_lines=( ''${(f)response} )
-      ${pkgs.wl-clipboard}/bin/wl-copy <<< "https://$resp_lines[1]"
+      printf "https://$resp_lines[1]" | ${pkgs.wl-clipboard}/bin/wl-copy
       ${pkgs.hyprland}/bin/hyprctl notify 0 5000 "rgb(52FFFF)" "Uploaded: $resp_lines[1] (Copied to clipboard)"
     else
       ${pkgs.hyprland}/bin/hyprctl notify 3 5000 "rgb(FF0000)" "Upload failed!"
     fi
-  '';
-
-  vlog = writeZshBin "vlog" /* zsh */ ''
-    setopt ERR_EXIT NO_UNSET PIPE_FAIL
-    filter='. | "[\(.__REALTIME_TIMESTAMP | tonumber / 1000000 | strflocaltime("%H:%M:%S"))] \(.MESSAGE)"'
-    ${pkgs.systemd}/bin/journalctl --user --unit=notification-logger "$@" --output=json \
-      | ${pkgs.jq}/bin/jq --raw-output "$filter" \
-      | less +G
   '';
 
   monitors = [
@@ -73,7 +65,6 @@ in
     packages = builtins.attrValues {
       inherit
         stpepog-upload
-        vlog
         ;
 
       inherit (pkgs)
@@ -81,16 +72,18 @@ in
         koreader
         libnotify
         mpv
+        nix-output-monitor
         scrcpy
-        telegram-desktop
         wl-clipboard
         ;
     };
     pointerCursor = {
       enable = true;
-      package = pkgs.phinger-cursors;
-      name = "phinger-cursors-dark";
-      hyprcursor.enable = true;
+      package = pkgs.catppuccin-cursors.mochaTeal;
+      name = "catppuccin-mocha-teal-cursors";
+      hyprcursor = {
+        enable = true;
+      };
     };
     sessionVariables = {
       BROWSER = "firefox";
@@ -106,18 +99,24 @@ in
   ];
 
   programs = {
-    yazi = {
+    bat = {
       enable = true;
-      shellWrapperName = "y";
+    };
+    delta = {
+      enable = true;
+      enableGitIntegration = true;
+      enableJujutsuIntegration = true;
     };
     direnv = {
       enable = true;
     };
-    neovim = {
-      initLua = /* lua */ ''
-        vim.env.nix = '/persist/nixos'
-        vim.env.personal = '${config.home.homeDirectory}/Projects/personal'
-      '';
+    eza = {
+      enable = true;
+      git = true;
+      icons = "auto";
+      extraOptions = [
+        "--group-directories-first"
+      ];
     };
     firefox = {
       enable = true;
@@ -139,6 +138,11 @@ in
             installation_mode = "force_installed";
           };
         };
+      };
+    };
+    git = {
+      settings = {
+        core.pager = "${lib.getExe pkgs.bat} --style=plain --color=always";
       };
     };
     hyprlock = {
@@ -182,6 +186,10 @@ in
     };
     joplin-desktop = {
       enable = true;
+
+      # TODO: remove unstable package version at 26.11
+      package = inputs.nixpkgs-unstable.legacyPackages.${pkgs.stdenv.hostPlatform.system}.joplin-desktop;
+
       general.editor = "${lib.getExe pkgs.wezterm} start -- ${lib.getExe config.programs.neovim.finalPackage}";
       extraConfig = {
         "sync.9.path" = "https://joplin.${osConfig.networking.domain}";
@@ -205,6 +213,15 @@ in
           key = "EB37A6ACFEC39658";
         };
       };
+    };
+    neovim = {
+      initLua = /* lua */ ''
+        vim.env.nix = '/persist/nixos'
+        vim.env.personal = '${config.home.homeDirectory}/Projects/personal'
+      '';
+    };
+    obs-studio = {
+      enable = true;
     };
     wezterm = {
       enable = true;
@@ -275,7 +292,11 @@ in
         }
       '';
     };
-    obs-studio = {
+    yazi = {
+      enable = true;
+      shellWrapperName = "y";
+    };
+    zoxide = {
       enable = true;
     };
     zsh = {
@@ -284,7 +305,11 @@ in
           printf "\033]1337;SetUserVar=%s=%s\007" "IN_NIX_SHELL" "$(print -n "$IN_NIX_SHELL" | base64)"
           print -Pn "\e]2;%~\a"
         }
+        function set_running_title() {
+          print -Pn "\e]2;$1\a"
+        }
         add-zsh-hook precmd reset_prog_title
+        add-zsh-hook preexec set_running_title
       '';
       dirHashes = {
         nix = "/persist/nixos";
@@ -303,12 +328,10 @@ in
       enable = true;
       settings = {
         general = {
-          after_sleep_cmd = ''
-            ${pkgs.hyprland}/bin/hyprctl dispatch 'hl.dsp.dpms({ action = "on" })'
-          '';
-          before_sleep_cmd = "${pkgs.systemd}/bin/loginctl lock-session";
-          lock_cmd = "${pkgs.procps}/bin/pidof --single-shot hyprlock || ${lib.getExe pkgs.hyprlock}";
+          lock_cmd = "${pkgs.procps}/bin/pidof --single-shot hyprlock || ${lib.getExe pkgs.hyprlock} --grace 0";
           unlock_cmd = "${pkgs.procps}/bin/pkill -USR1 hyprlock";
+          before_sleep_cmd = "${pkgs.systemd}/bin/loginctl lock-session";
+          after_sleep_cmd = "${pkgs.hyprland}/bin/hyprctl dispatch 'hl.dsp.dpms({ action = \"on\" })'";
         };
         listener = [
           {
@@ -317,12 +340,8 @@ in
           }
           {
             timeout = 1200;
-            on-timeout = ''
-              ${pkgs.hyprland}/bin/hyprctl dispatch 'hl.dsp.dpms({ action = "off" })'
-            '';
-            on-resume = ''
-              ${pkgs.hyprland}/bin/hyprctl dispatch 'hl.dsp.dpms({ action = "on" })'
-            '';
+            on-timeout = "${pkgs.hyprland}/bin/hyprctl dispatch 'hl.dsp.dpms({ action = \"off\" })'";
+            on-resume = "${pkgs.hyprland}/bin/hyprctl dispatch 'hl.dsp.dpms({ action = \"on\" })'";
           }
           {
             timeout = 1800;
@@ -385,50 +404,6 @@ in
       hyprlauncher = {
         Install.WantedBy = lib.mkForce [ ];
       };
-
-      notification-logger = {
-        Install = {
-          WantedBy = [ "graphical-session.target" ];
-        };
-        Service = {
-          ExecStart = writeZsh "notification-logger.zsh" /* zsh */ ''
-            setopt ERR_EXIT NO_UNSET PIPE_FAIL
-            busctl_match=(
-                interface=org.freedesktop.Notifications
-                member=Notify
-                type=method_call
-            )
-            ${pkgs.systemd}/bin/busctl --user --json=short --match="''${(j:,:)busctl_match[@]}" monitor \
-                | ${lib.getExe pkgs.jq} --unbuffered --compact-output --raw-output \
-                  '.payload.data | [.[0], .[3], .[4]] | @tsv' \
-                | while IFS=$'\t' read -r app_name summary body; do
-              if [[ "$app_name" == "Telegram Desktop" ]]; then
-                if [[ "$body" =~ 'Reacted (.*) to your (.*)' ]]; then
-                  body_str=" $match[1] ($match[2])"
-                else
-                  body_str=": $body"
-                fi
-                if [[ "$summary" == Kittykins ]]; then
-                  print -r -- "<5>💜 $summary$body_str"
-                else
-                  print -r -- " $summary$body_str"
-                fi
-              else
-                print -r -- "($app_name)🔔 $summary - $body"
-              fi
-            done
-          '';
-          SyslogIdentifier = "notification-logger";
-          Restart = "always";
-          RestartSec = 10;
-        };
-        Unit = {
-          After = [ "graphical-session.target" ];
-          ConditionEnvironment = "WAYLAND_DISPLAY";
-          Description = "dbus notification logging service";
-          PartOf = "graphical-session.target";
-        };
-      };
       hyprnotify = {
         Install = {
           WantedBy = [ "graphical-session.target" ];
@@ -476,7 +451,7 @@ in
       "stpepog-upload" = {
         name = "Upload Latest Screenshot";
         genericName = "Screenshot Uploader";
-        exec = "stpepog-upload";
+        exec = "${lib.getExe stpepog-upload}";
         icon = "camera-photo";
         terminal = true;
         categories = [ "Utility" ];

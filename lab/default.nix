@@ -24,7 +24,6 @@
     ./nextcloud.nix
     ./postfix.nix
     ./postgres.nix
-    ./tailscale.nix
     ./vaultwarden.nix
   ];
 

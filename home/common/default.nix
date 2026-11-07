@@ -124,6 +124,8 @@
       enable = true;
       enableCompletion = true;
       defaultKeymap = "viins";
+      autosuggestion.enable = true;
+      syntaxHighlighting.enable = true;
       dotDir = "${config.xdg.configHome}/zsh";
       history = {
         append = true;
@@ -190,18 +192,19 @@
           bindkey -M menuselect '^p'   vi-up-line-or-history
           bindkey -M menuselect '^y'   accept-line
           bindkey -M vicmd      '.'    vi-yank-arg
-          bindkey -M vicmd      '^[OF' end-of-line
-          bindkey -M vicmd      '^[OH' beginning-of-line
+          bindkey -M vicmd      '^[[F' end-of-line
+          bindkey -M vicmd      '^[[H' beginning-of-line
           bindkey -M vicmd      'z='   spell-word
+          bindkey -M viins      ' '    magic-space
           bindkey -M viins      '^?'   backward-delete-char
           bindkey -M viins      '^B'   beginning-of-line
           bindkey -M viins      '^E'   end-of-line
           bindkey -M viins      '^W'   backward-kill-word
-          bindkey -M viins      '^[OA' history-beginning-search-backward
-          bindkey -M viins      '^[OB' history-beginning-search-forward
-          bindkey -M viins      '^[OF' end-of-line
-          bindkey -M viins      '^[OH' beginning-of-line
-          bindkey -M viins      '§'    closest-history-match-accept
+          bindkey -M viins      '^[[A' history-beginning-search-backward
+          bindkey -M viins      '^[[B' history-beginning-search-forward
+          bindkey -M viins      '^[[F' end-of-line
+          bindkey -M viins      '^[[H' beginning-of-line
+          bindkey -M viins      '§'    autosuggest-accept
           bindkey -M visual     '¤'    edit-command-line
 
           if [[ "$aliases[run-help]" == 'man' ]]; then
@@ -249,10 +252,6 @@
             NUMERIC=1 zle .vi-add-next
             zle .insert-last-word
           }
-          function _closest-history-match-accept() {
-              zle history-beginning-search-backward
-              zle end-of-line
-          }
 
           function _in_nix_shell() {
             if (( ''${+IN_NIX_SHELL} )); then
@@ -287,10 +286,10 @@
           }
           zle -N zle-keymap-select
           zle -N edit-command-line
-          zle -N closest-history-match-accept _closest-history-match-accept
           zle -N vi-yank-arg _vi-yank-arg
           autoload -Uz edit-command-line
           autoload -Uz run-help
+          autoload -Uz zcalc
         '')
       ];
       localVariables = {
@@ -307,8 +306,8 @@
       };
       shellAliases = {
         edit-var = "builtin vared -i edit-command-line";
+        zc = "zcalc";
       };
-      syntaxHighlighting.enable = true;
     };
   };
 

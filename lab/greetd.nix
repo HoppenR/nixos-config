@@ -52,6 +52,9 @@ let
     "--time"
     "--time-format %R"
     "--user-menu"
+    "--user-menu-min-uid 1000"
+    # NOTE: nixbld users start at 30001
+    "--user-menu-max-uid 30000"
   ]
   ++ lib.optional config.lab.greetd.useZshLogin "--cmd 'zsh --login'";
 in

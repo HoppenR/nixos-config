@@ -62,6 +62,7 @@ in
                 hw_mode = "g";
                 ieee80211n = 1;
                 # TODO: figure out why this didn't work on some older devices
+                #       (like TV)
                 # ieee80211ax = 1;
                 # ieee80211w = 1;
               };
