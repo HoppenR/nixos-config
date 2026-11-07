@@ -218,27 +218,56 @@ in
                 command = "${lib.getExe debugpyVenv}",
                 args = { '-m', 'debugpy.adapter' },
               }
+              local saved_python_config_buffer = nil
 
-              local function open_dap_scratchpad(on_saved_callback)
+              local function generate_template()
+                if saved_python_config_buffer ~= nil then
+                  return saved_python_config_buffer
+                end
                 local current_file = vim.fn.expand('%:p')
-                if current_file == "" then current_file = vim.fn.getcwd() .. '/main.py' end
+                local git_repo = ""
+                if vim.b.gitsigns_status_dict ~= nil then
+                  git_repo = vim.b.gitsigns_status_dict.root
+                else
+                  git_repo = "my_repo"
+                end
+                local wa = vim.env.WA or "/wa/" .. vim.env.USER
+                local workspaces = {
+                  ['current'] = wa .. '/workspaces/current',
+                  ['next'] = wa .. '/workspaces/next',
+                  ['review'] = wa .. '/workspaces/review',
+                }
+                local ws = workspaces[vim.env.WS] or wa
+                local ws_repo = ws .. "/" .. git_repo
                 local template = string.format([[
                 return {
-                    program = '%s',
-                    args = {
-                    },
+                  program = "%s",
+                  -- program = "''${file}",
+                  -- program = "%s",
+                  args = {
+                  },
+                  -- env = {
+                  -- },
+                  -- cwd = "%s",
 
-                    name = 'Session',
-                    type = 'python',
-                    request = 'launch',
-                    pythonPath = '${lib.getExe debugpyVenv}',
+                  name = 'Session',
+                  type = 'python',
+                  request = 'launch',
+                  pythonPath = function()
+                    return '${lib.getExe debugpyVenv}'
+                  end,
                 }
-                ]], current_file)
+                ]], current_file, ws_repo, ws_repo)
+                return template
+              end
+
+              local function open_dap_scratchpad(on_saved_callback)
+                template = generate_template()
                 local buf = vim.api.nvim_create_buf(false, true)
                 vim.bo[buf].filetype = 'lua'
                 vim.bo[buf].buftype = 'nofile'
                 local width = math.min(80, vim.o.columns - 10)
-                local height = 15
+                local height = 20
                 local row = math.floor((vim.o.lines - height) / 2)
                 local col = math.floor((vim.o.columns - width) / 2)
                 local win = vim.api.nvim_open_win(buf, true, {
@@ -268,6 +297,7 @@ in
                     return
                   end
                   Dap.configurations.python = { config }
+                  saved_python_config_buffer = code_string
                   if vim.api.nvim_win_is_valid(win) then
                     vim.api.nvim_win_close(win, true)
                   end
@@ -276,6 +306,7 @@ in
                   end
                 end
                 vim.keymap.set('n', '<CR>', save_and_run, { buffer = buf, desc = 'Save DAP config' })
+                vim.keymap.set('n', 'q', '<cmd>q<CR>', { buffer = buf, desc = 'Abandon DAP config' })
               end
 
               local function dap_run()
@@ -296,6 +327,7 @@ in
               vim.keymap.set('n', '<leader>dr', dap_run, { desc = 'Run DAP' })
 
               vim.keymap.set('n', '<F5>', Dap.continue, { desc = 'Continue DAP' })
+              vim.keymap.set('n', '<F8>', ":lua require('dap').toggle_breakpoint([[]])<Left><Left><Left>", { desc = 'Toggle DAP breakpoint with condition' })
               vim.keymap.set('n', '<F9>', Dap.toggle_breakpoint, { desc = 'Toggle DAP breakpoint' })
               vim.keymap.set('n', '<F10>', Dap.step_over, { desc = 'DAP step over' })
               vim.keymap.set('n', '<F11>', Dap.step_into, { desc = 'DAP step into' })
